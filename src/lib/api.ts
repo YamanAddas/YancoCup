@@ -4,7 +4,7 @@
  */
 
 const WORKER_URL =
-  import.meta.env.VITE_WORKER_URL ?? "https://yancocup-api.yamanaddas.workers.dev";
+  import.meta.env.VITE_WORKER_URL ?? "https://yancocup-api.catbyte1985.workers.dev";
 
 // Match ID mapping: our schedule ID -> football-data.org API ID
 import matchIdMap from "../data/match-id-map.json";

@@ -5,7 +5,7 @@ compatibility_date = "2025-04-01"
 # KV namespace for cached scores
 [[kv_namespaces]]
 binding = "SCORES_KV"
-id = "PLACEHOLDER_KV_ID"
+id = "c28d05b0f84a402aa441c0473de4a35a"
 
 # Cron Triggers — poll live scores during match windows
 # Every 60 seconds during tournament (June 11 - July 19, 2026)
