@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import {
   Globe as GlobeIcon,
   Calendar,
+  Users,
   Trophy,
   BarChart3,
   Tv,
@@ -10,6 +11,7 @@ import {
 const links = [
   { to: "/", label: "Home", icon: GlobeIcon },
   { to: "/matches", label: "Matches", icon: Calendar },
+  { to: "/groups", label: "Groups", icon: Users },
   { to: "/predictions", label: "Predictions", icon: Trophy },
   { to: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
   { to: "/watch", label: "Watch", icon: Tv },
