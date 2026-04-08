@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Lock, Check, Loader2, Users as UsersIcon } from "lucide-react";
+import { Lock, Check, Loader2, Users as UsersIcon, Share2 } from "lucide-react";
 import { upsertPrediction, canPredict } from "../../hooks/usePredictions";
+import { buildShareText, sharePrediction } from "../../lib/share";
 import type { Match, Team, Venue } from "../../types";
 import type { Prediction } from "../../hooks/usePredictions";
 
@@ -38,6 +39,7 @@ export default function PredictionCard({
   );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const hasPrediction = prediction !== undefined;
@@ -62,6 +64,19 @@ export default function PredictionCard({
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       onSaved();
+    }
+  };
+
+  const handleShare = async () => {
+    if (!home || !away || !prediction) return;
+    const text = buildShareText(match, home, away, prediction.home_score, prediction.away_score);
+    const result = await sharePrediction(text);
+    if (result === "copied") {
+      setShareStatus("Copied!");
+      setTimeout(() => setShareStatus(null), 2000);
+    } else if (result === "failed") {
+      setShareStatus("Failed");
+      setTimeout(() => setShareStatus(null), 2000);
     }
   };
 
@@ -186,6 +201,17 @@ export default function PredictionCard({
               <Check size={12} />
             ) : null}
             {saved ? "Saved" : hasPrediction ? "Update" : "Save"}
+          </button>
+        )}
+
+        {hasPrediction && (
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-yc-text-tertiary hover:text-yc-text-primary transition-colors"
+            title="Share prediction"
+          >
+            <Share2 size={12} />
+            {shareStatus ?? "Share"}
           </button>
         )}
 
