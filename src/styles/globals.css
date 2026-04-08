@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  /* Background */
+  --color-yc-bg-deep: #0a0a0a;
+  --color-yc-bg-surface: #1a1a1a;
+  --color-yc-bg-elevated: #222222;
+
+  /* Green accent */
+  --color-yc-green: #00ff88;
+  --color-yc-green-muted: #00cc6a;
+  --color-yc-green-dark: #004d29;
+
+  /* Text */
+  --color-yc-text-primary: #ffffff;
+  --color-yc-text-secondary: #a0a0a0;
+  --color-yc-text-tertiary: #666666;
+
+  /* Borders */
+  --color-yc-border: #2a2a2a;
+  --color-yc-border-hover: #3a3a3a;
+
+  /* Status */
+  --color-yc-danger: #ff4444;
+  --color-yc-warning: #ffaa00;
+  --color-yc-info: #4488ff;
+
+  /* Fonts */
+  --font-heading: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* Glass surface — not expressible as a flat color token */
+:root {
+  --yc-bg-glass: rgba(26, 26, 26, 0.85);
+  --yc-green-glow: rgba(0, 255, 136, 0.15);
+  --yc-border-accent: rgba(0, 255, 136, 0.2);
+}
+
+/* Always dark — no light mode */
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: #0a0a0a;
+  color: #ffffff;
+  font-family: "Inter", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
