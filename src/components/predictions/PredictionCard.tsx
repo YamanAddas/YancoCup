@@ -190,10 +190,25 @@ export default function PredictionCard({
         )}
 
         {locked && hasPrediction && (
-          <span className="flex items-center gap-1 text-yc-green text-xs">
-            <Check size={12} />
-            {prediction.home_score} : {prediction.away_score}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 text-yc-text-secondary text-xs">
+              <Check size={12} className="text-yc-green" />
+              {prediction.home_score} : {prediction.away_score}
+            </span>
+            {prediction.points !== null && (
+              <span
+                className={`font-mono text-xs font-bold px-1.5 py-0.5 rounded ${
+                  prediction.points >= 10
+                    ? "text-yc-green bg-yc-green-dark/30"
+                    : prediction.points > 0
+                      ? "text-yc-warning bg-yc-warning/10"
+                      : "text-yc-text-tertiary bg-yc-bg-elevated"
+                }`}
+              >
+                {prediction.points} pts
+              </span>
+            )}
+          </div>
         )}
       </div>
 
