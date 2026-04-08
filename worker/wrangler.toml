@@ -1,0 +1,17 @@
+name = "yancocup-api"
+main = "src/index.ts"
+compatibility_date = "2025-04-01"
+
+# KV namespace for cached scores
+[[kv_namespaces]]
+binding = "SCORES_KV"
+id = "PLACEHOLDER_KV_ID"
+
+# Cron Triggers — poll live scores during match windows
+# Every 60 seconds during tournament (June 11 - July 19, 2026)
+# Adjust schedule closer to tournament start
+[triggers]
+crons = ["* * * * *"]
+
+# Secrets (set via `wrangler secret put`):
+# FOOTBALL_DATA_API_KEY — football-data.org API key

@@ -1,0 +1,126 @@
+/**
+ * Frontend client for the YancoCup Cloudflare Worker API.
+ * All live score data flows through the Worker (never direct to football-data.org).
+ */
+
+const WORKER_URL =
+  import.meta.env.VITE_WORKER_URL ?? "https://yancocup-api.yamanaddas.workers.dev";
+
+// Match ID mapping: our schedule ID -> football-data.org API ID
+import matchIdMap from "../data/match-id-map.json";
+
+const idMap = matchIdMap as Record<string, number>;
+
+/** Convert our local match ID to the API's match ID */
+export function toApiId(localId: number): number | undefined {
+  return idMap[String(localId)];
+}
+
+/** Convert an API match ID back to our local ID */
+const reverseMap: Map<number, number> = new Map(
+  Object.entries(idMap).map(([local, api]) => [api, Number(local)]),
+);
+
+export function toLocalId(apiId: number): number | undefined {
+  return reverseMap.get(apiId);
+}
+
+// ---------------------------------------------------------------------------
+// Types (mirror Worker response shapes)
+// ---------------------------------------------------------------------------
+
+export interface LiveMatchScore {
+  apiId: number;
+  utcDate: string;
+  status: string; // TIMED | IN_PLAY | PAUSED | FINISHED | POSTPONED | CANCELLED | SUSPENDED
+  stage: string;
+  group: string | null;
+  homeTeam: string | null; // TLA
+  awayTeam: string | null;
+  homeScore: number | null;
+  awayScore: number | null;
+  halfTimeHome: number | null;
+  halfTimeAway: number | null;
+  winner: string | null;
+}
+
+export interface StandingTeam {
+  position: number;
+  team: { tla: string; name: string; shortName: string };
+  playedGames: number;
+  won: number;
+  draw: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+}
+
+export interface GroupStanding {
+  group: string;
+  table: StandingTeam[];
+}
+
+// ---------------------------------------------------------------------------
+// API functions
+// ---------------------------------------------------------------------------
+
+async function apiFetch<T>(path: string): Promise<T | null> {
+  try {
+    const res = await fetch(`${WORKER_URL}${path}`);
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    // Worker unreachable — graceful degradation
+    return null;
+  }
+}
+
+/** Fetch all match scores. Optionally filter by status or date. */
+export async function fetchScores(filters?: {
+  status?: string;
+  date?: string;
+}): Promise<LiveMatchScore[]> {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set("status", filters.status);
+  if (filters?.date) params.set("date", filters.date);
+  const qs = params.toString();
+  const path = `/api/scores${qs ? `?${qs}` : ""}`;
+  const data = await apiFetch<{ matches: LiveMatchScore[] }>(path);
+  return data?.matches ?? [];
+}
+
+/** Fetch group standings. */
+export async function fetchStandings(): Promise<GroupStanding[]> {
+  const data = await apiFetch<{ standings: GroupStanding[] }>("/api/standings");
+  return data?.standings ?? [];
+}
+
+/** Fetch a single match by API ID. */
+export async function fetchMatch(
+  apiId: number,
+): Promise<LiveMatchScore | null> {
+  const data = await apiFetch<{ match: LiveMatchScore }>(
+    `/api/match/${apiId}`,
+  );
+  return data?.match ?? null;
+}
+
+/** Fetch a single match by our local schedule ID. */
+export async function fetchMatchByLocalId(
+  localId: number,
+): Promise<LiveMatchScore | null> {
+  const apiId = toApiId(localId);
+  if (!apiId) return null;
+  return fetchMatch(apiId);
+}
+
+/** Check Worker health. */
+export async function fetchHealth(): Promise<{
+  status: string;
+  lastPoll: string | null;
+  timestamp: string;
+} | null> {
+  return apiFetch("/api/health");
+}
