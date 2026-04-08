@@ -4,18 +4,19 @@ import { useTeams, useTeamMap } from "../hooks/useTeams";
 import { useVenueMap, useVenues } from "../hooks/useVenues";
 import { useGroups } from "../hooks/useGroups";
 import { useScores } from "../hooks/useScores";
+import { useI18n } from "../lib/i18n";
 import MatchCard from "../components/match/MatchCard";
 import type { Match } from "../types";
 
-const ROUND_OPTIONS: { value: Match["round"] | ""; label: string }[] = [
-  { value: "", label: "All Rounds" },
-  { value: "group", label: "Group Stage" },
-  { value: "round-of-32", label: "Round of 32" },
-  { value: "round-of-16", label: "Round of 16" },
-  { value: "quarterfinal", label: "Quarterfinals" },
-  { value: "semifinal", label: "Semifinals" },
-  { value: "third-place", label: "3rd Place" },
-  { value: "final", label: "Final" },
+const ROUND_KEYS: { value: Match["round"] | ""; labelKey: string }[] = [
+  { value: "", labelKey: "matches.allRounds" },
+  { value: "group", labelKey: "round.group" },
+  { value: "round-of-32", labelKey: "round.roundOf32" },
+  { value: "round-of-16", labelKey: "round.roundOf16" },
+  { value: "quarterfinal", labelKey: "round.quarterfinal" },
+  { value: "semifinal", labelKey: "round.semifinal" },
+  { value: "third-place", labelKey: "round.thirdPlace" },
+  { value: "final", labelKey: "round.final" },
 ];
 
 function SelectFilter({
@@ -50,6 +51,7 @@ export default function MatchesPage() {
   const [group, setGroup] = useState("");
   const [team, setTeam] = useState("");
   const [venueId, setVenueId] = useState("");
+  const { t } = useI18n();
 
   const groups = useGroups();
   const teams = useTeams();
@@ -88,50 +90,51 @@ export default function MatchesPage() {
   };
 
   const hasFilters = round || group || team || venueId;
+  const countStr = matches.length !== 1
+    ? t("matches.countPlural", { count: matches.length })
+    : t("matches.count", { count: matches.length });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="font-heading text-2xl font-bold">Match Schedule</h2>
-          <p className="text-yc-text-tertiary text-sm mt-1">
-            {matches.length} match{matches.length !== 1 ? "es" : ""}
-          </p>
+          <h2 className="font-heading text-2xl font-bold">{t("matches.title")}</h2>
+          <p className="text-yc-text-tertiary text-sm mt-1">{countStr}</p>
         </div>
         {hasFilters && (
           <button
             onClick={clearFilters}
             className="text-yc-green text-sm hover:underline"
           >
-            Clear filters
+            {t("matches.clearFilters")}
           </button>
         )}
       </div>
 
       {/* Filters */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <SelectFilter label="Round" value={round} onChange={setRound}>
-          {ROUND_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+        <SelectFilter label={t("matches.filterRound")} value={round} onChange={setRound}>
+          {ROUND_KEYS.map((o) => (
+            <option key={o.value} value={o.value}>{t(o.labelKey)}</option>
           ))}
         </SelectFilter>
 
-        <SelectFilter label="Group" value={group} onChange={setGroup}>
-          <option value="">All Groups</option>
+        <SelectFilter label={t("matches.filterGroup")} value={group} onChange={setGroup}>
+          <option value="">{t("matches.allGroups")}</option>
           {groups.map((g) => (
-            <option key={g.id} value={g.id}>Group {g.id}</option>
+            <option key={g.id} value={g.id}>{t("match.group", { id: g.id })}</option>
           ))}
         </SelectFilter>
 
-        <SelectFilter label="Team" value={team} onChange={setTeam}>
-          <option value="">All Teams</option>
-          {teams.map((t) => (
-            <option key={t.id} value={t.id}>{t.name}</option>
+        <SelectFilter label={t("matches.filterTeam")} value={team} onChange={setTeam}>
+          <option value="">{t("matches.allTeams")}</option>
+          {teams.map((t_) => (
+            <option key={t_.id} value={t_.id}>{t_.name}</option>
           ))}
         </SelectFilter>
 
-        <SelectFilter label="Venue" value={venueId} onChange={setVenueId}>
-          <option value="">All Venues</option>
+        <SelectFilter label={t("matches.filterVenue")} value={venueId} onChange={setVenueId}>
+          <option value="">{t("matches.allVenues")}</option>
           {venues.map((v) => (
             <option key={v.id} value={v.id}>{v.name}</option>
           ))}
@@ -141,7 +144,7 @@ export default function MatchesPage() {
       {/* Match list grouped by date */}
       {matches.length === 0 ? (
         <p className="text-yc-text-tertiary text-sm text-center py-12">
-          No matches found for the selected filters.
+          {t("matches.noResults")}
         </p>
       ) : (
         <div className="space-y-8">

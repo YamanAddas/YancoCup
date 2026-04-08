@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./lib/auth";
+import { I18nProvider } from "./lib/i18n";
 import AppLayout from "./components/layout/AppLayout";
 import HomePage from "./pages/HomePage";
 import MatchesPage from "./pages/MatchesPage";
@@ -11,6 +12,7 @@ import SignInPage from "./pages/SignInPage";
 
 export default function App() {
   return (
+    <I18nProvider>
     <AuthProvider>
       <HashRouter>
         <Routes>
@@ -26,5 +28,6 @@ export default function App() {
         </Routes>
       </HashRouter>
     </AuthProvider>
+    </I18nProvider>
   );
 }

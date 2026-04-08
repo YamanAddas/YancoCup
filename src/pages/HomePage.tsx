@@ -8,6 +8,7 @@ import { useTeamMap } from "../hooks/useTeams";
 import { useVenueMap } from "../hooks/useVenues";
 import { useScores } from "../hooks/useScores";
 import { useLeaderboard } from "../hooks/useLeaderboard";
+import { useI18n } from "../lib/i18n";
 import ActivityFeed from "../components/activity/ActivityFeed";
 import { Trophy, ArrowRight, Calendar, BarChart3, Activity } from "lucide-react";
 
@@ -16,6 +17,7 @@ function TodaysMatches() {
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
   const { scoreMap } = useScores();
+  const { t } = useI18n();
 
   const todaysMatches = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -24,7 +26,7 @@ function TodaysMatches() {
 
   // If no matches today, show next upcoming matches
   const displayMatches = useMemo(() => {
-    if (todaysMatches.length > 0) return { matches: todaysMatches, label: "Today's Matches" };
+    if (todaysMatches.length > 0) return { matches: todaysMatches, label: t("home.todaysMatches") };
 
     const today = new Date().toISOString().slice(0, 10);
     const upcoming = allMatches.filter((m) => m.date > today);
@@ -37,11 +39,11 @@ function TodaysMatches() {
         month: "short",
         day: "numeric",
       });
-      return { matches: nextMatches, label: `Next Matches — ${dateLabel}` };
+      return { matches: nextMatches, label: `${t("home.nextMatches")} — ${dateLabel}` };
     }
 
-    return { matches: [], label: "No Upcoming Matches" };
-  }, [todaysMatches, allMatches]);
+    return { matches: [], label: t("home.noUpcoming") };
+  }, [todaysMatches, allMatches, t]);
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8 border-t border-yc-border">
@@ -54,13 +56,13 @@ function TodaysMatches() {
           to="/matches"
           className="flex items-center gap-1 text-yc-green text-sm hover:underline"
         >
-          All matches <ArrowRight size={14} />
+          {t("home.allMatches")} <ArrowRight size={14} />
         </NavLink>
       </div>
 
       {displayMatches.matches.length === 0 ? (
         <p className="text-yc-text-tertiary text-sm">
-          The tournament runs June 11 – July 19, 2026.
+          {t("home.tournamentDates")}
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -75,6 +77,7 @@ function TodaysMatches() {
 
 function LeaderboardSnippetInner() {
   const { entries, loading } = useLeaderboard();
+  const { t } = useI18n();
 
   if (loading) {
     return <div className="h-40 bg-yc-bg-elevated rounded-xl animate-pulse" />;
@@ -83,7 +86,7 @@ function LeaderboardSnippetInner() {
   if (entries.length === 0) {
     return (
       <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-6 text-center">
-        <p className="text-yc-text-tertiary text-sm">No players yet</p>
+        <p className="text-yc-text-tertiary text-sm">{t("home.noPlayers")}</p>
       </div>
     );
   }
@@ -120,6 +123,8 @@ function LeaderboardSnippetInner() {
 }
 
 export default function HomePage() {
+  const { t } = useI18n();
+
   return (
     <div>
       {/* Hero: globe + countdown side by side on desktop */}
@@ -129,16 +134,16 @@ export default function HomePage() {
         <div className="flex flex-col items-center lg:items-start gap-6">
           <div>
             <h2 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight mb-2">
-              World Cup <span className="text-yc-green">2026</span>
+              {t("home.title")} <span className="text-yc-green">{t("home.year")}</span>
             </h2>
             <p className="text-yc-text-secondary text-sm">
-              United States, Mexico &amp; Canada
+              {t("home.subtitle")}
             </p>
           </div>
 
           <div>
             <p className="text-yc-text-tertiary text-xs uppercase tracking-widest mb-3">
-              Kickoff in
+              {t("home.kickoffIn")}
             </p>
             <Countdown />
           </div>
@@ -148,7 +153,7 @@ export default function HomePage() {
             className="inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all"
           >
             <Trophy size={18} />
-            Predict matches with friends
+            {t("home.cta")}
           </a>
         </div>
       </section>
@@ -162,13 +167,13 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <BarChart3 size={18} className="text-yc-green" />
-              <h3 className="font-heading text-xl font-bold">Leaderboard</h3>
+              <h3 className="font-heading text-xl font-bold">{t("home.leaderboard")}</h3>
             </div>
             <NavLink
               to="/leaderboard"
               className="flex items-center gap-1 text-yc-green text-sm hover:underline"
             >
-              Full standings <ArrowRight size={14} />
+              {t("home.fullStandings")} <ArrowRight size={14} />
             </NavLink>
           </div>
           <LeaderboardSnippetInner />
@@ -178,7 +183,7 @@ export default function HomePage() {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Activity size={18} className="text-yc-green" />
-            <h3 className="font-heading text-xl font-bold">Recent Activity</h3>
+            <h3 className="font-heading text-xl font-bold">{t("home.recentActivity")}</h3>
           </div>
           <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-2">
             <ActivityFeed />

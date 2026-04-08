@@ -10,18 +10,21 @@ import {
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../../lib/auth";
+import { useI18n } from "../../lib/i18n";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const links = [
-  { to: "/", label: "Home", icon: GlobeIcon },
-  { to: "/matches", label: "Matches", icon: Calendar },
-  { to: "/groups", label: "Groups", icon: Users },
-  { to: "/predictions", label: "Predictions", icon: Trophy },
-  { to: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
-  { to: "/watch", label: "Watch", icon: Tv },
+  { to: "/", labelKey: "nav.home", icon: GlobeIcon },
+  { to: "/matches", labelKey: "nav.matches", icon: Calendar },
+  { to: "/groups", labelKey: "nav.groups", icon: Users },
+  { to: "/predictions", labelKey: "nav.predictions", icon: Trophy },
+  { to: "/leaderboard", labelKey: "nav.leaderboard", icon: BarChart3 },
+  { to: "/watch", labelKey: "nav.watch", icon: Tv },
 ] as const;
 
 export default function NavBar() {
   const { user, profile, loading, signOut } = useAuth();
+  const { t } = useI18n();
 
   return (
     <header className="sticky top-0 z-50 bg-[var(--yc-bg-glass)] backdrop-blur-xl border-b border-yc-border">
@@ -33,7 +36,7 @@ export default function NavBar() {
         </NavLink>
 
         <nav className="hidden sm:flex items-center gap-1">
-          {links.map(({ to, label, icon: Icon }) => (
+          {links.map(({ to, labelKey, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
@@ -47,13 +50,15 @@ export default function NavBar() {
               }
             >
               <Icon size={16} />
-              {label}
+              {t(labelKey)}
             </NavLink>
           ))}
         </nav>
 
-        {/* Auth */}
+        {/* Language + Auth */}
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+
           {loading ? (
             <div className="w-8 h-8 rounded-full bg-yc-bg-elevated animate-pulse" />
           ) : user ? (
@@ -77,7 +82,7 @@ export default function NavBar() {
               <button
                 onClick={signOut}
                 className="text-yc-text-tertiary hover:text-yc-text-primary transition-colors p-1.5"
-                title="Sign out"
+                title={t("nav.signOut")}
               >
                 <LogOut size={16} />
               </button>
@@ -88,7 +93,7 @@ export default function NavBar() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-yc-green hover:bg-yc-green-dark/30 transition-colors"
             >
               <LogIn size={16} />
-              <span className="hidden sm:inline">Sign In</span>
+              <span className="hidden sm:inline">{t("nav.signIn")}</span>
             </NavLink>
           )}
         </div>

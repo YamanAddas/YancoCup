@@ -1,23 +1,27 @@
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { useAuth } from "../lib/auth";
 import { useAutoScore } from "../hooks/useAutoScore";
+import { useI18n } from "../lib/i18n";
 import { Trophy, TrendingUp, Target, Award } from "lucide-react";
 
 export default function LeaderboardPage() {
   const { entries, loading } = useLeaderboard();
   const { user } = useAuth();
+  const { t } = useI18n();
   // Auto-score any unscored predictions when user views leaderboard
   useAutoScore();
+
+  const playerCount = entries.length !== 1
+    ? t("leaderboard.playersPlural", { count: entries.length })
+    : t("leaderboard.players", { count: entries.length });
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center gap-3 mb-6">
         <Trophy size={24} className="text-yc-green" />
         <div>
-          <h2 className="font-heading text-2xl font-bold">Leaderboard</h2>
-          <p className="text-yc-text-tertiary text-sm mt-0.5">
-            {entries.length} player{entries.length !== 1 ? "s" : ""} competing
-          </p>
+          <h2 className="font-heading text-2xl font-bold">{t("leaderboard.title")}</h2>
+          <p className="text-yc-text-tertiary text-sm mt-0.5">{playerCount}</p>
         </div>
       </div>
 
@@ -29,7 +33,7 @@ export default function LeaderboardPage() {
         <div className="text-center py-16">
           <Award size={48} className="text-yc-text-tertiary mx-auto mb-4" />
           <p className="text-yc-text-secondary text-sm">
-            No predictions yet. Be the first to predict!
+            {t("leaderboard.noPredictions")}
           </p>
         </div>
       ) : (
@@ -83,16 +87,16 @@ export default function LeaderboardPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-yc-text-tertiary text-xs uppercase tracking-wider border-b border-yc-border">
-                  <th className="text-left pl-4 py-3 w-12">#</th>
-                  <th className="text-left py-3">Player</th>
+                  <th className="text-left pl-4 py-3 w-12">{t("leaderboard.rank")}</th>
+                  <th className="text-left py-3">{t("leaderboard.player")}</th>
                   <th className="text-center py-3 w-16">
-                    <span className="hidden sm:inline">Points</span>
-                    <span className="sm:hidden">Pts</span>
+                    <span className="hidden sm:inline">{t("leaderboard.points")}</span>
+                    <span className="sm:hidden">{t("leaderboard.pts")}</span>
                   </th>
-                  <th className="text-center py-3 w-20 hidden sm:table-cell">Correct</th>
-                  <th className="text-center py-3 w-16 hidden sm:table-cell">Acc %</th>
+                  <th className="text-center py-3 w-20 hidden sm:table-cell">{t("leaderboard.correct")}</th>
+                  <th className="text-center py-3 w-16 hidden sm:table-cell">{t("leaderboard.accuracy")}</th>
                   <th className="text-center py-3 w-16 pr-4">
-                    <span title="Points Per Prediction" className="cursor-help">PPP</span>
+                    <span title="Points Per Prediction" className="cursor-help">{t("leaderboard.ppp")}</span>
                   </th>
                 </tr>
               </thead>
@@ -127,7 +131,7 @@ export default function LeaderboardPage() {
                               className={`font-medium truncate block ${isMe ? "text-yc-green" : "text-yc-text-primary"}`}
                             >
                               {entry.displayName ?? entry.handle}
-                              {isMe && <span className="text-yc-text-tertiary text-xs ml-1">(you)</span>}
+                              {isMe && <span className="text-yc-text-tertiary text-xs ml-1">{t("leaderboard.you")}</span>}
                             </span>
                           </div>
                         </div>
@@ -155,11 +159,11 @@ export default function LeaderboardPage() {
           <div className="mt-4 flex flex-wrap gap-4 text-xs text-yc-text-tertiary">
             <span className="flex items-center gap-1">
               <TrendingUp size={12} />
-              PPP = Points Per Prediction (fairer for late joiners)
+              {t("leaderboard.pppDesc")}
             </span>
             <span className="flex items-center gap-1">
               <Target size={12} />
-              Acc = predictions with any points / scored predictions
+              {t("leaderboard.accDesc")}
             </span>
           </div>
         </>

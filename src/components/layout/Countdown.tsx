@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useI18n } from "../../lib/i18n";
 
 const KICKOFF = new Date("2026-06-11T00:00:00Z").getTime();
 
@@ -34,6 +35,7 @@ function TimeBlock({ value, label }: { value: number; label: string }) {
 
 export default function Countdown() {
   const [time, setTime] = useState(getTimeLeft);
+  const { t } = useI18n();
 
   useEffect(() => {
     const id = setInterval(() => setTime(getTimeLeft()), 1000);
@@ -42,13 +44,13 @@ export default function Countdown() {
 
   return (
     <div className="flex items-center gap-4 sm:gap-6">
-      <TimeBlock value={time.days} label="days" />
+      <TimeBlock value={time.days} label={t("countdown.days")} />
       <span className="text-yc-text-tertiary text-2xl font-light">:</span>
-      <TimeBlock value={time.hours} label="hrs" />
+      <TimeBlock value={time.hours} label={t("countdown.hours")} />
       <span className="text-yc-text-tertiary text-2xl font-light">:</span>
-      <TimeBlock value={time.minutes} label="min" />
+      <TimeBlock value={time.minutes} label={t("countdown.min")} />
       <span className="text-yc-text-tertiary text-2xl font-light">:</span>
-      <TimeBlock value={time.seconds} label="sec" />
+      <TimeBlock value={time.seconds} label={t("countdown.sec")} />
     </div>
   );
 }

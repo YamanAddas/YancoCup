@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Tv, Radio, MonitorPlay, ExternalLink, Search } from "lucide-react";
+import { useI18n } from "../lib/i18n";
 import broadcastersData from "../data/broadcasters.json";
 
 const FLAG_BASE = "https://hatscripts.github.io/circle-flags/flags";
@@ -33,6 +34,7 @@ function typeLabel(type: Broadcaster["type"]): string {
 export default function WatchPage() {
   const [search, setSearch] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const { t } = useI18n();
 
   const filtered = useMemo(() => {
     if (!search.trim()) return data;
@@ -53,10 +55,10 @@ export default function WatchPage() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center gap-3 mb-2">
         <Tv size={24} className="text-yc-green" />
-        <h2 className="font-heading text-2xl font-bold">Where to Watch</h2>
+        <h2 className="font-heading text-2xl font-bold">{t("watch.title")}</h2>
       </div>
       <p className="text-yc-text-tertiary text-sm mb-6">
-        Find official broadcasters for the 2026 FIFA World Cup in your country.
+        {t("watch.subtitle")}
       </p>
 
       {/* Search */}
@@ -72,7 +74,7 @@ export default function WatchPage() {
             setSearch(e.target.value);
             setSelectedCountry(null);
           }}
-          placeholder="Search by country or broadcaster..."
+          placeholder={t("watch.search")}
           className="w-full bg-yc-bg-elevated border border-yc-border rounded-lg pl-9 pr-4 py-3 text-sm text-yc-text-primary placeholder:text-yc-text-tertiary focus:outline-none focus:border-yc-green-muted transition-colors"
         />
       </div>
@@ -103,7 +105,7 @@ export default function WatchPage() {
 
       {filtered.length === 0 && (
         <p className="text-yc-text-tertiary text-sm text-center py-8">
-          No broadcasters found for &ldquo;{search}&rdquo;.
+          {t("watch.noResults", { query: search })}
         </p>
       )}
 
@@ -153,13 +155,13 @@ export default function WatchPage() {
       {!selected && filtered.length > 0 && (
         <div className="text-center py-8">
           <p className="text-yc-text-tertiary text-sm">
-            Select your country above to see available broadcasters.
+            {t("watch.selectPrompt")}
           </p>
         </div>
       )}
 
       <p className="mt-8 text-center text-yc-text-tertiary text-xs">
-        Broadcast rights may vary. Check your local listings for confirmation.
+        {t("watch.disclaimer")}
       </p>
     </div>
   );

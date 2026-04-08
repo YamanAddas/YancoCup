@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
+import { useI18n } from "../lib/i18n";
 import { LogIn, UserPlus, Loader2 } from "lucide-react";
 
 type Mode = "sign-in" | "sign-up";
 
 export default function SignInPage() {
   const { user, signIn, signUp } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("sign-in");
   const [email, setEmail] = useState("");
@@ -30,7 +32,7 @@ export default function SignInPage() {
       err = await signIn(email, password);
     } else {
       if (!handle.trim()) {
-        setError("Handle is required");
+        setError(t("auth.handleRequired"));
         setSubmitting(false);
         return;
       }
@@ -49,12 +51,10 @@ export default function SignInPage() {
     <div className="max-w-md mx-auto px-4 py-16">
       <div className="text-center mb-8">
         <h1 className="font-heading text-3xl font-bold mb-2">
-          {mode === "sign-in" ? "Welcome back" : "Join YancoVerse"}
+          {mode === "sign-in" ? t("auth.welcomeBack") : t("auth.joinTitle")}
         </h1>
         <p className="text-yc-text-secondary text-sm">
-          {mode === "sign-in"
-            ? "Sign in with your YancoVerse account"
-            : "Create your account to predict matches"}
+          {mode === "sign-in" ? t("auth.signInDesc") : t("auth.signUpDesc")}
         </p>
       </div>
 
@@ -62,7 +62,7 @@ export default function SignInPage() {
         {mode === "sign-up" && (
           <div>
             <label className="block text-yc-text-tertiary text-xs uppercase tracking-widest mb-1.5">
-              Handle
+              {t("auth.handle")}
             </label>
             <input
               type="text"
@@ -77,7 +77,7 @@ export default function SignInPage() {
 
         <div>
           <label className="block text-yc-text-tertiary text-xs uppercase tracking-widest mb-1.5">
-            Email
+            {t("auth.email")}
           </label>
           <input
             type="email"
@@ -91,7 +91,7 @@ export default function SignInPage() {
 
         <div>
           <label className="block text-yc-text-tertiary text-xs uppercase tracking-widest mb-1.5">
-            Password
+            {t("auth.password")}
           </label>
           <input
             type="password"
@@ -122,7 +122,7 @@ export default function SignInPage() {
           ) : (
             <UserPlus size={18} />
           )}
-          {mode === "sign-in" ? "Sign In" : "Create Account"}
+          {mode === "sign-in" ? t("nav.signIn") : t("auth.createAccount")}
         </button>
       </form>
 
@@ -134,14 +134,12 @@ export default function SignInPage() {
           }}
           className="text-yc-text-secondary text-sm hover:text-yc-green transition-colors"
         >
-          {mode === "sign-in"
-            ? "Don't have an account? Sign up"
-            : "Already have an account? Sign in"}
+          {mode === "sign-in" ? t("auth.noAccount") : t("auth.hasAccount")}
         </button>
       </div>
 
       <p className="mt-8 text-center text-yc-text-tertiary text-xs">
-        One account for all YancoVerse products
+        {t("auth.unified")}
       </p>
     </div>
   );
