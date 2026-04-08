@@ -71,7 +71,8 @@
     "country": "Netherlands",
     "isoCode": "nl",
     "broadcasters": [
-      { "name": "NOS", "type": "both", "url": "https://nos.nl/sport" }
+      { "name": "NOS", "type": "both", "url": "https://nos.nl/sport" },
+      { "name": "NPO Start", "type": "streaming", "url": "https://www.npostart.nl" }
     ]
   },
   {
@@ -95,7 +96,8 @@
     "country": "Saudi Arabia",
     "isoCode": "sa",
     "broadcasters": [
-      { "name": "SSC (Saudi Sports Company)", "type": "both", "url": "https://ssc.sa" }
+      { "name": "SSC (Saudi Sports Company)", "type": "both", "url": "https://ssc.sa" },
+      { "name": "Shahid", "type": "streaming", "url": "https://shahid.mbc.net" }
     ]
   },
   {
