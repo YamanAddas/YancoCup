@@ -6,7 +6,8 @@ import MatchCard from "../components/match/MatchCard";
 import { useSchedule } from "../hooks/useSchedule";
 import { useTeamMap } from "../hooks/useTeams";
 import { useVenueMap } from "../hooks/useVenues";
-import { Trophy, ArrowRight, Calendar } from "lucide-react";
+import { useLeaderboard } from "../hooks/useLeaderboard";
+import { Trophy, ArrowRight, Calendar, BarChart3 } from "lucide-react";
 
 function TodaysMatches() {
   const allMatches = useSchedule();
@@ -69,6 +70,57 @@ function TodaysMatches() {
   );
 }
 
+function LeaderboardSnippet() {
+  const { entries, loading } = useLeaderboard();
+
+  if (loading || entries.length === 0) return null;
+
+  const top5 = entries.slice(0, 5);
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8 border-t border-yc-border">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <BarChart3 size={18} className="text-yc-green" />
+          <h3 className="font-heading text-xl font-bold">Leaderboard</h3>
+        </div>
+        <NavLink
+          to="/leaderboard"
+          className="flex items-center gap-1 text-yc-green text-sm hover:underline"
+        >
+          Full standings <ArrowRight size={14} />
+        </NavLink>
+      </div>
+
+      <div className="bg-yc-bg-surface border border-yc-border rounded-xl overflow-hidden">
+        {top5.map((entry, i) => (
+          <div
+            key={entry.userId}
+            className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-yc-border/50" : ""}`}
+          >
+            <span className="font-mono text-yc-text-tertiary text-sm w-5 text-right">
+              {i + 1}
+            </span>
+            {entry.avatarUrl ? (
+              <img src={entry.avatarUrl} alt="" className="w-7 h-7 rounded-full" />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-yc-bg-elevated flex items-center justify-center text-xs font-bold text-yc-text-secondary">
+                {entry.handle.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className="text-yc-text-primary text-sm font-medium flex-1 truncate">
+              {entry.displayName ?? entry.handle}
+            </span>
+            <span className="text-yc-green font-mono text-sm font-bold">
+              {entry.totalPoints} pts
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function HomePage() {
   return (
     <div>
@@ -104,6 +156,7 @@ export default function HomePage() {
       </section>
 
       <TodaysMatches />
+      <LeaderboardSnippet />
     </div>
   );
 }
