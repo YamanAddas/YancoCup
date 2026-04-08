@@ -1,0 +1,123 @@
+[
+  {
+    "country": "United States",
+    "isoCode": "us",
+    "broadcasters": [
+      { "name": "FOX Sports", "type": "both", "url": "https://www.foxsports.com" },
+      { "name": "Telemundo", "type": "both", "url": "https://www.telemundo.com/deportes" },
+      { "name": "Peacock", "type": "streaming", "url": "https://www.peacocktv.com" }
+    ]
+  },
+  {
+    "country": "United Kingdom",
+    "isoCode": "gb",
+    "broadcasters": [
+      { "name": "BBC", "type": "both", "url": "https://www.bbc.co.uk/sport/football" },
+      { "name": "ITV", "type": "both", "url": "https://www.itv.com/sport" }
+    ]
+  },
+  {
+    "country": "Canada",
+    "isoCode": "ca",
+    "broadcasters": [
+      { "name": "TSN", "type": "both", "url": "https://www.tsn.ca" },
+      { "name": "RDS", "type": "both", "url": "https://www.rds.ca" },
+      { "name": "CTV", "type": "tv", "url": "https://www.ctv.ca" }
+    ]
+  },
+  {
+    "country": "Mexico",
+    "isoCode": "mx",
+    "broadcasters": [
+      { "name": "Televisa (Las Estrellas)", "type": "both", "url": "https://www.lasestrellas.tv" },
+      { "name": "TV Azteca", "type": "both", "url": "https://www.tvazteca.com/aztecadeportes" },
+      { "name": "TUDN", "type": "both", "url": "https://www.tudn.com" },
+      { "name": "ViX", "type": "streaming", "url": "https://www.vix.com" }
+    ]
+  },
+  {
+    "country": "Germany",
+    "isoCode": "de",
+    "broadcasters": [
+      { "name": "ARD", "type": "tv", "url": "https://www.sportschau.de" },
+      { "name": "ZDF", "type": "tv", "url": "https://www.zdf.de/sport" },
+      { "name": "MagentaTV", "type": "streaming", "url": "https://www.magentatv.de" }
+    ]
+  },
+  {
+    "country": "France",
+    "isoCode": "fr",
+    "broadcasters": [
+      { "name": "TF1", "type": "both", "url": "https://www.tf1.fr" },
+      { "name": "beIN Sports", "type": "both", "url": "https://www.beinsports.com/france" }
+    ]
+  },
+  {
+    "country": "Spain",
+    "isoCode": "es",
+    "broadcasters": [
+      { "name": "RTVE", "type": "both", "url": "https://www.rtve.es/deportes" },
+      { "name": "Movistar Plus+", "type": "both", "url": "https://www.movistarplus.es" }
+    ]
+  },
+  {
+    "country": "Italy",
+    "isoCode": "it",
+    "broadcasters": [
+      { "name": "RAI", "type": "both", "url": "https://www.raisport.rai.it" }
+    ]
+  },
+  {
+    "country": "Netherlands",
+    "isoCode": "nl",
+    "broadcasters": [
+      { "name": "NOS", "type": "both", "url": "https://nos.nl/sport" }
+    ]
+  },
+  {
+    "country": "Portugal",
+    "isoCode": "pt",
+    "broadcasters": [
+      { "name": "RTP", "type": "both", "url": "https://www.rtp.pt/desporto" },
+      { "name": "Sport TV", "type": "both", "url": "https://www.sporttv.pt" }
+    ]
+  },
+  {
+    "country": "Brazil",
+    "isoCode": "br",
+    "broadcasters": [
+      { "name": "TV Globo", "type": "both", "url": "https://ge.globo.com" },
+      { "name": "CazéTV", "type": "streaming", "url": "https://www.youtube.com/@CazeTVOficial" },
+      { "name": "Globoplay", "type": "streaming", "url": "https://globoplay.globo.com" }
+    ]
+  },
+  {
+    "country": "Saudi Arabia",
+    "isoCode": "sa",
+    "broadcasters": [
+      { "name": "SSC (Saudi Sports Company)", "type": "both", "url": "https://ssc.sa" }
+    ]
+  },
+  {
+    "country": "Jordan",
+    "isoCode": "jo",
+    "broadcasters": [
+      { "name": "beIN Sports", "type": "both", "url": "https://www.beinsports.com" }
+    ]
+  },
+  {
+    "country": "UAE",
+    "isoCode": "ae",
+    "broadcasters": [
+      { "name": "beIN Sports", "type": "both", "url": "https://www.beinsports.com" }
+    ]
+  },
+  {
+    "country": "Australia",
+    "isoCode": "au",
+    "broadcasters": [
+      { "name": "SBS", "type": "both", "url": "https://www.sbs.com.au/sport" },
+      { "name": "Optus Sport", "type": "streaming", "url": "https://sport.optus.com.au" }
+    ]
+  }
+]
