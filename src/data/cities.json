@@ -1,0 +1,146 @@
+[
+  {
+    "id": "nyc",
+    "city": "New York / New Jersey",
+    "country": "USA",
+    "lat": 40.8135,
+    "lng": -74.0745,
+    "venue": "MetLife Stadium",
+    "capacity": 82500
+  },
+  {
+    "id": "la",
+    "city": "Los Angeles",
+    "country": "USA",
+    "lat": 33.9535,
+    "lng": -118.3392,
+    "venue": "SoFi Stadium",
+    "capacity": 70240
+  },
+  {
+    "id": "dallas",
+    "city": "Dallas",
+    "country": "USA",
+    "lat": 32.7473,
+    "lng": -97.0945,
+    "venue": "AT&T Stadium",
+    "capacity": 80000
+  },
+  {
+    "id": "miami",
+    "city": "Miami",
+    "country": "USA",
+    "lat": 25.958,
+    "lng": -80.2389,
+    "venue": "Hard Rock Stadium",
+    "capacity": 64767
+  },
+  {
+    "id": "atlanta",
+    "city": "Atlanta",
+    "country": "USA",
+    "lat": 33.7554,
+    "lng": -84.4005,
+    "venue": "Mercedes-Benz Stadium",
+    "capacity": 71000
+  },
+  {
+    "id": "houston",
+    "city": "Houston",
+    "country": "USA",
+    "lat": 29.6847,
+    "lng": -95.4107,
+    "venue": "NRG Stadium",
+    "capacity": 72220
+  },
+  {
+    "id": "philadelphia",
+    "city": "Philadelphia",
+    "country": "USA",
+    "lat": 39.9008,
+    "lng": -75.1675,
+    "venue": "Lincoln Financial Field",
+    "capacity": 69176
+  },
+  {
+    "id": "seattle",
+    "city": "Seattle",
+    "country": "USA",
+    "lat": 47.5952,
+    "lng": -122.3316,
+    "venue": "Lumen Field",
+    "capacity": 68740
+  },
+  {
+    "id": "sf",
+    "city": "San Francisco Bay Area",
+    "country": "USA",
+    "lat": 37.4033,
+    "lng": -121.9694,
+    "venue": "Levi's Stadium",
+    "capacity": 68500
+  },
+  {
+    "id": "boston",
+    "city": "Boston / Foxborough",
+    "country": "USA",
+    "lat": 42.0909,
+    "lng": -71.2643,
+    "venue": "Gillette Stadium",
+    "capacity": 65878
+  },
+  {
+    "id": "kc",
+    "city": "Kansas City",
+    "country": "USA",
+    "lat": 39.0489,
+    "lng": -94.484,
+    "venue": "GEHA Field at Arrowhead Stadium",
+    "capacity": 76416
+  },
+  {
+    "id": "mexico",
+    "city": "Mexico City",
+    "country": "Mexico",
+    "lat": 19.3029,
+    "lng": -99.1505,
+    "venue": "Estadio Azteca",
+    "capacity": 87523
+  },
+  {
+    "id": "monterrey",
+    "city": "Monterrey",
+    "country": "Mexico",
+    "lat": 25.6699,
+    "lng": -100.2443,
+    "venue": "Estadio BBVA",
+    "capacity": 53500
+  },
+  {
+    "id": "guadalajara",
+    "city": "Guadalajara",
+    "country": "Mexico",
+    "lat": 20.68,
+    "lng": -103.4625,
+    "venue": "Estadio Akron",
+    "capacity": 49850
+  },
+  {
+    "id": "toronto",
+    "city": "Toronto",
+    "country": "Canada",
+    "lat": 43.6332,
+    "lng": -79.4185,
+    "venue": "BMO Field",
+    "capacity": 45736
+  },
+  {
+    "id": "vancouver",
+    "city": "Vancouver",
+    "country": "Canada",
+    "lat": 49.2768,
+    "lng": -123.112,
+    "venue": "BC Place",
+    "capacity": 54500
+  }
+]

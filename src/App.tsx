@@ -1,20 +1,23 @@
-import GlobeView from "./components/globe/GlobeView";
+import { HashRouter, Routes, Route } from "react-router-dom";
+import AppLayout from "./components/layout/AppLayout";
+import HomePage from "./pages/HomePage";
+import MatchesPage from "./pages/MatchesPage";
+import PredictionsPage from "./pages/PredictionsPage";
+import LeaderboardPage from "./pages/LeaderboardPage";
+import WatchPage from "./pages/WatchPage";
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-yc-bg-deep text-yc-text-primary font-body">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-yc-border">
-        <h1 className="font-heading text-2xl font-bold tracking-tight">
-          Yanco<span className="text-yc-green">Cup</span>
-        </h1>
-        <span className="text-yc-text-tertiary text-sm font-mono">
-          World Cup 2026
-        </span>
-      </header>
-
-      <main className="relative">
-        <GlobeView />
-      </main>
-    </div>
+    <HashRouter>
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="matches" element={<MatchesPage />} />
+          <Route path="predictions" element={<PredictionsPage />} />
+          <Route path="leaderboard" element={<LeaderboardPage />} />
+          <Route path="watch" element={<WatchPage />} />
+        </Route>
+      </Routes>
+    </HashRouter>
   );
 }
