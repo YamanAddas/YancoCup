@@ -73,6 +73,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, handle: string) => {
+    const normalizedHandle = handle.toLowerCase();
+
+    // Check handle availability before creating auth user
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("handle")
+      .eq("handle", normalizedHandle)
+      .maybeSingle();
+    if (existing) return "Handle already taken. Try a different one.";
+
     // Create auth user
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) return error.message;
@@ -81,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Create profile row (unified YancoVerse profile)
     const { error: profileError } = await supabase.from("profiles").insert({
       id: data.user.id,
-      handle: handle.toLowerCase(),
+      handle: normalizedHandle,
       display_name: handle,
     });
     if (profileError) return profileError.message;
@@ -89,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Also create public profile
     const { error: publicError } = await supabase.from("profiles_public").insert({
       id: data.user.id,
-      handle: handle.toLowerCase(),
+      handle: normalizedHandle,
       display_name: handle,
     });
     if (publicError) return publicError.message;

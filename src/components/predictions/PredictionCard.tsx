@@ -50,8 +50,8 @@ export default function PredictionCard({
   const handleSave = async () => {
     const h = parseInt(homeScore, 10);
     const a = parseInt(awayScore, 10);
-    if (isNaN(h) || isNaN(a) || h < 0 || a < 0) {
-      setError("Enter valid scores");
+    if (isNaN(h) || isNaN(a) || h < 0 || a < 0 || h > 99 || a > 99) {
+      setError("Enter valid scores (0-99)");
       return;
     }
     setSaving(true);

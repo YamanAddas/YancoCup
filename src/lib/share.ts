@@ -15,7 +15,7 @@ export function buildShareText(
     `${match.group ? `Group ${match.group}` : match.round} | FIFA World Cup 2026`,
     "",
     "Predict yours at YancoCup",
-    "https://yamanaddas.github.io/YancoCup/#/predictions",
+    `${window.location.origin}${window.location.pathname}#/predictions`,
   ].join("\n");
 }
 
