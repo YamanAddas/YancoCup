@@ -1,5 +1,6 @@
 import { MapPin, Clock } from "lucide-react";
 import type { Match, Team, Venue } from "../../types";
+import type { LocalLiveScore } from "../../hooks/useScores";
 
 const FLAG_BASE = "https://hatscripts.github.io/circle-flags/flags";
 
@@ -57,31 +58,63 @@ function roundLabel(round: Match["round"]): string {
   return labels[round];
 }
 
+/** Status badge for match state */
+function StatusBadge({ status }: { status: string }) {
+  if (status === "IN_PLAY" || status === "PAUSED") {
+    return (
+      <span className="flex items-center gap-1.5 text-yc-green text-xs font-medium">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yc-green opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-yc-green" />
+        </span>
+        {status === "PAUSED" ? "HT" : "LIVE"}
+      </span>
+    );
+  }
+  if (status === "FINISHED") {
+    return <span className="text-yc-text-tertiary text-xs font-medium">FT</span>;
+  }
+  return null;
+}
+
 interface MatchCardProps {
   match: Match;
   teamMap: Map<string, Team>;
   venueMap: Map<string, Venue>;
+  liveScore?: LocalLiveScore;
   compact?: boolean;
 }
 
-export default function MatchCard({ match, teamMap, venueMap, compact }: MatchCardProps) {
+export default function MatchCard({ match, teamMap, venueMap, liveScore, compact }: MatchCardProps) {
   const home = match.homeTeam ? teamMap.get(match.homeTeam) : undefined;
   const away = match.awayTeam ? teamMap.get(match.awayTeam) : undefined;
   const venue = venueMap.get(match.venueId);
 
+  const isLive = liveScore?.status === "IN_PLAY" || liveScore?.status === "PAUSED";
+  const isFinished = liveScore?.status === "FINISHED";
+  const hasScore = liveScore && liveScore.homeScore !== null && liveScore.awayScore !== null;
+
   return (
-    <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-4 hover:border-yc-border-hover transition-colors">
+    <div
+      className={`bg-yc-bg-surface border rounded-xl p-4 transition-colors ${
+        isLive
+          ? "border-yc-green-muted/50 shadow-[0_0_12px_rgba(0,255,136,0.08)]"
+          : "border-yc-border hover:border-yc-border-hover"
+      }`}
+    >
       {/* Header: round + group badge */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-yc-text-tertiary text-xs uppercase tracking-wider">
           {match.group ? `Group ${match.group}` : roundLabel(match.round)}
         </span>
-        <span className="text-yc-text-tertiary text-xs">
-          #{match.id}
-        </span>
+        {liveScore ? (
+          <StatusBadge status={liveScore.status} />
+        ) : (
+          <span className="text-yc-text-tertiary text-xs">#{match.id}</span>
+        )}
       </div>
 
-      {/* Teams + time */}
+      {/* Teams + score/time */}
       <div className="flex items-center gap-3">
         {home ? (
           <TeamBadge team={home} side="home" />
@@ -90,11 +123,30 @@ export default function MatchCard({ match, teamMap, venueMap, compact }: MatchCa
         )}
 
         <div className="flex flex-col items-center gap-0.5 shrink-0 min-w-[60px]">
-          <span className="text-yc-green font-mono text-lg font-bold">vs</span>
-          <div className="flex items-center gap-1 text-yc-text-secondary">
-            <Clock size={10} />
-            <span className="text-[11px]">{formatMatchTime(match.date, match.time)}</span>
-          </div>
+          {hasScore ? (
+            <>
+              <span
+                className={`font-mono text-xl font-bold ${
+                  isLive ? "text-yc-green" : isFinished ? "text-yc-text-primary" : "text-yc-text-secondary"
+                }`}
+              >
+                {liveScore.homeScore} - {liveScore.awayScore}
+              </span>
+              {liveScore.halfTimeHome !== null && liveScore.halfTimeAway !== null && isFinished && (
+                <span className="text-yc-text-tertiary text-[10px] font-mono">
+                  HT {liveScore.halfTimeHome}-{liveScore.halfTimeAway}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="text-yc-green font-mono text-lg font-bold">vs</span>
+              <div className="flex items-center gap-1 text-yc-text-secondary">
+                <Clock size={10} />
+                <span className="text-[11px]">{formatMatchTime(match.date, match.time)}</span>
+              </div>
+            </>
+          )}
         </div>
 
         {away ? (

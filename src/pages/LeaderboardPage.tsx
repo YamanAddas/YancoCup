@@ -1,10 +1,13 @@
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { useAuth } from "../lib/auth";
+import { useAutoScore } from "../hooks/useAutoScore";
 import { Trophy, TrendingUp, Target, Award } from "lucide-react";
 
 export default function LeaderboardPage() {
   const { entries, loading } = useLeaderboard();
   const { user } = useAuth();
+  // Auto-score any unscored predictions when user views leaderboard
+  useAutoScore();
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">

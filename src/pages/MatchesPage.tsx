@@ -3,6 +3,7 @@ import { useSchedule } from "../hooks/useSchedule";
 import { useTeams, useTeamMap } from "../hooks/useTeams";
 import { useVenueMap, useVenues } from "../hooks/useVenues";
 import { useGroups } from "../hooks/useGroups";
+import { useScores } from "../hooks/useScores";
 import MatchCard from "../components/match/MatchCard";
 import type { Match } from "../types";
 
@@ -55,6 +56,7 @@ export default function MatchesPage() {
   const venues = useVenues();
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
+  const { scoreMap } = useScores();
 
   const filters = useMemo(() => {
     const f: Record<string, string> = {};
@@ -160,6 +162,7 @@ export default function MatchesPage() {
                     match={m}
                     teamMap={teamMap}
                     venueMap={venueMap}
+                    liveScore={scoreMap.get(m.id)}
                   />
                 ))}
               </div>

@@ -6,6 +6,7 @@ import MatchCard from "../components/match/MatchCard";
 import { useSchedule } from "../hooks/useSchedule";
 import { useTeamMap } from "../hooks/useTeams";
 import { useVenueMap } from "../hooks/useVenues";
+import { useScores } from "../hooks/useScores";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import ActivityFeed from "../components/activity/ActivityFeed";
 import { Trophy, ArrowRight, Calendar, BarChart3, Activity } from "lucide-react";
@@ -14,6 +15,7 @@ function TodaysMatches() {
   const allMatches = useSchedule();
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
+  const { scoreMap } = useScores();
 
   const todaysMatches = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -63,7 +65,7 @@ function TodaysMatches() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {displayMatches.matches.slice(0, 6).map((m) => (
-            <MatchCard key={m.id} match={m} teamMap={teamMap} venueMap={venueMap} compact />
+            <MatchCard key={m.id} match={m} teamMap={teamMap} venueMap={venueMap} liveScore={scoreMap.get(m.id)} compact />
           ))}
         </div>
       )}

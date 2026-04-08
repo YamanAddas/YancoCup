@@ -5,10 +5,10 @@ import { useSchedule } from "../hooks/useSchedule";
 import { useTeamMap } from "../hooks/useTeams";
 import { useVenueMap } from "../hooks/useVenues";
 import {
-  useMyPredictions,
   usePredictionCounts,
   canPredict,
 } from "../hooks/usePredictions";
+import { useAutoScore } from "../hooks/useAutoScore";
 import PredictionCard from "../components/predictions/PredictionCard";
 import HowToPlay from "../components/predictions/HowToPlay";
 import { LogIn, AlertCircle } from "lucide-react";
@@ -18,7 +18,7 @@ export default function PredictionsPage() {
   const allMatches = useSchedule();
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
-  const { predictions, loading: predsLoading, refresh } = useMyPredictions();
+  const { predictions, predsLoading, refresh } = useAutoScore();
   const predictionCounts = usePredictionCounts();
 
   const predictionMap = useMemo(
