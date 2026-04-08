@@ -19,28 +19,19 @@ export function useLeaderboard() {
 
   useEffect(() => {
     async function fetch() {
-      // Fetch all scored predictions
+      // Single query for all predictions
       const { data: predictions } = await supabase
         .from("yc_predictions")
         .select("user_id, points, scored_at");
 
-      // Fetch all profiles that have predictions
-      const { data: allPredictions } = await supabase
-        .from("yc_predictions")
-        .select("user_id");
-
-      if (!predictions || !allPredictions) {
-        setLoading(false);
-        return;
-      }
-
-      // Get unique user IDs who have any predictions
-      const userIds = [...new Set(allPredictions.map((p) => p.user_id))];
-      if (userIds.length === 0) {
+      if (!predictions || predictions.length === 0) {
         setEntries([]);
         setLoading(false);
         return;
       }
+
+      // Get unique user IDs
+      const userIds = [...new Set(predictions.map((p) => p.user_id))];
 
       // Fetch profiles
       const { data: profiles } = await supabase
@@ -52,35 +43,31 @@ export function useLeaderboard() {
         (profiles ?? []).map((p) => [p.id, p]),
       );
 
-      // Count total predictions per user
-      const totalMap = new Map<string, number>();
-      for (const p of allPredictions) {
-        totalMap.set(p.user_id, (totalMap.get(p.user_id) ?? 0) + 1);
-      }
-
-      // Aggregate scored predictions
+      // Aggregate all predictions per user
       const statsMap = new Map<
         string,
-        { points: number; correct: number; scored: number }
+        { points: number; correct: number; scored: number; total: number }
       >();
       for (const p of predictions) {
-        if (p.scored_at === null) continue;
         const existing = statsMap.get(p.user_id) ?? {
           points: 0,
           correct: 0,
           scored: 0,
+          total: 0,
         };
-        existing.points += p.points ?? 0;
-        if ((p.points ?? 0) > 0) existing.correct++;
-        existing.scored++;
+        existing.total++;
+        if (p.scored_at !== null) {
+          existing.points += p.points ?? 0;
+          if ((p.points ?? 0) > 0) existing.correct++;
+          existing.scored++;
+        }
         statsMap.set(p.user_id, existing);
       }
 
       // Build leaderboard
       const board: LeaderboardEntry[] = userIds.map((uid) => {
         const profile = profileMap.get(uid);
-        const stats = statsMap.get(uid) ?? { points: 0, correct: 0, scored: 0 };
-        const total = totalMap.get(uid) ?? 0;
+        const stats = statsMap.get(uid) ?? { points: 0, correct: 0, scored: 0, total: 0 };
         return {
           userId: uid,
           handle: profile?.handle ?? "unknown",
@@ -88,9 +75,9 @@ export function useLeaderboard() {
           avatarUrl: profile?.avatar_url ?? null,
           totalPoints: stats.points,
           correctPredictions: stats.correct,
-          totalPredictions: total,
+          totalPredictions: stats.total,
           accuracy: stats.scored > 0 ? Math.round((stats.correct / stats.scored) * 100) : 0,
-          pointsPerPrediction: total > 0 ? Math.round((stats.points / total) * 100) / 100 : 0,
+          pointsPerPrediction: stats.total > 0 ? Math.round((stats.points / stats.total) * 100) / 100 : 0,
         };
       });
 

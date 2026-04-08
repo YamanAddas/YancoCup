@@ -89,20 +89,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!data.user) return "Sign up failed";
 
     // Create profile row (unified YancoVerse profile)
+    // profiles_public is auto-synced by trg_sync_profiles_public_from_profiles trigger
     const { error: profileError } = await supabase.from("profiles").insert({
       id: data.user.id,
       handle: normalizedHandle,
       display_name: handle,
     });
     if (profileError) return profileError.message;
-
-    // Also create public profile
-    const { error: publicError } = await supabase.from("profiles_public").insert({
-      id: data.user.id,
-      handle: normalizedHandle,
-      display_name: handle,
-    });
-    if (publicError) return publicError.message;
 
     return null;
   }, []);

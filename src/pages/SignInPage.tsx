@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { LogIn, UserPlus, Loader2 } from "lucide-react";
 
@@ -17,8 +17,7 @@ export default function SignInPage() {
 
   // Redirect if already signed in
   if (user) {
-    navigate("/", { replace: true });
-    return null;
+    return <Navigate to="/" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

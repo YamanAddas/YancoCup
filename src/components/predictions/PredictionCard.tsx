@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Lock, Check, Loader2, Users as UsersIcon, Share2 } from "lucide-react";
 import { upsertPrediction, canPredict } from "../../hooks/usePredictions";
 import { buildShareText, sharePrediction } from "../../lib/share";
@@ -31,13 +31,17 @@ export default function PredictionCard({
   const venue = venueMap.get(match.venueId);
   const locked = !canPredict(match.date, match.time);
 
-  const [homeScore, setHomeScore] = useState<string>(
-    prediction ? String(prediction.home_score) : "",
-  );
-  const [awayScore, setAwayScore] = useState<string>(
-    prediction ? String(prediction.away_score) : "",
-  );
+  const [homeScore, setHomeScore] = useState<string>("");
+  const [awayScore, setAwayScore] = useState<string>("");
   const [saving, setSaving] = useState(false);
+
+  // Sync local state when prediction data loads from Supabase
+  useEffect(() => {
+    if (prediction) {
+      setHomeScore(String(prediction.home_score));
+      setAwayScore(String(prediction.away_score));
+    }
+  }, [prediction]);
   const [saved, setSaved] = useState(false);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

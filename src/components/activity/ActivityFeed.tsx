@@ -1,6 +1,7 @@
 import { useActivityFeed } from "../../hooks/useActivityFeed";
 import { useTeamMap } from "../../hooks/useTeams";
 import { useSchedule } from "../../hooks/useSchedule";
+import { canPredict } from "../../hooks/usePredictions";
 import type { Match } from "../../types";
 
 const FLAG_BASE = "https://hatscripts.github.io/circle-flags/flags";
@@ -47,6 +48,8 @@ export default function ActivityFeed() {
         const match = matchMap.get(item.matchId);
         const home = match?.homeTeam ? teamMap.get(match.homeTeam) : undefined;
         const away = match?.awayTeam ? teamMap.get(match.awayTeam) : undefined;
+        // Hide scores for matches that haven't kicked off yet (prevent copying)
+        const matchStarted = match ? !canPredict(match.date, match.time) : false;
 
         return (
           <div
@@ -76,9 +79,13 @@ export default function ActivityFeed() {
                 {home && away ? (
                   <span className="text-yc-text-secondary">
                     {home.fifaCode}{" "}
-                    <span className="text-yc-green font-mono font-bold">
-                      {item.homeScore}-{item.awayScore}
-                    </span>{" "}
+                    {matchStarted ? (
+                      <span className="text-yc-green font-mono font-bold">
+                        {item.homeScore}-{item.awayScore}
+                      </span>
+                    ) : (
+                      <span className="text-yc-text-tertiary font-mono">?-?</span>
+                    )}{" "}
                     {away.fifaCode}
                   </span>
                 ) : (
