@@ -2,8 +2,8 @@ import { Info } from "lucide-react";
 
 const rules = [
   { label: "Exact score", points: 10, example: "You: 2-1, Result: 2-1" },
-  { label: "Correct result + goal difference", points: 5, example: "You: 3-1, Result: 2-0" },
-  { label: "Correct result only", points: 3, example: "You: 2-0, Result: 1-0" },
+  { label: "Correct goal difference", points: 5, example: "You: 3-1, Result: 2-0" },
+  { label: "Correct winner/draw", points: 3, example: "You: 1-0, Result: 3-0" },
   { label: "Wrong", points: 0, example: "You: 2-0, Result: 0-1" },
 ];
 
