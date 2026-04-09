@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import TeamCrest from "../components/match/TeamCrest";
@@ -155,16 +156,19 @@ export default function StandingsPage() {
                       {row.position}
                     </td>
                     <td className="py-2.5 px-2">
-                      <div className="flex items-center gap-2">
+                      <Link
+                        to={`/${comp.id}/team/${row.team.id}`}
+                        className="flex items-center gap-2 hover:text-yc-green transition-colors"
+                      >
                         <TeamCrest
                           tla={row.team.tla}
                           crest={row.team.crest}
                           size="sm"
                         />
-                        <span className="text-yc-text-primary font-medium truncate">
+                        <span className="font-medium truncate">
                           {row.team.shortName}
                         </span>
-                      </div>
+                      </Link>
                     </td>
                     <td className="py-2.5 px-2 text-center text-yc-text-secondary">
                       {row.playedGames}

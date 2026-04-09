@@ -561,6 +561,36 @@ app.get("/api/:comp/matches", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /api/:comp/teams — team squads for a competition (on-demand, 24hr cache)
+// ---------------------------------------------------------------------------
+
+app.get("/api/:comp/teams", async (c) => {
+  const comp = c.req.param("comp").toUpperCase();
+  if (!(comp in COMPETITIONS)) {
+    return c.json({ error: `Unknown competition: ${comp}` }, 404);
+  }
+
+  const cacheKey = `${comp}:teams`;
+  const cached = await c.env.SCORES_KV.get(cacheKey);
+  if (cached) return c.json(JSON.parse(cached));
+
+  const res = await fetchFromFootballData(
+    `/competitions/${comp}/teams`,
+    c.env.FOOTBALL_DATA_API_KEY,
+  );
+
+  if (!res.ok) {
+    return c.json({ error: `Failed to fetch teams for ${comp}` }, 502);
+  }
+
+  const data = (await res.json()) as Record<string, unknown>;
+  await kvPut(c.env.SCORES_KV, cacheKey, JSON.stringify(data), {
+    expirationTtl: 86400,
+  });
+  return c.json(data);
+});
+
+// ---------------------------------------------------------------------------
 // Backward-compatible aliases (existing frontend uses these)
 // ---------------------------------------------------------------------------
 

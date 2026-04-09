@@ -9,6 +9,7 @@ import AppLayout from "./components/layout/AppLayout";
 import HomePage from "./pages/HomePage";
 const MatchesPage = lazy(() => import("./pages/MatchesPage"));
 const MatchDetailPage = lazy(() => import("./pages/MatchDetailPage"));
+const TeamPage = lazy(() => import("./pages/TeamPage"));
 const GroupsPage = lazy(() => import("./pages/GroupsPage"));
 const StandingsPage = lazy(() => import("./pages/StandingsPage"));
 const PredictionsPage = lazy(() => import("./pages/PredictionsPage"));
@@ -61,6 +62,14 @@ export default function App() {
                   element={
                     <CompetitionLayout>
                       <MatchDetailPage />
+                    </CompetitionLayout>
+                  }
+                />
+                <Route
+                  path=":competition/team/:teamId"
+                  element={
+                    <CompetitionLayout>
+                      <TeamPage />
                     </CompetitionLayout>
                   }
                 />

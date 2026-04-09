@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Clock, MapPin } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
@@ -556,7 +556,7 @@ export default function MatchDetailPage() {
         {/* Teams + score */}
         <div className="flex items-center justify-center gap-4 sm:gap-8">
           {/* Home */}
-          <div className="flex flex-col items-center gap-2 flex-1">
+          <Link to={`/${comp.id}/team/${match.homeTeam.id}`} className="flex flex-col items-center gap-2 flex-1 hover:opacity-80 transition-opacity">
             <TeamCrest
               tla={match.homeTeam.tla}
               crest={match.homeTeam.crest}
@@ -565,7 +565,7 @@ export default function MatchDetailPage() {
             <p className="text-sm sm:text-base font-semibold text-yc-text-primary text-center">
               {match.homeTeam.shortName}
             </p>
-          </div>
+          </Link>
 
           {/* Score */}
           <div className="flex flex-col items-center gap-1 shrink-0">
@@ -596,7 +596,7 @@ export default function MatchDetailPage() {
           </div>
 
           {/* Away */}
-          <div className="flex flex-col items-center gap-2 flex-1">
+          <Link to={`/${comp.id}/team/${match.awayTeam.id}`} className="flex flex-col items-center gap-2 flex-1 hover:opacity-80 transition-opacity">
             <TeamCrest
               tla={match.awayTeam.tla}
               crest={match.awayTeam.crest}
@@ -605,7 +605,7 @@ export default function MatchDetailPage() {
             <p className="text-sm sm:text-base font-semibold text-yc-text-primary text-center">
               {match.awayTeam.shortName}
             </p>
-          </div>
+          </Link>
         </div>
 
         {/* Meta row */}
