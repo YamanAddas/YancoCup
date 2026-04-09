@@ -171,6 +171,20 @@ function transformMatch(m: FDMatch): MatchScore {
   };
 }
 
+/** Safe KV put — silently handles daily write limit errors */
+async function kvPut(
+  kv: KVNamespace,
+  key: string,
+  value: string,
+  opts?: { expirationTtl: number },
+): Promise<void> {
+  try {
+    await kv.put(key, value, opts);
+  } catch {
+    // KV daily write limit exceeded — skip silently, data will refresh next cycle
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Cron handler — polls upstream, writes to KV
 // ---------------------------------------------------------------------------
@@ -180,7 +194,7 @@ async function handleCron(env: Env): Promise<void> {
     // Get tick count for periodic actions
     const tickStr = await env.SCORES_KV.get(KV_TICK);
     const tick = tickStr ? parseInt(tickStr, 10) + 1 : 1;
-    await env.SCORES_KV.put(KV_TICK, String(tick));
+    await kvPut(env.SCORES_KV,KV_TICK, String(tick));
 
     // -----------------------------------------------------------------------
     // Every tick: fetch ALL matches across all competitions (single API call)
@@ -214,7 +228,7 @@ async function handleCron(env: Env): Promise<void> {
         }
 
         // Store individual match detail
-        await env.SCORES_KV.put(kvMatch(m.id), JSON.stringify(score), {
+        await kvPut(env.SCORES_KV,kvMatch(m.id), JSON.stringify(score), {
           expirationTtl: 300,
         });
       }
@@ -233,13 +247,13 @@ async function handleCron(env: Env): Promise<void> {
           merged = [...kept, ...scores];
         }
 
-        await env.SCORES_KV.put(kvScores(code), JSON.stringify(merged), {
+        await kvPut(env.SCORES_KV,kvScores(code), JSON.stringify(merged), {
           expirationTtl: 600,
         });
       }
 
       // Store all live matches
-      await env.SCORES_KV.put("all:live", JSON.stringify(allLive), {
+      await kvPut(env.SCORES_KV,"all:live", JSON.stringify(allLive), {
         expirationTtl: 120,
       });
     }
@@ -273,7 +287,7 @@ async function handleCron(env: Env): Promise<void> {
           byComp.get(score.competitionCode)!.push(score);
 
           // Store individual match detail
-          await env.SCORES_KV.put(kvMatch(m.id), JSON.stringify(score), {
+          await kvPut(env.SCORES_KV,kvMatch(m.id), JSON.stringify(score), {
             expirationTtl: 3600,
           });
         }
@@ -290,7 +304,7 @@ async function handleCron(env: Env): Promise<void> {
             merged = [...kept, ...scores];
           }
 
-          await env.SCORES_KV.put(kvScores(code), JSON.stringify(merged), {
+          await kvPut(env.SCORES_KV,kvScores(code), JSON.stringify(merged), {
             expirationTtl: 600,
           });
         }
@@ -315,7 +329,7 @@ async function handleCron(env: Env): Promise<void> {
           const sData = (await standingsRes.json()) as {
             standings: GroupStanding[];
           };
-          await env.SCORES_KV.put(
+          await kvPut(env.SCORES_KV,
             kvStandings(comp),
             JSON.stringify(sData.standings),
             { expirationTtl: 1800 },
@@ -325,7 +339,7 @@ async function handleCron(env: Env): Promise<void> {
     }
 
     // Record last successful poll
-    await env.SCORES_KV.put(KV_LAST_POLL, new Date().toISOString());
+    await kvPut(env.SCORES_KV,KV_LAST_POLL, new Date().toISOString());
   } catch (err) {
     console.error("Cron poll failed:", err);
   }
@@ -339,14 +353,19 @@ async function checkRateLimit(
   ip: string,
   kv: KVNamespace,
 ): Promise<boolean> {
-  const key = `ratelimit:${ip}`;
-  const current = await kv.get(key);
-  const count = current ? parseInt(current, 10) : 0;
+  try {
+    const key = `ratelimit:${ip}`;
+    const current = await kv.get(key);
+    const count = current ? parseInt(current, 10) : 0;
 
-  if (count >= 60) return false; // 60 req/min
+    if (count >= 60) return false; // 60 req/min
 
-  await kv.put(key, String(count + 1), { expirationTtl: 60 });
-  return true;
+    await kv.put(key, String(count + 1), { expirationTtl: 60 });
+    return true;
+  } catch {
+    // KV write limit exceeded — allow request rather than blocking
+    return true;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -527,7 +546,7 @@ app.get("/api/:comp/matches", async (c) => {
   const matches = data.matches.map(transformMatch);
 
   // Cache for 1 hour
-  await c.env.SCORES_KV.put(kvSchedule(comp), JSON.stringify(matches), {
+  await kvPut(c.env.SCORES_KV,kvSchedule(comp), JSON.stringify(matches), {
     expirationTtl: 3600,
   });
 
@@ -611,7 +630,7 @@ app.get("/api/match/:id/detail", async (c) => {
   const status = data.status as string;
   const ttl = status === "FINISHED" ? 3600 : status === "IN_PLAY" || status === "PAUSED" ? 120 : 300;
 
-  await c.env.SCORES_KV.put(cacheKey, JSON.stringify(data), {
+  await kvPut(c.env.SCORES_KV,cacheKey, JSON.stringify(data), {
     expirationTtl: ttl,
   });
   return c.json(data);
@@ -636,7 +655,7 @@ app.get("/api/h2h/:id", async (c) => {
   }
 
   const data = (await res.json()) as Record<string, unknown>;
-  await c.env.SCORES_KV.put(cacheKey, JSON.stringify(data), {
+  await kvPut(c.env.SCORES_KV,cacheKey, JSON.stringify(data), {
     expirationTtl: 86400,
   });
   return c.json(data);
