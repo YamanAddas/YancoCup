@@ -77,70 +77,101 @@ function TodaysMatches() {
   const { scoreMap } = useScores();
   const { t } = useI18n();
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
+  const [upcomingLeague, setUpcomingLeague] = useState<Match[]>([]);
 
-  // Fetch cross-competition live/today matches from Worker
+  interface WorkerMatch {
+    apiId: number;
+    competitionCode: string;
+    utcDate: string;
+    status: string;
+    matchday: number | null;
+    stage: string;
+    group: string | null;
+    homeTeam: string | null;
+    awayTeam: string | null;
+    homeCrest: string | null;
+    awayCrest: string | null;
+    homeTeamName: string | null;
+    awayTeamName: string | null;
+  }
+
+  function convertWorkerMatch(m: WorkerMatch): Match {
+    const d = new Date(m.utcDate);
+    return {
+      id: m.apiId,
+      date: d.toISOString().slice(0, 10),
+      time: d.toISOString().slice(11, 16),
+      homeTeam: m.homeTeam?.toLowerCase() ?? null,
+      awayTeam: m.awayTeam?.toLowerCase() ?? null,
+      homeCrest: m.homeCrest ?? null,
+      awayCrest: m.awayCrest ?? null,
+      homeTeamName: m.homeTeamName ?? null,
+      awayTeamName: m.awayTeamName ?? null,
+      venueId: "",
+      group: m.group,
+      round: "group" as const,
+      matchday: m.matchday,
+    };
+  }
+
+  // Fetch cross-competition live matches + upcoming league matches
   useEffect(() => {
     async function fetchLive() {
       try {
         const res = await fetch(`${WORKER_URL}/api/live`);
-        if (!res.ok) return;
-        const data = (await res.json()) as {
-          matches: Array<{
-            apiId: number;
-            competitionCode: string;
-            utcDate: string;
-            status: string;
-            matchday: number | null;
-            stage: string;
-            group: string | null;
-            homeTeam: string | null;
-            awayTeam: string | null;
-            homeCrest: string | null;
-            awayCrest: string | null;
-            homeTeamName: string | null;
-            awayTeamName: string | null;
-          }>;
-        };
-        if (data.matches.length > 0) {
-          const converted: Match[] = data.matches.map((m) => {
-            const d = new Date(m.utcDate);
-            return {
-              id: m.apiId,
-              date: d.toISOString().slice(0, 10),
-              time: d.toISOString().slice(11, 16),
-              homeTeam: m.homeTeam?.toLowerCase() ?? null,
-              awayTeam: m.awayTeam?.toLowerCase() ?? null,
-              homeCrest: m.homeCrest ?? null,
-              awayCrest: m.awayCrest ?? null,
-              homeTeamName: m.homeTeamName ?? null,
-              awayTeamName: m.awayTeamName ?? null,
-              venueId: "",
-              group: m.group,
-              round: "group" as const,
-              matchday: m.matchday,
-            };
-          });
-          setLiveMatches(converted);
+        if (res.ok) {
+          const data = (await res.json()) as { matches: WorkerMatch[] };
+          if (data.matches.length > 0) {
+            setLiveMatches(data.matches.map(convertWorkerMatch));
+          }
         }
-      } catch {
-        // Worker unreachable — fall back to WC static
-      }
+      } catch { /* */ }
+
+      // Also fetch upcoming PL matches for when no live/WC data exists
+      try {
+        const res = await fetch(`${WORKER_URL}/api/PL/scores`);
+        if (res.ok) {
+          const data = (await res.json()) as { matches: WorkerMatch[] };
+          const now = new Date().toISOString();
+          const upcoming = (data.matches ?? [])
+            .filter((m) => m.status === "TIMED" && m.utcDate > now)
+            .sort((a, b) => a.utcDate.localeCompare(b.utcDate))
+            .slice(0, 6)
+            .map(convertWorkerMatch);
+          if (upcoming.length > 0) setUpcomingLeague(upcoming);
+        }
+      } catch { /* */ }
     }
     fetchLive();
   }, []);
 
-  // Use live cross-competition matches if available, fall back to WC schedule
+  // Use live → today's WC → upcoming league → upcoming WC as fallback chain
   const displayMatches = useMemo(() => {
     if (liveMatches.length > 0) {
-      return { matches: liveMatches, label: t("home.liveNow") };
+      return { matches: liveMatches, label: t("home.liveNow"), comp: "" };
     }
 
     const today = new Date().toISOString().slice(0, 10);
     const todaysWc = wcMatches.filter((m) => m.date === today);
     if (todaysWc.length > 0) {
-      return { matches: todaysWc, label: t("home.todaysMatches") };
+      return { matches: todaysWc, label: t("home.todaysMatches"), comp: "WC" };
     }
 
+    // Show upcoming league matches if available
+    if (upcomingLeague.length > 0) {
+      const firstDate = upcomingLeague[0]!.date;
+      const dateLabel = new Date(`${firstDate}T00:00:00Z`).toLocaleDateString(
+        undefined,
+        { weekday: "long", month: "short", day: "numeric" },
+      );
+      return {
+        matches: upcomingLeague,
+        label: `${t("home.nextMatches")} — ${dateLabel}`,
+        comp: "PL",
+      };
+    }
+
+    // Fall back to WC upcoming
     const upcoming = wcMatches.filter((m) => m.date > today);
     const first = upcoming[0];
     if (first) {
@@ -153,11 +184,12 @@ function TodaysMatches() {
       return {
         matches: nextMatches,
         label: `${t("home.nextMatches")} — ${dateLabel}`,
+        comp: "WC",
       };
     }
 
-    return { matches: [], label: t("home.noUpcoming") };
-  }, [liveMatches, wcMatches, t]);
+    return { matches: [], label: t("home.noUpcoming"), comp: "" };
+  }, [liveMatches, upcomingLeague, wcMatches, t]);
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8 border-t border-yc-border">
@@ -189,7 +221,7 @@ function TodaysMatches() {
               teamMap={teamMap}
               venueMap={venueMap}
               liveScore={scoreMap.get(m.id)}
-              competitionId="WC"
+              competitionId={displayMatches.comp || "WC"}
               compact
             />
           ))}

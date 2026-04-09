@@ -185,7 +185,7 @@ function EventsTimeline({
     secondary?: string;
   }> = [];
 
-  for (const g of match.goals) {
+  for (const g of match.goals ?? []) {
     const side = g.team.id === match.homeTeam.id ? "home" : "away";
     const goalType = g.type === "OWN_GOAL" ? "own_goal" : g.type === "PENALTY" ? "penalty" : "goal";
     events.push({
@@ -198,7 +198,7 @@ function EventsTimeline({
     });
   }
 
-  for (const b of match.bookings) {
+  for (const b of match.bookings ?? []) {
     const side = b.team.id === match.homeTeam.id ? "home" : "away";
     const cardType = b.card === "RED" ? "red" : b.card === "YELLOW_RED" ? "yellow_red" : "yellow";
     events.push({
@@ -209,7 +209,7 @@ function EventsTimeline({
     });
   }
 
-  for (const s of match.substitutions) {
+  for (const s of match.substitutions ?? []) {
     const side = s.team.id === match.homeTeam.id ? "home" : "away";
     events.push({
       minute: s.minute,
@@ -526,7 +526,7 @@ export default function MatchDetailPage() {
     hour: "2-digit",
     minute: "2-digit",
   });
-  const mainRef = match.referees.find((r) => r.type === "REFEREE");
+  const mainRef = (match.referees ?? []).find((r) => r.type === "REFEREE");
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
