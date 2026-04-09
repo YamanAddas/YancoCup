@@ -1,4 +1,5 @@
-import { useRef, useCallback, useState, useEffect, useMemo } from "react";
+import { useRef, useCallback, useState, useEffect, useMemo, Component } from "react";
+import type { ReactNode, ErrorInfo } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
@@ -7,6 +8,21 @@ import Globe from "r3f-globe";
 import type { GlobeMethods } from "r3f-globe";
 import cities from "../../data/cities.json";
 import CityPopup from "./CityPopup";
+
+/** Catch internal r3f-globe/Kapsule errors that fire during unmount */
+class GlobeErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(_error: Error, _info: ErrorInfo) {
+    // Suppress __kapsuleInstance errors from three-globe internals
+  }
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
 
 interface City {
   id: string;
@@ -56,13 +72,17 @@ function GlobeInner({
   // Fly camera to selected city
   useEffect(() => {
     if (flyToCity && globeRef.current) {
-      const coords = globeRef.current.getCoords(flyToCity.lat, flyToCity.lng);
-      const dir = new Vector3(coords.x, coords.y, coords.z).normalize();
-      flyTargetRef.current = dir.multiplyScalar(CAMERA_DISTANCE);
-      isFlyingRef.current = true;
-      setAutoRotate(false);
-      clearTimeout(resumeTimerRef.current);
-      invalidate();
+      try {
+        const coords = globeRef.current.getCoords(flyToCity.lat, flyToCity.lng);
+        const dir = new Vector3(coords.x, coords.y, coords.z).normalize();
+        flyTargetRef.current = dir.multiplyScalar(CAMERA_DISTANCE);
+        isFlyingRef.current = true;
+        setAutoRotate(false);
+        clearTimeout(resumeTimerRef.current);
+        invalidate();
+      } catch {
+        // Globe instance may be destroyed during unmount
+      }
     }
   }, [flyToCity, invalidate]);
 
@@ -173,15 +193,17 @@ export default function GlobeScene() {
 
   return (
     <div className="relative w-full h-full">
-      <Canvas
-        frameloop="demand"
-        camera={{ position: [0, 0, 250], fov: 50 }}
-        style={{ background: "transparent" }}
-        gl={{ antialias: !device.isReduced, alpha: true }}
-        dpr={device.isMobile ? [1, 1.5] : [1, 2]}
-      >
-        <GlobeInner onCityClick={setSelectedCity} flyToCity={selectedCity} />
-      </Canvas>
+      <GlobeErrorBoundary>
+        <Canvas
+          frameloop="demand"
+          camera={{ position: [0, 0, 250], fov: 50 }}
+          style={{ background: "transparent" }}
+          gl={{ antialias: !device.isReduced, alpha: true }}
+          dpr={device.isMobile ? [1, 1.5] : [1, 2]}
+        >
+          <GlobeInner onCityClick={setSelectedCity} flyToCity={selectedCity} />
+        </Canvas>
+      </GlobeErrorBoundary>
 
       {selectedCity && (
         <CityPopup

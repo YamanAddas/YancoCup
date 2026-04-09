@@ -79,9 +79,10 @@ export async function fetchScores(filters?: {
   return data?.matches ?? [];
 }
 
-/** Fetch group standings. */
-export async function fetchStandings(): Promise<GroupStanding[]> {
-  const data = await apiFetch<{ standings: GroupStanding[] }>("/api/standings");
+/** Fetch group standings for a competition. */
+export async function fetchStandings(comp?: string): Promise<GroupStanding[]> {
+  const path = comp ? `/api/${comp}/standings` : "/api/standings";
+  const data = await apiFetch<{ standings: GroupStanding[] }>(path);
   return data?.standings ?? [];
 }
 
@@ -99,6 +100,8 @@ export async function fetchMatch(
 export async function fetchHealth(): Promise<{
   status: string;
   lastPoll: string | null;
+  tickCount: number;
+  competitions: string[];
   timestamp: string;
 } | null> {
   return apiFetch("/api/health");

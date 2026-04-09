@@ -39,7 +39,7 @@ function FormDot({ result }: { result: string }) {
 
 function FormGuide({ form }: { form: string | null }) {
   if (!form) return <span className="text-yc-text-tertiary text-xs">—</span>;
-  const results = form.split(",").slice(-5);
+  const results = (form.includes(",") ? form.split(",") : form.split("")).slice(-5);
   return (
     <div className="flex items-center gap-0.5">
       {results.map((r, i) => (

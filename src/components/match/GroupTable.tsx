@@ -1,14 +1,32 @@
 import { useI18n } from "../../lib/i18n";
 import TeamCrest from "./TeamCrest";
 import type { Team } from "../../types";
+import type { StandingTeam } from "../../lib/api";
 
 interface GroupTableProps {
   groupId: string;
   teams: Team[];
+  standings?: StandingTeam[];
 }
 
-export default function GroupTable({ groupId, teams }: GroupTableProps) {
+export default function GroupTable({ groupId, teams, standings }: GroupTableProps) {
   const { t } = useI18n();
+
+  // Build a lookup from TLA → standing row
+  const standingMap = new Map<string, StandingTeam>();
+  if (standings) {
+    for (const s of standings) {
+      standingMap.set(s.team.tla, s);
+    }
+  }
+
+  // Sort teams by standing position when available
+  const sorted = [...teams].sort((a, b) => {
+    const sa = standingMap.get(a.fifaCode);
+    const sb = standingMap.get(b.fifaCode);
+    if (sa && sb) return sa.position - sb.position;
+    return 0;
+  });
 
   return (
     <div className="yc-card rounded-xl overflow-hidden">
@@ -34,32 +52,35 @@ export default function GroupTable({ groupId, teams }: GroupTableProps) {
           </tr>
         </thead>
         <tbody>
-          {teams.map((team, i) => (
-            <tr
-              key={team.id}
-              className={`border-t border-yc-border/30 transition-colors hover:bg-white/[0.02] ${i < 2 ? "bg-yc-green/[0.03]" : ""}`}
-              style={i < 2 ? { borderLeft: "3px solid rgba(0, 255, 136, 0.3)" } : undefined}
-            >
-              <td className="pl-4 pr-2 py-2.5">
-                <div className="flex items-center gap-2">
-                  <TeamCrest
-                    tla={team.fifaCode}
-                    isoCode={team.isoCode}
-                    size="sm"
-                  />
-                  <span className="text-yc-text-primary font-medium truncate">
-                    {team.name}
-                  </span>
-                </div>
-              </td>
-              <td className="text-center text-yc-text-secondary">0</td>
-              <td className="text-center text-yc-text-secondary">0</td>
-              <td className="text-center text-yc-text-secondary">0</td>
-              <td className="text-center text-yc-text-secondary">0</td>
-              <td className="text-center text-yc-text-secondary">0</td>
-              <td className="text-center pr-4 text-yc-green font-bold">0</td>
-            </tr>
-          ))}
+          {sorted.map((team, i) => {
+            const s = standingMap.get(team.fifaCode);
+            return (
+              <tr
+                key={team.id}
+                className={`border-t border-yc-border/30 transition-colors hover:bg-white/[0.02] ${i < 2 ? "bg-yc-green/[0.03]" : ""}`}
+                style={i < 2 ? { borderLeft: "3px solid rgba(0, 255, 136, 0.3)" } : undefined}
+              >
+                <td className="pl-4 pr-2 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <TeamCrest
+                      tla={team.fifaCode}
+                      isoCode={team.isoCode}
+                      size="sm"
+                    />
+                    <span className="text-yc-text-primary font-medium truncate">
+                      {team.name}
+                    </span>
+                  </div>
+                </td>
+                <td className="text-center text-yc-text-secondary">{s?.playedGames ?? 0}</td>
+                <td className="text-center text-yc-text-secondary">{s?.won ?? 0}</td>
+                <td className="text-center text-yc-text-secondary">{s?.draw ?? 0}</td>
+                <td className="text-center text-yc-text-secondary">{s?.lost ?? 0}</td>
+                <td className="text-center text-yc-text-secondary">{s?.goalDifference ?? 0}</td>
+                <td className="text-center pr-4 text-yc-green font-bold">{s?.points ?? 0}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 

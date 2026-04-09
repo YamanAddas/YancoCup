@@ -362,7 +362,7 @@ async function handleCron(env: Env): Promise<void> {
         }
 
         await kvPut(env.SCORES_KV,kvScores(code), JSON.stringify(merged), {
-          expirationTtl: 600,
+          expirationTtl: 3600,
         });
       }
 
@@ -419,7 +419,7 @@ async function handleCron(env: Env): Promise<void> {
           }
 
           await kvPut(env.SCORES_KV,kvScores(code), JSON.stringify(merged), {
-            expirationTtl: 600,
+            expirationTtl: 3600,
           });
         }
       }

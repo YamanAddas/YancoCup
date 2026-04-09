@@ -1,13 +1,37 @@
+import { useState, useEffect } from "react";
 import { useGroups } from "../hooks/useGroups";
 import { useTeams } from "../hooks/useTeams";
+import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
+import { fetchStandings } from "../lib/api";
+import type { StandingTeam } from "../lib/api";
 import GroupTable from "../components/match/GroupTable";
 import type { Team } from "../types";
 
 export default function GroupsPage() {
   const groups = useGroups();
   const allTeams = useTeams();
+  const comp = useCompetition();
   const { t } = useI18n();
+  const [groupStandings, setGroupStandings] = useState<Map<string, StandingTeam[]>>(new Map());
+
+  useEffect(() => {
+    async function load() {
+      const standings = await fetchStandings(comp.id);
+      if (standings.length === 0) return;
+
+      const map = new Map<string, StandingTeam[]>();
+      for (const g of standings) {
+        // API returns group as "GROUP_A" etc — extract the letter
+        const groupId = g.group?.replace(/^GROUP_/, "") ?? "";
+        if (groupId) {
+          map.set(groupId, g.table);
+        }
+      }
+      setGroupStandings(map);
+    }
+    load();
+  }, [comp.id]);
 
   const teamsByGroup = new Map<string, Team[]>();
   for (const team of allTeams) {
@@ -28,6 +52,7 @@ export default function GroupsPage() {
             key={g.id}
             groupId={g.id}
             teams={teamsByGroup.get(g.id) ?? []}
+            standings={groupStandings.get(g.id)}
           />
         ))}
       </div>

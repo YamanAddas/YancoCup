@@ -71,6 +71,43 @@ function CompetitionCards() {
   );
 }
 
+const LEAGUE_COMPS = ["PL", "PD", "BL1", "SA", "FL1"];
+
+interface WorkerMatch {
+  apiId: number;
+  competitionCode: string;
+  utcDate: string;
+  status: string;
+  matchday: number | null;
+  stage: string;
+  group: string | null;
+  homeTeam: string | null;
+  awayTeam: string | null;
+  homeCrest: string | null;
+  awayCrest: string | null;
+  homeTeamName: string | null;
+  awayTeamName: string | null;
+}
+
+function convertWorkerMatch(m: WorkerMatch): Match {
+  const d = new Date(m.utcDate);
+  return {
+    id: m.apiId,
+    date: d.toISOString().slice(0, 10),
+    time: d.toISOString().slice(11, 16),
+    homeTeam: m.homeTeam?.toLowerCase() ?? null,
+    awayTeam: m.awayTeam?.toLowerCase() ?? null,
+    homeCrest: m.homeCrest ?? null,
+    awayCrest: m.awayCrest ?? null,
+    homeTeamName: m.homeTeamName ?? null,
+    awayTeamName: m.awayTeamName ?? null,
+    venueId: "",
+    group: m.group,
+    round: "group" as const,
+    matchday: m.matchday,
+  };
+}
+
 function TodaysMatches() {
   const wcMatches = useSchedule();
   const teamMap = useTeamMap();
@@ -79,67 +116,60 @@ function TodaysMatches() {
   const { t } = useI18n();
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
   const [upcomingLeague, setUpcomingLeague] = useState<Match[]>([]);
-
-  interface WorkerMatch {
-    apiId: number;
-    competitionCode: string;
-    utcDate: string;
-    status: string;
-    matchday: number | null;
-    stage: string;
-    group: string | null;
-    homeTeam: string | null;
-    awayTeam: string | null;
-    homeCrest: string | null;
-    awayCrest: string | null;
-    homeTeamName: string | null;
-    awayTeamName: string | null;
-  }
-
-  function convertWorkerMatch(m: WorkerMatch): Match {
-    const d = new Date(m.utcDate);
-    return {
-      id: m.apiId,
-      date: d.toISOString().slice(0, 10),
-      time: d.toISOString().slice(11, 16),
-      homeTeam: m.homeTeam?.toLowerCase() ?? null,
-      awayTeam: m.awayTeam?.toLowerCase() ?? null,
-      homeCrest: m.homeCrest ?? null,
-      awayCrest: m.awayCrest ?? null,
-      homeTeamName: m.homeTeamName ?? null,
-      awayTeamName: m.awayTeamName ?? null,
-      venueId: "",
-      group: m.group,
-      round: "group" as const,
-      matchday: m.matchday,
-    };
-  }
+  // Track per-match competition code for detail page linking
+  const [matchCompMap, setMatchCompMap] = useState<Map<number, string>>(new Map());
 
   useEffect(() => {
     async function fetchLive() {
+      const compMap = new Map<number, string>();
+
+      // Fetch live matches across all competitions
       try {
         const res = await fetch(`${WORKER_URL}/api/live`);
         if (res.ok) {
           const data = (await res.json()) as { matches: WorkerMatch[] };
           if (data.matches.length > 0) {
+            for (const m of data.matches) compMap.set(m.apiId, m.competitionCode);
             setLiveMatches(data.matches.map(convertWorkerMatch));
           }
         }
       } catch { /* */ }
 
+      // Fetch upcoming from ALL league competitions in parallel
       try {
-        const res = await fetch(`${WORKER_URL}/api/PL/scores`);
-        if (res.ok) {
-          const data = (await res.json()) as { matches: WorkerMatch[] };
-          const now = new Date().toISOString();
-          const upcoming = (data.matches ?? [])
-            .filter((m) => m.status === "TIMED" && m.utcDate > now)
-            .sort((a, b) => a.utcDate.localeCompare(b.utcDate))
-            .slice(0, 6)
-            .map(convertWorkerMatch);
-          if (upcoming.length > 0) setUpcomingLeague(upcoming);
+        const results = await Promise.allSettled(
+          LEAGUE_COMPS.map(async (comp) => {
+            const res = await fetch(`${WORKER_URL}/api/${comp}/scores`);
+            if (!res.ok) return [];
+            const data = (await res.json()) as { matches: WorkerMatch[] };
+            return data.matches ?? [];
+          }),
+        );
+
+        const now = new Date().toISOString();
+        const allUpcoming: WorkerMatch[] = [];
+
+        for (const result of results) {
+          if (result.status === "fulfilled") {
+            for (const m of result.value) {
+              if (m.status === "TIMED" && m.utcDate > now) {
+                allUpcoming.push(m);
+              }
+            }
+          }
+        }
+
+        // Sort by date, take nearest 6
+        allUpcoming.sort((a, b) => a.utcDate.localeCompare(b.utcDate));
+        const nearest = allUpcoming.slice(0, 6);
+
+        if (nearest.length > 0) {
+          for (const m of nearest) compMap.set(m.apiId, m.competitionCode);
+          setUpcomingLeague(nearest.map(convertWorkerMatch));
         }
       } catch { /* */ }
+
+      setMatchCompMap(compMap);
     }
     fetchLive();
   }, []);
@@ -164,7 +194,7 @@ function TodaysMatches() {
       return {
         matches: upcomingLeague,
         label: `${t("home.nextMatches")} — ${dateLabel}`,
-        comp: "PL",
+        comp: "",
       };
     }
 
@@ -187,6 +217,10 @@ function TodaysMatches() {
     return { matches: [], label: t("home.noUpcoming"), comp: "" };
   }, [liveMatches, upcomingLeague, wcMatches, t]);
 
+  // Resolve the competition for each match: use per-match map, then fallback to section comp, then WC
+  const getMatchComp = (matchId: number) =>
+    matchCompMap.get(matchId) || displayMatches.comp || "WC";
+
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center justify-between mb-5">
@@ -196,12 +230,16 @@ function TodaysMatches() {
             {displayMatches.label}
           </h3>
         </div>
-        <NavLink
-          to="/WC/matches"
-          className="flex items-center gap-1 text-yc-green text-sm hover:underline"
-        >
-          {t("home.allMatches")} <ArrowRight size={14} />
-        </NavLink>
+        {displayMatches.comp ? (
+          <NavLink
+            to={`/${displayMatches.comp}/matches`}
+            className="flex items-center gap-1 text-yc-green text-sm hover:underline"
+          >
+            {t("home.allMatches")} <ArrowRight size={14} />
+          </NavLink>
+        ) : (
+          <span />
+        )}
       </div>
 
       {displayMatches.matches.length === 0 ? (
@@ -217,7 +255,7 @@ function TodaysMatches() {
               teamMap={teamMap}
               venueMap={venueMap}
               liveScore={scoreMap.get(m.id)}
-              competitionId={displayMatches.comp || "WC"}
+              competitionId={getMatchComp(m.id)}
               compact
             />
           ))}

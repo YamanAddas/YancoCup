@@ -239,7 +239,7 @@ function EventsTimeline({ match }: { match: MatchData }) {
     }
   } else {
     // Fallback to football-data.org data
-    for (const g of match.goals ?? []) {
+    for (const g of Array.isArray(match.goals) ? match.goals : []) {
       const side = g.team.id === match.homeTeam.id ? "home" : "away";
       const goalType = g.type === "OWN_GOAL" ? "own_goal" : g.type === "PENALTY" ? "penalty" : "goal";
       events.push({
@@ -251,11 +251,11 @@ function EventsTimeline({ match }: { match: MatchData }) {
         secondary: g.type === "OWN_GOAL" ? "Own Goal" : g.assist?.name ? `Assist: ${g.assist.name}` : undefined,
       });
     }
-    for (const b of match.bookings ?? []) {
+    for (const b of Array.isArray(match.bookings) ? match.bookings : []) {
       const side = b.team.id === match.homeTeam.id ? "home" : "away";
       events.push({ minute: b.minute, side, type: b.card === "RED" ? "red" : "yellow", primary: b.player.name });
     }
-    for (const s of match.substitutions ?? []) {
+    for (const s of Array.isArray(match.substitutions) ? match.substitutions : []) {
       const side = s.team.id === match.homeTeam.id ? "home" : "away";
       events.push({ minute: s.minute, side, type: "sub", primary: s.playerIn.name, secondary: `↓ ${s.playerOut.name}` });
     }
