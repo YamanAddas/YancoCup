@@ -3,9 +3,8 @@ import { useTeamMap } from "../../hooks/useTeams";
 import { useSchedule } from "../../hooks/useSchedule";
 import { canPredict } from "../../hooks/usePredictions";
 import { useI18n } from "../../lib/i18n";
+import TeamCrest from "../match/TeamCrest";
 import type { Match } from "../../types";
-
-const FLAG_BASE = "https://hatscripts.github.io/circle-flags/flags";
 
 function useTimeAgo() {
   const { t } = useI18n();
@@ -105,18 +104,10 @@ export default function ActivityFeed() {
             {/* Flags + time */}
             <div className="flex items-center gap-1.5 shrink-0">
               {home && (
-                <img
-                  src={`${FLAG_BASE}/${home.isoCode}.svg`}
-                  alt=""
-                  className="w-4 h-4 rounded-full"
-                />
+                <TeamCrest tla={home.fifaCode} isoCode={home.isoCode} size="xs" />
               )}
               {away && (
-                <img
-                  src={`${FLAG_BASE}/${away.isoCode}.svg`}
-                  alt=""
-                  className="w-4 h-4 rounded-full"
-                />
+                <TeamCrest tla={away.fifaCode} isoCode={away.isoCode} size="xs" />
               )}
               <span className="text-yc-text-tertiary text-[10px] ml-1">
                 {timeAgo(item.createdAt)}

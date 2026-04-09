@@ -1,7 +1,6 @@
 import { useI18n } from "../../lib/i18n";
+import TeamCrest from "./TeamCrest";
 import type { Team } from "../../types";
-
-const FLAG_BASE = "https://hatscripts.github.io/circle-flags/flags";
 
 interface GroupTableProps {
   groupId: string;
@@ -39,10 +38,10 @@ export default function GroupTable({ groupId, teams }: GroupTableProps) {
             >
               <td className="pl-4 pr-2 py-2.5">
                 <div className="flex items-center gap-2">
-                  <img
-                    src={`${FLAG_BASE}/${team.isoCode}.svg`}
-                    alt={team.name}
-                    className="w-6 h-6 rounded-full"
+                  <TeamCrest
+                    tla={team.fifaCode}
+                    isoCode={team.isoCode}
+                    size="sm"
                   />
                   <span className="text-yc-text-primary font-medium truncate">
                     {team.name}

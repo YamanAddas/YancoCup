@@ -1,18 +1,19 @@
 import { MapPin, Clock } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
+import TeamCrest from "./TeamCrest";
 import type { Match, Team, Venue } from "../../types";
 import type { LocalLiveScore } from "../../hooks/useScores";
 
-const FLAG_BASE = "https://hatscripts.github.io/circle-flags/flags";
-
-/** Displays a team with flag + code. Falls back to TLA badge for clubs. */
+/** Displays a team with crest/flag + code. */
 function TeamBadge({
   team,
   tla,
+  crest,
   side,
 }: {
   team: Team | undefined;
   tla: string | null;
+  crest?: string | null;
   side: "home" | "away";
 }) {
   const align = side === "home" ? "items-end text-right" : "items-start text-left";
@@ -20,19 +21,12 @@ function TeamBadge({
 
   return (
     <div className={`flex flex-col ${align} gap-1 min-w-0 flex-1`}>
-      {team ? (
-        <img
-          src={`${FLAG_BASE}/${team.isoCode}.svg`}
-          alt={team.name}
-          className="w-10 h-10 rounded-full"
-        />
-      ) : (
-        <div className="w-10 h-10 rounded-full bg-yc-bg-elevated border border-yc-border flex items-center justify-center">
-          <span className="text-yc-text-secondary text-xs font-bold font-mono">
-            {code.slice(0, 3)}
-          </span>
-        </div>
-      )}
+      <TeamCrest
+        tla={code}
+        isoCode={team?.isoCode}
+        crest={crest}
+        size="lg"
+      />
       <span className="text-yc-text-primary text-sm font-semibold truncate w-full block">
         {code}
       </span>
@@ -145,7 +139,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
       {/* Teams + score/time */}
       <div className="flex items-center gap-3">
         {match.homeTeam ? (
-          <TeamBadge team={home} tla={match.homeTeam} side="home" />
+          <TeamBadge team={home} tla={match.homeTeam} crest={liveScore?.homeCrest} side="home" />
         ) : (
           <Placeholder label={match.homePlaceholder ?? tbd} side="home" />
         )}
@@ -178,7 +172,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
         </div>
 
         {match.awayTeam ? (
-          <TeamBadge team={away} tla={match.awayTeam} side="away" />
+          <TeamBadge team={away} tla={match.awayTeam} crest={liveScore?.awayCrest} side="away" />
         ) : (
           <Placeholder label={match.awayPlaceholder ?? tbd} side="away" />
         )}

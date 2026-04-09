@@ -31,12 +31,14 @@ interface FDMatch {
     name: string;
     shortName: string;
     tla: string;
+    crest: string;
   } | null;
   awayTeam: {
     id: number;
     name: string;
     shortName: string;
     tla: string;
+    crest: string;
   } | null;
   score: {
     winner: string | null;
@@ -57,6 +59,10 @@ interface MatchScore {
   group: string | null;
   homeTeam: string | null;
   awayTeam: string | null;
+  homeCrest: string | null;
+  awayCrest: string | null;
+  homeTeamName: string | null;
+  awayTeamName: string | null;
   homeScore: number | null;
   awayScore: number | null;
   halfTimeHome: number | null;
@@ -66,7 +72,7 @@ interface MatchScore {
 
 interface StandingTeam {
   position: number;
-  team: { tla: string; name: string; shortName: string };
+  team: { id: number; tla: string; name: string; shortName: string; crest: string };
   playedGames: number;
   won: number;
   draw: number;
@@ -75,6 +81,7 @@ interface StandingTeam {
   goalsAgainst: number;
   goalDifference: number;
   points: number;
+  form: string | null;
 }
 
 interface GroupStanding {
@@ -152,6 +159,10 @@ function transformMatch(m: FDMatch): MatchScore {
     group: m.group,
     homeTeam: m.homeTeam?.tla ?? null,
     awayTeam: m.awayTeam?.tla ?? null,
+    homeCrest: m.homeTeam?.crest ?? null,
+    awayCrest: m.awayTeam?.crest ?? null,
+    homeTeamName: m.homeTeam?.shortName ?? null,
+    awayTeamName: m.awayTeam?.shortName ?? null,
     homeScore: m.score.fullTime.home,
     awayScore: m.score.fullTime.away,
     halfTimeHome: m.score.halfTime.home,

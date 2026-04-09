@@ -1,5 +1,12 @@
 /** Competition configuration registry */
 
+export interface StandingsZones {
+  cl: number[];         // Champions League qualification spots
+  el: number[];         // Europa League spots
+  ecl: number[];        // Conference League spots
+  relegation: number[]; // Relegation positions
+}
+
 export interface CompetitionConfig {
   id: string;
   fdCode: string;
@@ -12,6 +19,7 @@ export interface CompetitionConfig {
   seasonLabel: string;
   emoji: string; // short text icon, not actual emoji
   accentColor: string; // subtle per-competition tint
+  zones?: StandingsZones;
 }
 
 export const COMPETITIONS: Record<string, CompetitionConfig> = {
@@ -53,6 +61,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "PL",
     accentColor: "#37003c",
+    zones: { cl: [1, 2, 3, 4], el: [5], ecl: [6], relegation: [18, 19, 20] },
   },
   PD: {
     id: "PD",
@@ -66,6 +75,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "PD",
     accentColor: "#ee8707",
+    zones: { cl: [1, 2, 3, 4], el: [5, 6], ecl: [7], relegation: [18, 19, 20] },
   },
   BL1: {
     id: "BL1",
@@ -79,6 +89,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "BL",
     accentColor: "#d20515",
+    zones: { cl: [1, 2, 3, 4], el: [5], ecl: [6], relegation: [16, 17, 18] },
   },
   SA: {
     id: "SA",
@@ -92,6 +103,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "SA",
     accentColor: "#024494",
+    zones: { cl: [1, 2, 3, 4], el: [5, 6], ecl: [7], relegation: [18, 19, 20] },
   },
   FL1: {
     id: "FL1",
@@ -105,6 +117,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "L1",
     accentColor: "#091c3e",
+    zones: { cl: [1, 2, 3], el: [4], ecl: [5], relegation: [16, 17, 18] },
   },
   EC: {
     id: "EC",

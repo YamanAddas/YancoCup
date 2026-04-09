@@ -2,6 +2,8 @@
 
 Multi-competition soccer prediction platform. World Cup 2026 + Champions League + top European leagues. 3D interactive globe, live scores, predictions game with pools, broadcast links, gamification, multilingual.
 
+**Current phase:** Premium upgrade — enriching data, adding club crests, form guides, match detail pages, gamification (badges/streaks/ranks), team profiles, bracket visualization. See `docs/PREMIUM_UPGRADE_PLAN.md` for full plan.
+
 ## Stack
 
 - **Frontend**: Vite + React 18 + Tailwind CSS 4
@@ -14,6 +16,7 @@ Multi-competition soccer prediction platform. World Cup 2026 + Champions League 
 - **Key API optimization**: `/v4/matches` (no competition filter) returns ALL competitions in one call — 2-3 req/min for all competitions combined
 - **Static data**: WC schedule/teams/groups/venues in `src/data/`. League schedules fetched from Worker.
 - **Flags**: circle-flags (circular SVG country flags, open source)
+- **Club crests**: football-data.org API `crest` URLs (hotlinked, never bundled) — see copyright strategy below
 - **Icons**: Lucide React (open source, dark-theme friendly)
 - **Error monitoring**: Sentry free tier (5K errors/month) — active
 - **Analytics**: Cloudflare Web Analytics (free, unlimited, no cookies) — active
@@ -32,18 +35,18 @@ Multi-competition soccer prediction platform. World Cup 2026 + Champions League 
 src/
   components/       # React components
     globe/          # Three.js globe and city markers
-    match/          # Match center, live scores, schedule, standings
-    predictions/    # Prediction cards, how-to-play, pools
+    match/          # Match center, live scores, schedule, standings, TeamCrest, events, stats
+    predictions/    # Prediction cards, how-to-play, pools, badges
     broadcast/      # Broadcaster links
     activity/       # Friend activity feed
     layout/         # Nav, footer, language switcher, mobile nav, skeletons
   hooks/            # Custom React hooks (competition-aware)
-  lib/              # Utilities, API clients, i18n, auth, scoring, competitions
+  lib/              # Utilities, API clients, i18n, auth, scoring, competitions, ranks, badges
   data/             # Static JSON: teams, groups, venues, schedule, translations, broadcasters
   styles/           # Global CSS, Tailwind config
-  pages/            # Route-level components
+  pages/            # Route-level components (incl. MatchDetailPage, TeamPage, ProfilePage)
 worker/             # Cloudflare Worker source (separate deploy)
-docs/               # Architecture decisions, expansion plan
+docs/               # Architecture decisions, expansion plan, premium upgrade plan
 ```
 
 ## Commands
@@ -83,6 +86,28 @@ IMPORTANT: This is not a generic sports site. It follows the YancoVerse design l
 
 When in doubt about visual direction, think: "dark, atmospheric, premium gaming lounge" not "ESPN clone."
 
+## Club crests — copyright strategy
+
+- **National teams**: Use circle-flags (country flags, MIT license). Already implemented.
+- **Club teams**: Use football-data.org API `crest` URLs (e.g., `https://crests.football-data.org/57.svg`). These are provided as part of the API response and intended for consumer apps. We hotlink — never download, bundle, or redistribute.
+- **Fallback**: TLA badge in a styled circle when crest URL is unavailable.
+- **Never** host crest files in the repo, use FIFA/UEFA official logos, or use player photos.
+- The `<TeamCrest>` component handles all logic: circle-flag for national teams, API crest for clubs, TLA fallback.
+
+## Premium features (in progress)
+
+See `docs/PREMIUM_UPGRADE_PLAN.md` for full plan. Key additions:
+
+- **Form guide dots**: W/D/L colored circles on standings and match cards (green/gray/red)
+- **Zone coloring**: Champions League, Europa League, relegation zones on standings tables
+- **Match detail page**: Tabbed (Overview/Stats/Lineup/H2H) — route `/:competition/match/:id`
+- **Team profile pages**: Squad, form, fixtures — route `/:competition/team/:teamId`
+- **Gamification**: Badges (activity/skill/loyalty), streak tracking, rank tiers (Bronze→Diamond)
+- **Profile pages**: Stats, badge collection, rank — route `/profile/:userId`
+- **Bracket visualization**: Tournament knockout tree for WC and CL
+- **Skeleton loading**: Replace spinners with layout-matching skeleton screens
+- **Shareable prediction cards**: Canvas-generated images via Web Share API
+
 ## Multi-competition architecture
 
 ### Competitions
@@ -102,7 +127,12 @@ Routes are competition-scoped:
 /:competition/predictions   → Predict matches
 /:competition/leaderboard   → Per-competition leaderboard
 /:competition/pools         → Pool management
+/:competition/match/:id     → Match detail (tabs: Overview/Stats/Lineup/H2H)
+/:competition/team/:teamId  → Team profile (squad, form, fixtures)
+/:competition/bracket       → Knockout bracket (tournaments only)
 /watch                      → Broadcast finder (global)
+/profile                    → Own profile (badges, stats, rank)
+/profile/:userId            → Public profile
 /sign-in                    → Auth
 /admin                      → Admin panel
 /pool/:joinCode             → Pool join deeplink
@@ -153,7 +183,7 @@ IMPORTANT: These rules are non-negotiable.
 
 - Frontend NEVER calls external APIs directly (keys would leak in client JS).
 - All external API calls go through the Cloudflare Worker.
-- Worker endpoint pattern: `/api/:competition/scores`, `/api/:competition/standings`, `/api/:competition/match/:id`
+- Worker endpoint pattern: `/api/:competition/scores`, `/api/:competition/standings`, `/api/:competition/match/:id`, `/api/:competition/teams`, `/api/match/:id/detail`, `/api/h2h/:id`
 - **Cron Trigger architecture**: Worker polls `/v4/matches` (ALL competitions, one call) every 60s, writes per-competition KV entries. User requests read from KV only. This decouples user traffic from API rate limits entirely.
 - Static data (WC schedule, groups, teams): in `src/data/`. League data: from Worker.
 - Match IDs: use football-data.org API IDs as canonical across all competitions.
@@ -189,3 +219,9 @@ VITE_WORKER_URL=https://yancocup-api.catbyte1985.workers.dev (optional, has defa
 - Creating separate static schedule files per competition. Only WC has static data. Leagues fetch from Worker.
 - Making pools global. Pools are competition-scoped — your PL pool ≠ your WC pool.
 - Showing friends' predictions before match kickoff. Predictions are hidden until deadline to prevent copying.
+- Downloading/bundling club crests into the repo. Use football-data.org API `crest` URLs (hotlink only). Never host crests locally.
+- Building a custom crest/logo system. Use the `<TeamCrest>` component which handles national flags (circle-flags), club crests (API URLs), and TLA fallback in one place.
+- Adding xG, heatmaps, or player ratings. football-data.org free tier does NOT provide these. Only show data the API actually returns.
+- Over-engineering gamification with server-side triggers. Badges and streaks are client-side calculated (same pattern as scoring).
+- Making the bracket visualization a heavy library dependency. Use CSS Grid, not D3 or other charting libs.
+- Forgetting zone config is per-competition. PL has 4 CL spots, BL1 has 3. Don't hardcode.

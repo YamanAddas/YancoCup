@@ -4,10 +4,9 @@ import { upsertPrediction, canPredict } from "../../hooks/usePredictions";
 import { useConsensus } from "../../hooks/useConsensus";
 import { buildShareText, sharePrediction } from "../../lib/share";
 import { useI18n } from "../../lib/i18n";
+import TeamCrest from "../match/TeamCrest";
 import type { Match, Team, Venue } from "../../types";
 import type { Prediction } from "../../hooks/usePredictions";
-
-const FLAG_BASE = "https://hatscripts.github.io/circle-flags/flags";
 
 interface PredictionCardProps {
   match: Match;
@@ -151,17 +150,12 @@ export default function PredictionCard({
       <div className="flex items-center gap-2">
         {/* Home team */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          {home ? (
-            <img
-              src={`${FLAG_BASE}/${home.isoCode}.svg`}
-              alt={home.name}
-              className="w-8 h-8 rounded-full shrink-0"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-yc-bg-elevated border border-yc-border flex items-center justify-center shrink-0">
-              <span className="text-yc-text-secondary text-[10px] font-bold font-mono">{homeCode.slice(0, 3)}</span>
-            </div>
-          )}
+          <TeamCrest
+            tla={homeCode}
+            isoCode={home?.isoCode}
+            size="md"
+            className="shrink-0"
+          />
           <span className="text-yc-text-primary text-sm font-semibold truncate">
             {homeCode}
           </span>
@@ -197,17 +191,12 @@ export default function PredictionCard({
           <span className="text-yc-text-primary text-sm font-semibold truncate text-right">
             {awayCode}
           </span>
-          {away ? (
-            <img
-              src={`${FLAG_BASE}/${away.isoCode}.svg`}
-              alt={away.name}
-              className="w-8 h-8 rounded-full shrink-0"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-yc-bg-elevated border border-yc-border flex items-center justify-center shrink-0">
-              <span className="text-yc-text-secondary text-[10px] font-bold font-mono">{awayCode.slice(0, 3)}</span>
-            </div>
-          )}
+          <TeamCrest
+            tla={awayCode}
+            isoCode={away?.isoCode}
+            size="md"
+            className="shrink-0"
+          />
         </div>
       </div>
 

@@ -20,6 +20,10 @@ export interface LiveMatchScore {
   group: string | null;
   homeTeam: string | null; // TLA
   awayTeam: string | null;
+  homeCrest: string | null;
+  awayCrest: string | null;
+  homeTeamName: string | null;
+  awayTeamName: string | null;
   homeScore: number | null;
   awayScore: number | null;
   halfTimeHome: number | null;
@@ -29,7 +33,7 @@ export interface LiveMatchScore {
 
 export interface StandingTeam {
   position: number;
-  team: { tla: string; name: string; shortName: string };
+  team: { id: number; tla: string; name: string; shortName: string; crest: string };
   playedGames: number;
   won: number;
   draw: number;
@@ -38,6 +42,7 @@ export interface StandingTeam {
   goalsAgainst: number;
   goalDifference: number;
   points: number;
+  form: string | null;
 }
 
 export interface GroupStanding {
