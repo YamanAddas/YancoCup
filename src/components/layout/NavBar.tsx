@@ -29,10 +29,12 @@ export default function NavBar() {
   return (
     <header className="sticky top-0 z-50 bg-[var(--yc-bg-glass)] backdrop-blur-xl border-b border-yc-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
-        <NavLink to="/" className="flex items-center gap-1">
-          <span className="font-heading text-xl font-bold tracking-tight text-yc-text-primary">
-            Yanco<span className="text-yc-green">Cup</span>
-          </span>
+        <NavLink to="/" className="flex items-center">
+          <img
+            src={`${import.meta.env.BASE_URL}logo-nav.png`}
+            alt="YancoCup"
+            className="h-9 w-auto"
+          />
         </NavLink>
 
         <nav className="hidden sm:flex items-center gap-1">
