@@ -97,9 +97,10 @@ interface H2HData {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-type TabId = "overview" | "lineup" | "h2h";
+type TabId = "overview" | "stats" | "lineup" | "h2h";
 const TABS: { id: TabId; label: string }[] = [
   { id: "overview", label: "Overview" },
+  { id: "stats", label: "Stats" },
   { id: "lineup", label: "Lineup" },
   { id: "h2h", label: "H2H" },
 ];
@@ -170,54 +171,94 @@ function EventIcon({ type }: { type: "goal" | "own_goal" | "penalty" | "yellow" 
   );
 }
 
-/** Events timeline: goals, cards, substitutions in chronological order */
-function EventsTimeline({
-  match,
-}: {
-  match: MatchData;
-}) {
+/** API-Football event shape */
+interface AFEvent {
+  time: { elapsed: number; extra: number | null };
+  team: { id: number; name: string };
+  player: { id: number | null; name: string | null };
+  assist: { id: number | null; name: string | null };
+  type: string; // "Goal", "Card", "subst", "Var"
+  detail: string; // "Normal Goal", "Penalty", "Own Goal", "Yellow Card", "Red Card", "Substitution 1", etc.
+}
+
+/** API-Football stat shape */
+interface AFStat {
+  team: { id: number; name: string };
+  statistics: Array<{ type: string; value: string | number | null }>;
+}
+
+/** API-Football lineup shape */
+interface AFLineup {
+  team: { id: number; name: string };
+  formation: string | null;
+  startXI: Array<{ player: { id: number; name: string; number: number; pos: string } }>;
+  substitutes: Array<{ player: { id: number; name: string; number: number; pos: string } }>;
+  coach: { id: number; name: string } | null;
+}
+
+/** Events timeline: uses API-Football events if available, falls back to football-data.org */
+function EventsTimeline({ match }: { match: MatchData }) {
+  // API-Football events (enriched)
+  const afEvents = (match as unknown as Record<string, unknown>).events as AFEvent[] | undefined;
+
   const events: Array<{
     minute: number;
-    injuryTime?: number | null;
+    extra?: number | null;
     side: "home" | "away";
     type: "goal" | "own_goal" | "penalty" | "yellow" | "yellow_red" | "red" | "sub";
     primary: string;
     secondary?: string;
   }> = [];
 
-  for (const g of match.goals ?? []) {
-    const side = g.team.id === match.homeTeam.id ? "home" : "away";
-    const goalType = g.type === "OWN_GOAL" ? "own_goal" : g.type === "PENALTY" ? "penalty" : "goal";
-    events.push({
-      minute: g.minute,
-      injuryTime: g.injuryTime,
-      side,
-      type: goalType,
-      primary: g.scorer?.name ?? "Unknown",
-      secondary: g.type === "OWN_GOAL" ? "Own Goal" : g.assist?.name ? `Assist: ${g.assist.name}` : undefined,
-    });
-  }
+  if (afEvents && afEvents.length > 0) {
+    // Use API-Football events (rich data)
+    for (const ev of afEvents) {
+      const side = ev.team.id === match.homeTeam.id ? "home" : "away";
+      let type: typeof events[number]["type"] = "goal";
+      if (ev.type === "Goal") {
+        type = ev.detail === "Own Goal" ? "own_goal" : ev.detail === "Penalty" ? "penalty" : "goal";
+      } else if (ev.type === "Card") {
+        type = ev.detail.includes("Red") ? "red" : ev.detail === "Second Yellow card" ? "yellow_red" : "yellow";
+      } else if (ev.type === "subst") {
+        type = "sub";
+      } else {
+        continue; // Skip VAR and other types
+      }
 
-  for (const b of match.bookings ?? []) {
-    const side = b.team.id === match.homeTeam.id ? "home" : "away";
-    const cardType = b.card === "RED" ? "red" : b.card === "YELLOW_RED" ? "yellow_red" : "yellow";
-    events.push({
-      minute: b.minute,
-      side,
-      type: cardType,
-      primary: b.player.name,
-    });
-  }
-
-  for (const s of match.substitutions ?? []) {
-    const side = s.team.id === match.homeTeam.id ? "home" : "away";
-    events.push({
-      minute: s.minute,
-      side,
-      type: "sub",
-      primary: s.playerIn.name,
-      secondary: `↓ ${s.playerOut.name}`,
-    });
+      events.push({
+        minute: ev.time.elapsed,
+        extra: ev.time.extra,
+        side,
+        type,
+        primary: type === "sub" ? (ev.assist.name ?? "Unknown") : (ev.player.name ?? "Unknown"),
+        secondary: type === "goal" && ev.assist.name ? `Assist: ${ev.assist.name}`
+          : type === "own_goal" ? "Own Goal"
+          : type === "sub" ? `↓ ${ev.player.name ?? ""}`
+          : undefined,
+      });
+    }
+  } else {
+    // Fallback to football-data.org data
+    for (const g of match.goals ?? []) {
+      const side = g.team.id === match.homeTeam.id ? "home" : "away";
+      const goalType = g.type === "OWN_GOAL" ? "own_goal" : g.type === "PENALTY" ? "penalty" : "goal";
+      events.push({
+        minute: g.minute,
+        extra: g.injuryTime,
+        side,
+        type: goalType,
+        primary: g.scorer?.name ?? "Unknown",
+        secondary: g.type === "OWN_GOAL" ? "Own Goal" : g.assist?.name ? `Assist: ${g.assist.name}` : undefined,
+      });
+    }
+    for (const b of match.bookings ?? []) {
+      const side = b.team.id === match.homeTeam.id ? "home" : "away";
+      events.push({ minute: b.minute, side, type: b.card === "RED" ? "red" : "yellow", primary: b.player.name });
+    }
+    for (const s of match.substitutions ?? []) {
+      const side = s.team.id === match.homeTeam.id ? "home" : "away";
+      events.push({ minute: s.minute, side, type: "sub", primary: s.playerIn.name, secondary: `↓ ${s.playerOut.name}` });
+    }
   }
 
   events.sort((a, b) => a.minute - b.minute);
@@ -229,7 +270,7 @@ function EventsTimeline({
   return (
     <div className="space-y-1">
       {events.map((ev, i) => {
-        const minuteLabel = ev.injuryTime ? `${ev.minute}+${ev.injuryTime}'` : `${ev.minute}'`;
+        const minuteLabel = ev.extra ? `${ev.minute}+${ev.extra}'` : `${ev.minute}'`;
         return (
           <div
             key={i}
@@ -252,24 +293,89 @@ function EventsTimeline({
   );
 }
 
-/** Lineup display for one team */
-function TeamLineup({ team, side }: { team: TeamDetail; side: "home" | "away" }) {
-  const lineup = team.lineup ?? [];
-  const bench = team.bench ?? [];
+/** Match statistics comparison (from API-Football) */
+function StatsTab({ match }: { match: MatchData }) {
+  const afStats = (match as unknown as Record<string, unknown>).statistics as AFStat[] | undefined;
+
+  if (!afStats || afStats.length < 2) {
+    return <p className="text-yc-text-tertiary text-sm text-center py-8">Statistics not available for this match</p>;
+  }
+
+  const homeStats = afStats.find((s) => s.team.id === match.homeTeam.id)?.statistics ?? [];
+  const awayStats = afStats.find((s) => s.team.id === match.awayTeam.id)?.statistics ?? [];
+
+  // Pair stats by type
+  const DISPLAY_ORDER = [
+    "Ball Possession", "Total Shots", "Shots on Goal", "Shots off Goal",
+    "Corner Kicks", "Fouls", "Offsides", "Yellow Cards", "Red Cards",
+    "Passes %", "Total passes", "expected_goals",
+  ];
+
+  const statPairs: Array<{ label: string; home: string; away: string; homeNum: number; awayNum: number }> = [];
+  for (const statType of DISPLAY_ORDER) {
+    const h = homeStats.find((s) => s.type === statType);
+    const a = awayStats.find((s) => s.type === statType);
+    if (h || a) {
+      const hVal = h?.value ?? 0;
+      const aVal = a?.value ?? 0;
+      const hStr = String(hVal);
+      const aStr = String(aVal);
+      const hNum = typeof hVal === "number" ? hVal : parseFloat(hStr) || 0;
+      const aNum = typeof aVal === "number" ? aVal : parseFloat(aStr) || 0;
+      const label = statType === "expected_goals" ? "xG" : statType;
+      statPairs.push({ label, home: hStr, away: aStr, homeNum: hNum, awayNum: aNum });
+    }
+  }
+
+  if (statPairs.length === 0) {
+    return <p className="text-yc-text-tertiary text-sm text-center py-8">Statistics not available</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {statPairs.map((stat) => {
+        const total = stat.homeNum + stat.awayNum || 1;
+        const homePct = (stat.homeNum / total) * 100;
+        return (
+          <div key={stat.label}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm font-mono text-yc-text-primary w-12 text-left">{stat.home}</span>
+              <span className="text-xs text-yc-text-tertiary">{stat.label}</span>
+              <span className="text-sm font-mono text-yc-text-primary w-12 text-right">{stat.away}</span>
+            </div>
+            <div className="flex h-1.5 rounded-full overflow-hidden bg-yc-bg-elevated">
+              <div className="bg-yc-green rounded-l-full" style={{ width: `${homePct}%` }} />
+              <div className="bg-sky-400 rounded-r-full" style={{ width: `${100 - homePct}%` }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Lineup display for one team — uses API-Football data if available */
+function TeamLineup({ team, afLineup, side }: { team: TeamDetail; afLineup?: AFLineup; side: "home" | "away" }) {
   const align = side === "home" ? "text-left" : "text-right";
+
+  // Prefer API-Football lineup (has formation, coach, full starting XI)
+  const lineup = afLineup?.startXI?.map((p) => p.player) ?? team.lineup ?? [];
+  const bench = afLineup?.substitutes?.map((p) => p.player) ?? team.bench ?? [];
+  const formation = afLineup?.formation ?? team.formation;
+  const coachName = afLineup?.coach?.name ?? team.coach?.name;
 
   return (
     <div className={`flex-1 ${align}`}>
       {/* Coach + formation */}
       <div className="mb-3">
-        {team.coach?.name && (
+        {coachName && (
           <p className="text-xs text-yc-text-tertiary mb-0.5">
-            Coach: <span className="text-yc-text-secondary">{team.coach.name}</span>
+            Coach: <span className="text-yc-text-secondary">{coachName}</span>
           </p>
         )}
-        {team.formation && (
+        {formation && (
           <p className="text-xs text-yc-text-tertiary">
-            Formation: <span className="text-yc-green font-mono">{team.formation}</span>
+            Formation: <span className="text-yc-green font-mono">{formation}</span>
           </p>
         )}
       </div>
@@ -280,12 +386,14 @@ function TeamLineup({ team, side }: { team: TeamDetail; side: "home" | "away" })
           <p className="text-xs text-yc-text-tertiary uppercase tracking-wider mb-1.5">Starting XI</p>
           <div className="space-y-0.5">
             {lineup.map((p) => (
-              <div key={p.id} className={`flex items-center gap-2 ${side === "away" ? "flex-row-reverse" : ""}`}>
+              <div key={p.id ?? p.name} className={`flex items-center gap-2 ${side === "away" ? "flex-row-reverse" : ""}`}>
                 <span className="text-xs font-mono text-yc-text-tertiary w-5 text-center shrink-0">
-                  {p.shirtNumber}
+                  {"number" in p ? p.number : ""}
                 </span>
                 <span className="text-sm text-yc-text-primary truncate">{p.name}</span>
-                <span className="text-[10px] text-yc-text-tertiary shrink-0">{p.position?.charAt(0)}</span>
+                {"pos" in p && p.pos && (
+                  <span className="text-[10px] text-yc-text-tertiary shrink-0">{p.pos}</span>
+                )}
               </div>
             ))}
           </div>
@@ -298,9 +406,9 @@ function TeamLineup({ team, side }: { team: TeamDetail; side: "home" | "away" })
           <p className="text-xs text-yc-text-tertiary uppercase tracking-wider mb-1.5">Bench</p>
           <div className="space-y-0.5">
             {bench.map((p) => (
-              <div key={p.id} className={`flex items-center gap-2 ${side === "away" ? "flex-row-reverse" : ""}`}>
+              <div key={p.id ?? p.name} className={`flex items-center gap-2 ${side === "away" ? "flex-row-reverse" : ""}`}>
                 <span className="text-xs font-mono text-yc-text-tertiary w-5 text-center shrink-0">
-                  {p.shirtNumber}
+                  {"number" in p ? p.number : ""}
                 </span>
                 <span className="text-sm text-yc-text-secondary truncate">{p.name}</span>
               </div>
@@ -633,13 +741,22 @@ export default function MatchDetailPage() {
         </div>
       )}
 
-      {tab === "lineup" && (
-        <div className="flex gap-4 sm:gap-8">
-          <TeamLineup team={match.homeTeam} side="home" />
-          <div className="w-px bg-yc-border shrink-0" />
-          <TeamLineup team={match.awayTeam} side="away" />
-        </div>
+      {tab === "stats" && (
+        <StatsTab match={match} />
       )}
+
+      {tab === "lineup" && (() => {
+        const afLineups = (match as unknown as Record<string, unknown>).lineups as AFLineup[] | undefined;
+        const homeLineup = afLineups?.find((l) => l.team.id === match.homeTeam.id);
+        const awayLineup = afLineups?.find((l) => l.team.id === match.awayTeam.id);
+        return (
+          <div className="flex gap-4 sm:gap-8">
+            <TeamLineup team={match.homeTeam} afLineup={homeLineup} side="home" />
+            <div className="w-px bg-yc-border shrink-0" />
+            <TeamLineup team={match.awayTeam} afLineup={awayLineup} side="away" />
+          </div>
+        );
+      })()}
 
       {tab === "h2h" && id && (
         <H2HTab matchId={id} />

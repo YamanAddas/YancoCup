@@ -8,6 +8,7 @@ import { cors } from "hono/cors";
 interface Env {
   SCORES_KV: KVNamespace;
   FOOTBALL_DATA_API_KEY: string;
+  API_FOOTBALL_KEY: string;
 }
 
 /** Competition configuration */
@@ -144,6 +145,119 @@ async function fetchFromFootballData(
   return fetch(`${FD_BASE}${path}`, {
     headers: { "X-Auth-Token": apiKey },
   });
+}
+
+// ---------------------------------------------------------------------------
+// API-Football (api-sports.io) — rich match data (goals, lineups, stats)
+// ---------------------------------------------------------------------------
+
+const AF_BASE = "https://v3.football.api-sports.io";
+
+/** Map our competition codes to API-Football league IDs */
+const AF_LEAGUE_IDS: Record<string, number> = {
+  PL: 39,
+  PD: 140,
+  BL1: 78,
+  SA: 135,
+  FL1: 61,
+  CL: 2,
+  WC: 1,
+  EC: 4,
+};
+
+async function fetchFromApiFootball(
+  path: string,
+  apiKey: string,
+): Promise<Response> {
+  return fetch(`${AF_BASE}${path}`, {
+    headers: { "x-apisports-key": apiKey },
+  });
+}
+
+/**
+ * Find an API-Football fixture matching a football-data.org match.
+ * Searches by league + date + team names. Returns the fixture object or null.
+ */
+async function findApiFootballFixture(
+  env: Env,
+  compCode: string,
+  matchDate: string, // YYYY-MM-DD
+  homeTla: string,
+  awayTla: string,
+): Promise<Record<string, unknown> | null> {
+  const leagueId = AF_LEAGUE_IDS[compCode];
+  if (!leagueId || !env.API_FOOTBALL_KEY) return null;
+
+  // Check cache first (keyed by league + date)
+  const dayCacheKey = `af:${compCode}:${matchDate}`;
+  const dayCached = await env.SCORES_KV.get(dayCacheKey);
+  let fixtures: Array<Record<string, unknown>>;
+
+  if (dayCached) {
+    fixtures = JSON.parse(dayCached);
+  } else {
+    // Fetch all fixtures for this league on this date (1 API call for ~10 matches)
+    const season = parseInt(matchDate.slice(0, 4), 10);
+    // API-Football season year: use the start year of the season
+    const seasonYear = compCode === "WC" || compCode === "EC" ? season : (new Date(matchDate) >= new Date(`${season}-07-01`) ? season : season - 1);
+
+    const res = await fetchFromApiFootball(
+      `/fixtures?league=${leagueId}&season=${seasonYear}&date=${matchDate}`,
+      env.API_FOOTBALL_KEY,
+    );
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as { response: Array<Record<string, unknown>> };
+    fixtures = data.response ?? [];
+
+    // Cache for 24hr (finished matches don't change)
+    if (fixtures.length > 0) {
+      await kvPut(env.SCORES_KV, dayCacheKey, JSON.stringify(fixtures), { expirationTtl: 86400 });
+    }
+  }
+
+  // Match by team TLA codes
+  const homeUp = homeTla.toUpperCase();
+  const awayUp = awayTla.toUpperCase();
+  return fixtures.find((f) => {
+    const teams = f.teams as { home?: { name?: string }; away?: { name?: string } } | undefined;
+    const hName = (teams?.home?.name ?? "").toUpperCase();
+    const aName = (teams?.away?.name ?? "").toUpperCase();
+    return (hName.includes(homeUp) || homeUp.includes(hName.slice(0, 3))) &&
+           (aName.includes(awayUp) || awayUp.includes(aName.slice(0, 3)));
+  }) ?? null;
+}
+
+/**
+ * Fetch rich match detail from API-Football for a specific fixture ID.
+ * Returns events, lineups, statistics.
+ */
+async function fetchApiFootballDetail(
+  env: Env,
+  fixtureId: number,
+): Promise<Record<string, unknown> | null> {
+  const cacheKey = `af:fixture:${fixtureId}`;
+  const cached = await env.SCORES_KV.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  // Fetch fixture detail with events, lineups, statistics
+  const res = await fetchFromApiFootball(
+    `/fixtures?id=${fixtureId}`,
+    env.API_FOOTBALL_KEY,
+  );
+  if (!res.ok) return null;
+
+  const data = (await res.json()) as { response: Array<Record<string, unknown>> };
+  const fixture = data.response?.[0] ?? null;
+  if (fixture) {
+    // Cache: finished = 7 days, live = 2min, upcoming = 1hr
+    const status = ((fixture.fixture as Record<string, unknown>)?.status as Record<string, unknown>)?.short as string;
+    const ttl = status === "FT" || status === "AET" || status === "PEN" ? 604800
+      : status === "1H" || status === "2H" || status === "HT" ? 120
+      : 3600;
+    await kvPut(env.SCORES_KV, cacheKey, JSON.stringify(fixture), { expirationTtl: ttl });
+  }
+  return fixture;
 }
 
 function transformMatch(m: FDMatch): MatchScore {
@@ -644,26 +758,67 @@ app.get("/api/match/:id", async (c) => {
 
 app.get("/api/match/:id/detail", async (c) => {
   const id = c.req.param("id");
-  const cacheKey = `matchdetail:${id}`;
-  const cached = await c.env.SCORES_KV.get(cacheKey);
-  if (cached) return c.json(JSON.parse(cached));
 
-  const res = await fetchFromFootballData(
-    `/matches/${id}`,
-    c.env.FOOTBALL_DATA_API_KEY,
-  );
-  if (!res.ok) {
-    return c.json({ error: "Match not found" }, 404);
+  // Check for enriched cache first
+  const enrichedKey = `matchenriched:${id}`;
+  const enrichedCached = await c.env.SCORES_KV.get(enrichedKey);
+  if (enrichedCached) return c.json(JSON.parse(enrichedCached));
+
+  // Fetch basic data from football-data.org
+  const basicKey = `matchdetail:${id}`;
+  let basicData: Record<string, unknown>;
+  const basicCached = await c.env.SCORES_KV.get(basicKey);
+
+  if (basicCached) {
+    basicData = JSON.parse(basicCached);
+  } else {
+    const res = await fetchFromFootballData(
+      `/matches/${id}`,
+      c.env.FOOTBALL_DATA_API_KEY,
+    );
+    if (!res.ok) {
+      return c.json({ error: "Match not found" }, 404);
+    }
+    basicData = (await res.json()) as Record<string, unknown>;
+    const status = basicData.status as string;
+    const ttl = status === "FINISHED" ? 3600 : status === "IN_PLAY" || status === "PAUSED" ? 120 : 300;
+    await kvPut(c.env.SCORES_KV, basicKey, JSON.stringify(basicData), { expirationTtl: ttl });
   }
 
-  const data = (await res.json()) as Record<string, unknown>;
-  const status = data.status as string;
-  const ttl = status === "FINISHED" ? 3600 : status === "IN_PLAY" || status === "PAUSED" ? 120 : 300;
+  // Try to enrich with API-Football data (goals, lineups, stats)
+  const compCode = (basicData.competition as Record<string, unknown>)?.code as string;
+  const utcDate = basicData.utcDate as string;
+  const matchDate = utcDate?.slice(0, 10);
+  const homeTla = (basicData.homeTeam as Record<string, unknown>)?.tla as string;
+  const awayTla = (basicData.awayTeam as Record<string, unknown>)?.tla as string;
 
-  await kvPut(c.env.SCORES_KV,cacheKey, JSON.stringify(data), {
-    expirationTtl: ttl,
-  });
-  return c.json(data);
+  if (compCode && matchDate && homeTla && awayTla && c.env.API_FOOTBALL_KEY) {
+    try {
+      const afFixture = await findApiFootballFixture(c.env, compCode, matchDate, homeTla, awayTla);
+      if (afFixture) {
+        const fixtureId = ((afFixture.fixture as Record<string, unknown>)?.id as number);
+        if (fixtureId) {
+          const detail = await fetchApiFootballDetail(c.env, fixtureId);
+          if (detail) {
+            const enriched = {
+              ...basicData,
+              events: detail.events ?? [],
+              lineups: detail.lineups ?? [],
+              statistics: detail.statistics ?? [],
+            };
+            const status = basicData.status as string;
+            const ttl = status === "FINISHED" ? 604800 : status === "IN_PLAY" || status === "PAUSED" ? 120 : 3600;
+            await kvPut(c.env.SCORES_KV, enrichedKey, JSON.stringify(enriched), { expirationTtl: ttl });
+            return c.json(enriched);
+          }
+        }
+      }
+    } catch {
+      // API-Football failed — return basic data
+    }
+  }
+
+  return c.json(basicData);
 });
 
 // ---------------------------------------------------------------------------
