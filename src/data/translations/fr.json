@@ -184,5 +184,7 @@
   "pools.signInTitle": "Connectez-vous pour les Groupes",
   "pools.signInDesc": "Créez ou rejoignez des groupes pour affronter vos amis.",
   "pools.signInToJoin": "Connectez-vous pour rejoindre ce groupe.",
-  "pools.joinError": "Impossible de rejoindre le groupe"
+  "pools.joinError": "Impossible de rejoindre le groupe",
+
+  "hub.overview": "Aperçu"
 }

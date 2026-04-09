@@ -184,5 +184,7 @@
   "pools.signInTitle": "Entre para usar Grupos",
   "pools.signInDesc": "Crie ou entre em grupos para competir com amigos.",
   "pools.signInToJoin": "Entre para participar deste grupo.",
-  "pools.joinError": "Não foi possível entrar no grupo"
+  "pools.joinError": "Não foi possível entrar no grupo",
+
+  "hub.overview": "Visão geral"
 }

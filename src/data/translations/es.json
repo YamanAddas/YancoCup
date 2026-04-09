@@ -184,5 +184,7 @@
   "pools.signInTitle": "Inicia sesión para usar Grupos",
   "pools.signInDesc": "Crea o únete a grupos para competir con amigos.",
   "pools.signInToJoin": "Inicia sesión para unirte a este grupo.",
-  "pools.joinError": "No se pudo unir al grupo"
+  "pools.joinError": "No se pudo unir al grupo",
+
+  "hub.overview": "Resumen"
 }

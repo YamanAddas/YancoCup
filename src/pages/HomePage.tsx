@@ -41,7 +41,7 @@ function CompetitionCards() {
         {COMPETITION_LIST.map((comp) => (
           <NavLink
             key={comp.id}
-            to={`/${comp.id}/matches`}
+            to={`/${comp.id}/overview`}
             className="group yc-card p-4 rounded-xl transition-all duration-300 hover:border-[var(--yc-border-accent)] hover:shadow-[0_0_20px_rgba(0,255,136,0.06)]"
           >
             <div className="flex items-center justify-between mb-3">

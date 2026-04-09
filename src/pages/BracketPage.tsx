@@ -1,11 +1,10 @@
 import { useMemo, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, GitBranch } from "lucide-react";
+import { GitBranch } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useCompetitionSchedule } from "../hooks/useCompetitionSchedule";
 import { useTeamMap } from "../hooks/useTeams";
 import { useScores } from "../hooks/useScores";
-import { useI18n } from "../lib/i18n";
 import TeamCrest from "../components/match/TeamCrest";
 import type { Match, Team } from "../types";
 
@@ -212,7 +211,6 @@ export default function BracketPage() {
   const { matches } = useCompetitionSchedule();
   const teamMap = useTeamMap();
   const { scoreMap } = useScores();
-  const { t } = useI18n();
 
   const roundOrder: RoundId[] = ["playoff", "round-of-32", "round-of-16", "quarterfinal", "semifinal", "final"];
 
@@ -251,13 +249,6 @@ export default function BracketPage() {
   if (bracketRounds.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <Link
-          to={`/${comp.id}/matches`}
-          className="flex items-center gap-1.5 text-yc-text-tertiary hover:text-yc-text-primary text-sm mb-4 transition-colors"
-        >
-          <ArrowLeft size={16} />
-          {comp.shortName} — {t("nav.matches")}
-        </Link>
         <div className="yc-card p-12 text-center">
           <GitBranch size={48} className="text-yc-text-tertiary mx-auto mb-4 opacity-40" />
           <p className="text-yc-text-tertiary text-sm">
@@ -270,21 +261,6 @@ export default function BracketPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-      <Link
-        to={`/${comp.id}/matches`}
-        className="flex items-center gap-1.5 text-yc-text-tertiary hover:text-yc-text-primary text-sm mb-4 transition-colors"
-      >
-        <ArrowLeft size={16} />
-        {comp.shortName} — {t("nav.matches")}
-      </Link>
-
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-yc-green/10 flex items-center justify-center">
-          <GitBranch size={20} className="text-yc-green" />
-        </div>
-        <h2 className="font-heading text-2xl font-bold">Knockout Bracket</h2>
-      </div>
-
       {/* Bracket tree — horizontally scrollable */}
       <div className="yc-card p-6 overflow-x-auto overflow-y-hidden">
         <div className="flex items-stretch min-w-max" style={{ minHeight }}>

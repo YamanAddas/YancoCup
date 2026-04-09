@@ -5,7 +5,7 @@ import { useAutoScore } from "../hooks/useAutoScore";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import { getRank, getRankStars } from "../lib/ranks";
-import { Trophy, TrendingUp, Target, Award, Star } from "lucide-react";
+import { TrendingUp, Target, Award, Star } from "lucide-react";
 
 function RankPill({ points }: { points: number }) {
   const rank = getRank(points);
@@ -39,15 +39,7 @@ export default function LeaderboardPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-yc-green/10 flex items-center justify-center">
-          <Trophy size={20} className="text-yc-green" />
-        </div>
-        <div>
-          <h2 className="font-heading text-2xl font-bold">{t("leaderboard.title")}</h2>
-          <p className="text-yc-text-tertiary text-sm mt-0.5">{playerCount}</p>
-        </div>
-      </div>
+      <p className="text-yc-text-secondary text-sm mb-6">{playerCount}</p>
 
       {loading ? (
         <div className="yc-card rounded-xl overflow-hidden">

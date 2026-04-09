@@ -1,50 +1,33 @@
 import { NavLink, useParams } from "react-router-dom";
 import {
   Globe as GlobeIcon,
-  Calendar,
-  Users,
-  UsersRound,
-  Trophy,
-  BarChart3,
   Tv,
   LogIn,
   LogOut,
-  Table,
-  GitBranch,
 } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 import { useI18n } from "../../lib/i18n";
 import { COMPETITIONS } from "../../lib/competitions";
 import LanguageSwitcher from "./LanguageSwitcher";
 
-function useCurrentCompetition(): string {
+function useCurrentCompetition(): string | undefined {
   const { competition } = useParams<{ competition: string }>();
-  return competition?.toUpperCase() ?? "WC";
+  return competition?.toUpperCase();
 }
 
 export default function NavBar() {
   const { user, profile, loading, signOut } = useAuth();
   const { t } = useI18n();
   const comp = useCurrentCompetition();
-  const compConfig = COMPETITIONS[comp];
-  const isTournament = compConfig?.type === "tournament";
+  const compConfig = comp ? COMPETITIONS[comp] : undefined;
 
   const links = [
     { to: "/", labelKey: "nav.home", icon: GlobeIcon, end: true },
-    { to: `/${comp}/matches`, labelKey: "nav.matches", icon: Calendar, end: false },
-    ...(isTournament
-      ? [
-          ...(compConfig?.hasGroups
-            ? [{ to: `/${comp}/groups`, labelKey: "nav.groups", icon: Users, end: false }]
-            : [{ to: `/${comp}/standings`, labelKey: "nav.standings", icon: Table, end: false }]),
-          { to: `/${comp}/bracket`, labelKey: "nav.bracket", icon: GitBranch, end: false },
-        ]
-      : [{ to: `/${comp}/standings`, labelKey: "nav.standings", icon: Table, end: false }]),
-    { to: `/${comp}/predictions`, labelKey: "nav.predictions", icon: Trophy, end: false },
-    { to: `/${comp}/leaderboard`, labelKey: "nav.leaderboard", icon: BarChart3, end: false },
-    { to: `/${comp}/pools`, labelKey: "pools.title", icon: UsersRound, end: false },
+    ...(compConfig
+      ? [{ to: `/${comp}/overview`, label: compConfig.shortName, emblem: compConfig.emblem, end: false }]
+      : []),
     { to: "/watch", labelKey: "nav.watch", icon: Tv, end: false },
-  ];
+  ] as Array<{ to: string; labelKey?: string; label?: string; icon?: React.ComponentType<{ size?: number }>; emblem?: string; end: boolean }>;
 
   return (
     <header className="sticky top-0 z-50 yc-glass border-b border-yc-border">
@@ -58,11 +41,11 @@ export default function NavBar() {
         </NavLink>
 
         <nav className="hidden sm:flex items-center gap-0.5">
-          {links.map(({ to, labelKey, icon: Icon, end }) => (
+          {links.map((link) => (
             <NavLink
-              key={to}
-              to={to}
-              end={end}
+              key={link.to}
+              to={link.to}
+              end={link.end}
               className={({ isActive }) =>
                 `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive
@@ -71,8 +54,12 @@ export default function NavBar() {
                 }`
               }
             >
-              <Icon size={16} />
-              {t(labelKey)}
+              {link.emblem ? (
+                <img src={link.emblem} alt="" className="w-4 h-4 object-contain" />
+              ) : link.icon ? (
+                <link.icon size={16} />
+              ) : null}
+              {link.label ?? (link.labelKey ? t(link.labelKey) : "")}
             </NavLink>
           ))}
         </nav>

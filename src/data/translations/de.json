@@ -184,5 +184,7 @@
   "pools.signInTitle": "Anmelden für Pools",
   "pools.signInDesc": "Erstelle oder tritt Pools bei, um gegen Freunde anzutreten.",
   "pools.signInToJoin": "Melde dich an, um diesem Pool beizutreten.",
-  "pools.joinError": "Pool-Beitritt fehlgeschlagen"
+  "pools.joinError": "Pool-Beitritt fehlgeschlagen",
+
+  "hub.overview": "Überblick"
 }

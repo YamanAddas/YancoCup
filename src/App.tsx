@@ -4,9 +4,11 @@ import { AuthProvider } from "./lib/auth";
 import { I18nProvider } from "./lib/i18n";
 import { CompetitionProvider } from "./lib/CompetitionProvider";
 import AppLayout from "./components/layout/AppLayout";
+import CompetitionHub from "./pages/CompetitionHub";
 
 // Lazy load all pages — only HomePage is eager for fast first paint
 import HomePage from "./pages/HomePage";
+const OverviewTab = lazy(() => import("./pages/OverviewTab"));
 const MatchesPage = lazy(() => import("./pages/MatchesPage"));
 const MatchDetailPage = lazy(() => import("./pages/MatchDetailPage"));
 const TeamPage = lazy(() => import("./pages/TeamPage"));
@@ -31,13 +33,6 @@ function PageLoader() {
   );
 }
 
-/**
- * Wrapper that provides CompetitionProvider for competition-scoped routes.
- */
-function CompetitionLayout({ children }: { children: React.ReactNode }) {
-  return <CompetitionProvider>{children}</CompetitionProvider>;
-}
-
 export default function App() {
   return (
     <I18nProvider>
@@ -49,79 +44,27 @@ export default function App() {
                 {/* Home — competition cards, globe */}
                 <Route index element={<HomePage />} />
 
-                {/* Competition-scoped routes */}
+                {/* Competition hub — tabbed layout for all competition-scoped routes */}
                 <Route
-                  path=":competition/matches"
+                  path=":competition"
                   element={
-                    <CompetitionLayout>
-                      <MatchesPage />
-                    </CompetitionLayout>
+                    <CompetitionProvider>
+                      <CompetitionHub />
+                    </CompetitionProvider>
                   }
-                />
-                <Route
-                  path=":competition/match/:id"
-                  element={
-                    <CompetitionLayout>
-                      <MatchDetailPage />
-                    </CompetitionLayout>
-                  }
-                />
-                <Route
-                  path=":competition/team/:teamId"
-                  element={
-                    <CompetitionLayout>
-                      <TeamPage />
-                    </CompetitionLayout>
-                  }
-                />
-                <Route
-                  path=":competition/bracket"
-                  element={
-                    <CompetitionLayout>
-                      <BracketPage />
-                    </CompetitionLayout>
-                  }
-                />
-                <Route
-                  path=":competition/groups"
-                  element={
-                    <CompetitionLayout>
-                      <GroupsPage />
-                    </CompetitionLayout>
-                  }
-                />
-                <Route
-                  path=":competition/standings"
-                  element={
-                    <CompetitionLayout>
-                      <StandingsPage />
-                    </CompetitionLayout>
-                  }
-                />
-                <Route
-                  path=":competition/predictions"
-                  element={
-                    <CompetitionLayout>
-                      <PredictionsPage />
-                    </CompetitionLayout>
-                  }
-                />
-                <Route
-                  path=":competition/pools"
-                  element={
-                    <CompetitionLayout>
-                      <PoolsPage />
-                    </CompetitionLayout>
-                  }
-                />
-                <Route
-                  path=":competition/leaderboard"
-                  element={
-                    <CompetitionLayout>
-                      <LeaderboardPage />
-                    </CompetitionLayout>
-                  }
-                />
+                >
+                  <Route index element={<Navigate to="overview" replace />} />
+                  <Route path="overview" element={<OverviewTab />} />
+                  <Route path="matches" element={<MatchesPage />} />
+                  <Route path="match/:id" element={<MatchDetailPage />} />
+                  <Route path="team/:teamId" element={<TeamPage />} />
+                  <Route path="bracket" element={<BracketPage />} />
+                  <Route path="groups" element={<GroupsPage />} />
+                  <Route path="standings" element={<StandingsPage />} />
+                  <Route path="predictions" element={<PredictionsPage />} />
+                  <Route path="leaderboard" element={<LeaderboardPage />} />
+                  <Route path="pools" element={<PoolsPage />} />
+                </Route>
 
                 {/* Backward-compatible redirects (old /matches → /WC/matches) */}
                 <Route

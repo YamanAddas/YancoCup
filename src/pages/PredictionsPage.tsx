@@ -13,7 +13,7 @@ import {
 import { useAutoScore } from "../hooks/useAutoScore";
 import PredictionCard from "../components/predictions/PredictionCard";
 import HowToPlay from "../components/predictions/HowToPlay";
-import { LogIn, AlertCircle, Trophy, ChevronLeft, ChevronRight, CheckCircle, Clock } from "lucide-react";
+import { LogIn, AlertCircle, ChevronLeft, ChevronRight, CheckCircle, Clock } from "lucide-react";
 
 export default function PredictionsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -134,17 +134,11 @@ export default function PredictionsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-yc-green/10 flex items-center justify-center">
-          <Trophy size={20} className="text-yc-green" />
-        </div>
-        <div>
-          <h2 className="font-heading text-2xl font-bold">{t("predictions.title")}</h2>
-          <p className="text-yc-text-tertiary text-sm mt-0.5">
-            {t("predictions.predicted", { count: predictions.length })} &middot; {t("predictions.remaining", { count: unpredicted.length })}
-          </p>
-        </div>
+      {/* Prediction stats */}
+      <div className="flex items-center gap-2 text-sm mb-4">
+        <span className="text-yc-text-secondary">{t("predictions.predicted", { count: predictions.length })}</span>
+        <span className="text-yc-text-tertiary">&middot;</span>
+        <span className="text-yc-text-secondary">{t("predictions.remaining", { count: unpredicted.length })}</span>
       </div>
 
       {/* Matchday navigation for leagues */}

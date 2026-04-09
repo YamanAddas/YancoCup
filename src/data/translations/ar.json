@@ -184,5 +184,7 @@
   "pools.signInTitle": "سجّل دخول لاستخدام المجموعات",
   "pools.signInDesc": "أنشئ أو انضم لمجموعات للتنافس مع أصدقائك.",
   "pools.signInToJoin": "سجّل دخول للانضمام لهذه المجموعة.",
-  "pools.joinError": "تعذر الانضمام للمجموعة"
+  "pools.joinError": "تعذر الانضمام للمجموعة",
+
+  "hub.overview": "نظرة عامة"
 }

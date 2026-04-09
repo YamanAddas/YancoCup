@@ -9,7 +9,7 @@ import { useScores } from "../hooks/useScores";
 import { useI18n } from "../lib/i18n";
 import MatchCard from "../components/match/MatchCard";
 import type { Match } from "../types";
-import { CalendarDays, ChevronLeft, ChevronRight, Filter, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Filter, X } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Date navigation pill
@@ -264,19 +264,11 @@ function TournamentMatches() {
 
   return (
     <>
-      {/* Header */}
+      {/* Sub-header: match count + filter */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-yc-green/10 flex items-center justify-center">
-            <CalendarDays size={20} className="text-yc-green" />
-          </div>
-          <div>
-            <h2 className="font-heading text-2xl font-bold">{t("matches.title")}</h2>
-            <p className="text-yc-text-tertiary text-sm mt-0.5">
-              {matches.length} {matches.length === 1 ? "match" : "matches"}
-            </p>
-          </div>
-        </div>
+        <p className="text-yc-text-secondary text-sm">
+          {matches.length} {matches.length === 1 ? t("matches.count", { count: matches.length }) : t("matches.countPlural", { count: matches.length })}
+        </p>
         <button
           onClick={() => setShowFilters(!showFilters)}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all ${
@@ -472,19 +464,6 @@ function LeagueMatches() {
 
   return (
     <>
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-yc-green/10 flex items-center justify-center">
-          <CalendarDays size={20} className="text-yc-green" />
-        </div>
-        <div>
-          <h2 className="font-heading text-2xl font-bold">
-            {comp.shortName}
-          </h2>
-          <p className="text-yc-text-tertiary text-sm mt-0.5">{t("matches.title")}</p>
-        </div>
-      </div>
-
       {loading ? (
         <div className="flex justify-center py-16">
           <div className="w-8 h-8 rounded-full border-2 border-yc-green border-t-transparent animate-spin" />

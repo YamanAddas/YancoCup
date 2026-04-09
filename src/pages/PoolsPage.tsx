@@ -390,15 +390,7 @@ export default function PoolsPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-center gap-3 mb-6">
-        <Users size={24} className="text-yc-green" />
-        <div>
-          <h2 className="font-heading text-2xl font-bold">{t("pools.title")}</h2>
-          <p className="text-yc-text-tertiary text-sm mt-0.5">
-            {comp.shortName} — {t("pools.subtitle")}
-          </p>
-        </div>
-      </div>
+      <p className="text-yc-text-secondary text-sm mb-4">{t("pools.subtitle")}</p>
 
       <div className="space-y-4">
         {/* Create + Join forms */}

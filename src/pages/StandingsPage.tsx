@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import TeamCrest from "../components/match/TeamCrest";
-import { Table } from "lucide-react";
 import type { StandingsZones } from "../lib/competitions";
 
 const WORKER_URL =
@@ -99,15 +98,6 @@ export default function StandingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-yc-green/10 flex items-center justify-center">
-          <Table size={20} className="text-yc-green" />
-        </div>
-        <div>
-          <h2 className="font-heading text-2xl font-bold">{comp.shortName}</h2>
-          <p className="text-yc-text-tertiary text-sm mt-0.5">{t("nav.standings")}</p>
-        </div>
-      </div>
 
       {loading ? (
         <div className="yc-card rounded-xl overflow-hidden">
