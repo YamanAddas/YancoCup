@@ -21,9 +21,10 @@ interface BracketMatch {
   awayCrest?: string | null;
 }
 
-type RoundId = "round-of-32" | "round-of-16" | "quarterfinal" | "semifinal" | "final";
+type RoundId = "playoff" | "round-of-32" | "round-of-16" | "quarterfinal" | "semifinal" | "final";
 
 const ROUND_LABELS: Record<RoundId, string> = {
+  playoff: "Play-offs",
   "round-of-32": "Round of 32",
   "round-of-16": "Round of 16",
   quarterfinal: "Quarterfinals",
@@ -213,7 +214,7 @@ export default function BracketPage() {
   const { scoreMap } = useScores();
   const { t } = useI18n();
 
-  const roundOrder: RoundId[] = ["round-of-32", "round-of-16", "quarterfinal", "semifinal", "final"];
+  const roundOrder: RoundId[] = ["playoff", "round-of-32", "round-of-16", "quarterfinal", "semifinal", "final"];
 
   const bracketRounds = useMemo(() => {
     const rounds: Array<{ id: RoundId; matches: BracketMatch[] }> = [];

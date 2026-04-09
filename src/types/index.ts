@@ -47,6 +47,6 @@ export interface Match {
   awayScore?: number | null;
   venueId: string;
   group: string | null;
-  round: "group" | "round-of-32" | "round-of-16" | "quarterfinal" | "semifinal" | "third-place" | "final";
+  round: "group" | "playoff" | "round-of-32" | "round-of-16" | "quarterfinal" | "semifinal" | "third-place" | "final";
   matchday: number | null;
 }

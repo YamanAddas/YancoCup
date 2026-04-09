@@ -167,6 +167,7 @@ function SelectFilter({
 const ROUND_KEYS: { value: Match["round"] | ""; labelKey: string }[] = [
   { value: "", labelKey: "matches.allRounds" },
   { value: "group", labelKey: "round.group" },
+  { value: "playoff", labelKey: "round.playoff" },
   { value: "round-of-32", labelKey: "round.roundOf32" },
   { value: "round-of-16", labelKey: "round.roundOf16" },
   { value: "quarterfinal", labelKey: "round.quarterfinal" },

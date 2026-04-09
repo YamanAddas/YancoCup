@@ -32,9 +32,11 @@ export default function NavBar() {
   const links = [
     { to: "/", labelKey: "nav.home", icon: GlobeIcon, end: true },
     { to: `/${comp}/matches`, labelKey: "nav.matches", icon: Calendar, end: false },
-    ...(isTournament && compConfig?.hasGroups
+    ...(isTournament
       ? [
-          { to: `/${comp}/groups`, labelKey: "nav.groups", icon: Users, end: false },
+          ...(compConfig?.hasGroups
+            ? [{ to: `/${comp}/groups`, labelKey: "nav.groups", icon: Users, end: false }]
+            : [{ to: `/${comp}/standings`, labelKey: "nav.standings", icon: Table, end: false }]),
           { to: `/${comp}/bracket`, labelKey: "nav.bracket", icon: GitBranch, end: false },
         ]
       : [{ to: `/${comp}/standings`, labelKey: "nav.standings", icon: Table, end: false }]),

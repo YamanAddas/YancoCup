@@ -116,10 +116,27 @@ function stageToRound(
 ): Match["round"] {
   switch (stage) {
     case "GROUP_STAGE":
+    case "LEAGUE_STAGE":
+    case "LEAGUE_STAGE_MATCHDAY":
+    case "REGULAR_SEASON":
       return "group";
+    case "PRELIMINARY_ROUND":
+    case "PRELIMINARY_SEMI_FINALS":
+    case "PRELIMINARY_FINAL":
+    case "QUALIFICATION":
+    case "QUALIFICATION_ROUND_1":
+    case "QUALIFICATION_ROUND_2":
+    case "QUALIFICATION_ROUND_3":
+    case "PLAYOFF_ROUND":
+    case "PLAYOFF":
+    case "KNOCKOUT_ROUND_PLAY_OFFS":
+    case "ROUND_OF_16_PLAY_OFFS":
+      return "playoff";
     case "LAST_32":
+    case "ROUND_OF_32":
       return "round-of-32";
     case "LAST_16":
+    case "ROUND_OF_16":
       return "round-of-16";
     case "QUARTER_FINALS":
       return "quarterfinal";
@@ -130,7 +147,6 @@ function stageToRound(
     case "FINAL":
       return "final";
     default:
-      // League matches: REGULAR_SEASON, etc.
       return "group";
   }
 }

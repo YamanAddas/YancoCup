@@ -58,6 +58,7 @@ function formatMatchDate(date: string): string {
 
 const ROUND_KEYS: Record<Match["round"], string> = {
   group: "round.group",
+  playoff: "round.playoff",
   "round-of-32": "round.roundOf32",
   "round-of-16": "round.roundOf16",
   quarterfinal: "round.quarterfinal",
