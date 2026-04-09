@@ -127,6 +127,7 @@ export default function PredictionsPage() {
                     prediction={predictionMap.get(m.id)}
                     predictionCount={predictionCounts.get(m.id) ?? 0}
                     userId={user.id}
+                    competitionId={comp.id}
                     onSaved={refresh}
                   />
                 ))}
@@ -150,6 +151,7 @@ export default function PredictionsPage() {
                     prediction={predictionMap.get(m.id)}
                     predictionCount={predictionCounts.get(m.id) ?? 0}
                     userId={user.id}
+                    competitionId={comp.id}
                     onSaved={refresh}
                   />
                 ))}

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import GlobeView from "../components/globe/GlobeView";
 import Countdown from "../components/layout/Countdown";
@@ -11,6 +11,7 @@ import { useLeaderboard } from "../hooks/useLeaderboard";
 import { useI18n } from "../lib/i18n";
 import { COMPETITION_LIST } from "../lib/competitions";
 import ActivityFeed from "../components/activity/ActivityFeed";
+import type { Match } from "../types";
 import {
   Trophy,
   ArrowRight,
@@ -19,6 +20,10 @@ import {
   Activity,
   ChevronRight,
 } from "lucide-react";
+
+const WORKER_URL =
+  import.meta.env.VITE_WORKER_URL ??
+  "https://yancocup-api.catbyte1985.workers.dev";
 
 function CompetitionCards() {
   const { t } = useI18n();
@@ -67,35 +72,78 @@ function CompetitionCards() {
   );
 }
 
+/** Cross-competition today's matches — fetches from Worker /api/live + WC static fallback */
 function TodaysMatches() {
-  const allMatches = useSchedule();
+  const wcMatches = useSchedule();
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
   const { scoreMap } = useScores();
   const { t } = useI18n();
+  const [liveMatches, setLiveMatches] = useState<Match[]>([]);
 
-  const todaysMatches = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return allMatches.filter((m) => m.date === today);
-  }, [allMatches]);
+  // Fetch cross-competition live/today matches from Worker
+  useEffect(() => {
+    async function fetchLive() {
+      try {
+        const res = await fetch(`${WORKER_URL}/api/live`);
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          matches: Array<{
+            apiId: number;
+            competitionCode: string;
+            utcDate: string;
+            status: string;
+            matchday: number | null;
+            stage: string;
+            group: string | null;
+            homeTeam: string | null;
+            awayTeam: string | null;
+          }>;
+        };
+        if (data.matches.length > 0) {
+          const converted: Match[] = data.matches.map((m) => {
+            const d = new Date(m.utcDate);
+            return {
+              id: m.apiId,
+              date: d.toISOString().slice(0, 10),
+              time: d.toISOString().slice(11, 16),
+              homeTeam: m.homeTeam?.toLowerCase() ?? null,
+              awayTeam: m.awayTeam?.toLowerCase() ?? null,
+              venueId: "",
+              group: m.group,
+              round: "group" as const,
+              matchday: m.matchday,
+            };
+          });
+          setLiveMatches(converted);
+        }
+      } catch {
+        // Worker unreachable — fall back to WC static
+      }
+    }
+    fetchLive();
+  }, []);
 
+  // Use live cross-competition matches if available, fall back to WC schedule
   const displayMatches = useMemo(() => {
-    if (todaysMatches.length > 0)
-      return { matches: todaysMatches, label: t("home.todaysMatches") };
+    if (liveMatches.length > 0) {
+      return { matches: liveMatches, label: t("home.liveNow") };
+    }
 
     const today = new Date().toISOString().slice(0, 10);
-    const upcoming = allMatches.filter((m) => m.date > today);
+    const todaysWc = wcMatches.filter((m) => m.date === today);
+    if (todaysWc.length > 0) {
+      return { matches: todaysWc, label: t("home.todaysMatches") };
+    }
+
+    const upcoming = wcMatches.filter((m) => m.date > today);
     const first = upcoming[0];
     if (first) {
       const nextDate = first.date;
       const nextMatches = upcoming.filter((m) => m.date === nextDate);
       const dateLabel = new Date(`${nextDate}T00:00:00Z`).toLocaleDateString(
         undefined,
-        {
-          weekday: "long",
-          month: "short",
-          day: "numeric",
-        },
+        { weekday: "long", month: "short", day: "numeric" },
       );
       return {
         matches: nextMatches,
@@ -104,7 +152,7 @@ function TodaysMatches() {
     }
 
     return { matches: [], label: t("home.noUpcoming") };
-  }, [todaysMatches, allMatches, t]);
+  }, [liveMatches, wcMatches, t]);
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8 border-t border-yc-border">

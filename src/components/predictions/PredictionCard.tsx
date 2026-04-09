@@ -16,6 +16,7 @@ interface PredictionCardProps {
   prediction: Prediction | undefined;
   predictionCount: number;
   userId: string;
+  competitionId?: string;
   onSaved: () => void;
 }
 
@@ -26,6 +27,7 @@ export default function PredictionCard({
   prediction,
   predictionCount,
   userId,
+  competitionId = "WC",
   onSaved,
 }: PredictionCardProps) {
   const { t } = useI18n();
@@ -52,7 +54,7 @@ export default function PredictionCard({
   const [error, setError] = useState<string | null>(null);
 
   const hasPrediction = prediction !== undefined;
-  const consensus = useConsensus(match.id, hasPrediction);
+  const consensus = useConsensus(match.id, hasPrediction, competitionId);
   const hasChanged =
     homeScore !== (prediction ? String(prediction.home_score) : "") ||
     awayScore !== (prediction ? String(prediction.away_score) : "");
@@ -66,7 +68,7 @@ export default function PredictionCard({
     }
     setSaving(true);
     setError(null);
-    const err = await upsertPrediction(userId, match.id, h, a, "WC", isJoker);
+    const err = await upsertPrediction(userId, match.id, h, a, competitionId, isJoker);
     setSaving(false);
     if (err) {
       setError(err);
