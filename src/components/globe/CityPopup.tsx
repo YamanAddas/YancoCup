@@ -1,4 +1,5 @@
 import { X, Landmark, Users } from "lucide-react";
+import { useI18n } from "../../lib/i18n";
 
 const FLAG_CODES: Record<string, string> = {
   USA: "us",
@@ -17,6 +18,7 @@ interface CityPopupProps {
 }
 
 export default function CityPopup({ city, onClose }: CityPopupProps) {
+  const { t } = useI18n();
   const flagCode = FLAG_CODES[city.country] ?? "xx";
 
   return (
@@ -51,7 +53,7 @@ export default function CityPopup({ city, onClose }: CityPopupProps) {
         </div>
         <div className="flex items-center gap-2 text-yc-text-secondary text-sm">
           <Users size={14} className="shrink-0" />
-          <span>{city.capacity.toLocaleString()} seats</span>
+          <span>{t("globe.seats", { count: city.capacity.toLocaleString() })}</span>
         </div>
       </div>
     </div>

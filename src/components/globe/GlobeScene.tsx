@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect } from "react";
+import { useRef, useCallback, useState, useEffect, useMemo } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
@@ -28,6 +28,15 @@ const FLY_LERP_SPEED = 0.04;
 const FLY_ARRIVE_THRESHOLD = 2;
 const AUTO_ROTATE_RESUME_MS = 10_000;
 
+/** Detect mobile/low-end device */
+function useDeviceProfile() {
+  return useMemo(() => {
+    const isMobile = window.innerWidth < 640;
+    const isLowEnd = (navigator.hardwareConcurrency ?? 4) < 4;
+    return { isMobile, isLowEnd, isReduced: isMobile || isLowEnd };
+  }, []);
+}
+
 function GlobeInner({
   onCityClick,
   flyToCity,
@@ -37,7 +46,8 @@ function GlobeInner({
 }) {
   const globeRef = useRef<GlobeMethods>(undefined);
   const controlsRef = useRef<OrbitControlsImpl>(null);
-  const [autoRotate, setAutoRotate] = useState(true);
+  const device = useDeviceProfile();
+  const [autoRotate, setAutoRotate] = useState(!device.isMobile);
   const resumeTimerRef = useRef<number>(0);
   const flyTargetRef = useRef<Vector3 | null>(null);
   const isFlyingRef = useRef(false);
@@ -66,9 +76,12 @@ function GlobeInner({
       if (camera.position.distanceTo(flyTargetRef.current) < FLY_ARRIVE_THRESHOLD) {
         isFlyingRef.current = false;
         flyTargetRef.current = null;
-        resumeTimerRef.current = window.setTimeout(() => {
-          setAutoRotate(true);
-        }, AUTO_ROTATE_RESUME_MS);
+        // Only resume auto-rotate on desktop
+        if (!device.isMobile) {
+          resumeTimerRef.current = window.setTimeout(() => {
+            setAutoRotate(true);
+          }, AUTO_ROTATE_RESUME_MS);
+        }
       }
       invalidate();
     }
@@ -82,13 +95,14 @@ function GlobeInner({
     clearTimeout(resumeTimerRef.current);
   }, []);
 
-  // Resume auto-rotate 10s after user stops interacting
+  // Resume auto-rotate 10s after user stops interacting (desktop only)
   const handleControlEnd = useCallback(() => {
+    if (device.isMobile) return;
     clearTimeout(resumeTimerRef.current);
     resumeTimerRef.current = window.setTimeout(() => {
       setAutoRotate(true);
     }, AUTO_ROTATE_RESUME_MS);
-  }, []);
+  }, [device.isMobile]);
 
   useEffect(() => {
     return () => clearTimeout(resumeTimerRef.current);
@@ -113,8 +127,8 @@ function GlobeInner({
       <Globe
         ref={globeRef}
         globeImageUrl={EARTH_NIGHT_URL}
-        bumpImageUrl={EARTH_BUMP_URL}
-        showAtmosphere={true}
+        bumpImageUrl={device.isReduced ? undefined : EARTH_BUMP_URL}
+        showAtmosphere={!device.isLowEnd}
         atmosphereColor="#00ff88"
         atmosphereAltitude={0.2}
         pointsData={cities}
@@ -122,14 +136,14 @@ function GlobeInner({
         pointLng="lng"
         pointColor={() => "#00ff88"}
         pointAltitude={0.02}
-        pointRadius={0.4}
-        pointResolution={12}
-        labelsData={cities}
+        pointRadius={device.isMobile ? 0.5 : 0.4}
+        pointResolution={device.isReduced ? 6 : 12}
+        labelsData={device.isLowEnd ? [] : cities}
         labelLat="lat"
         labelLng="lng"
         labelText="city"
         labelColor={() => "#ffffff"}
-        labelSize={0.6}
+        labelSize={device.isMobile ? 0.8 : 0.6}
         labelAltitude={0.03}
         labelDotRadius={0.3}
         labelIncludeDot={false}
@@ -155,6 +169,7 @@ function GlobeInner({
 
 export default function GlobeScene() {
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
+  const device = useDeviceProfile();
 
   return (
     <div className="relative w-full h-full">
@@ -162,7 +177,8 @@ export default function GlobeScene() {
         frameloop="demand"
         camera={{ position: [0, 0, 250], fov: 50 }}
         style={{ background: "transparent" }}
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: !device.isReduced, alpha: true }}
+        dpr={device.isMobile ? [1, 1.5] : [1, 2]}
       >
         <GlobeInner onCityClick={setSelectedCity} flyToCity={selectedCity} />
       </Canvas>

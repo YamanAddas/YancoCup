@@ -83,8 +83,8 @@ export default function LeaderboardPage() {
           )}
 
           {/* Full table */}
-          <div className="bg-yc-bg-surface border border-yc-border rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="bg-yc-bg-surface border border-yc-border rounded-xl overflow-x-auto">
+            <table className="w-full text-sm min-w-[400px]">
               <thead>
                 <tr className="text-yc-text-tertiary text-xs uppercase tracking-wider border-b border-yc-border">
                   <th className="text-left pl-4 py-3 w-12">{t("leaderboard.rank")}</th>

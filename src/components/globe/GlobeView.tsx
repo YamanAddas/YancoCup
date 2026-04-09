@@ -16,7 +16,7 @@ function GlobeLoading() {
 
 export default function GlobeView() {
   return (
-    <div className="w-full h-[min(60vh,600px)] min-h-[280px]">
+    <div className="w-full h-[min(45vh,400px)] sm:h-[min(60vh,600px)] min-h-[220px]">
       <Suspense fallback={<GlobeLoading />}>
         <GlobeScene />
       </Suspense>
