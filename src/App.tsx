@@ -12,6 +12,8 @@ const PredictionsPage = lazy(() => import("./pages/PredictionsPage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 const WatchPage = lazy(() => import("./pages/WatchPage"));
 const SignInPage = lazy(() => import("./pages/SignInPage"));
+const AdminPage = lazy(() => import("./pages/AdminPage"));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 function PageLoader() {
   return (
@@ -36,6 +38,8 @@ export default function App() {
             <Route path="leaderboard" element={<LeaderboardPage />} />
             <Route path="watch" element={<WatchPage />} />
             <Route path="sign-in" element={<SignInPage />} />
+            <Route path="admin" element={<AdminPage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
         </Suspense>
