@@ -2,25 +2,31 @@ import { useActivityFeed } from "../../hooks/useActivityFeed";
 import { useTeamMap } from "../../hooks/useTeams";
 import { useSchedule } from "../../hooks/useSchedule";
 import { canPredict } from "../../hooks/usePredictions";
+import { useI18n } from "../../lib/i18n";
 import type { Match } from "../../types";
 
 const FLAG_BASE = "https://hatscripts.github.io/circle-flags/flags";
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+function useTimeAgo() {
+  const { t } = useI18n();
+  return (dateStr: string): string => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return t("activity.justNow");
+    if (mins < 60) return t("activity.minsAgo", { count: mins });
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return t("activity.hoursAgo", { count: hours });
+    const days = Math.floor(hours / 24);
+    return t("activity.daysAgo", { count: days });
+  };
 }
 
 export default function ActivityFeed() {
   const { items, loading } = useActivityFeed(8);
   const teamMap = useTeamMap();
   const allMatches = useSchedule();
+  const { t } = useI18n();
+  const timeAgo = useTimeAgo();
 
   const matchMap = new Map<number, Match>(allMatches.map((m) => [m.id, m]));
 
@@ -37,7 +43,7 @@ export default function ActivityFeed() {
   if (items.length === 0) {
     return (
       <p className="text-yc-text-tertiary text-sm text-center py-6">
-        No predictions yet. Be the first!
+        {t("activity.noPredictions")}
       </p>
     );
   }
@@ -75,7 +81,7 @@ export default function ActivityFeed() {
                 <span className="text-yc-text-primary font-medium">
                   {item.displayName ?? item.handle}
                 </span>
-                <span className="text-yc-text-tertiary"> predicted </span>
+                <span className="text-yc-text-tertiary"> {t("activity.predicted")} </span>
                 {home && away ? (
                   <span className="text-yc-text-secondary">
                     {home.fifaCode}{" "}
@@ -90,7 +96,7 @@ export default function ActivityFeed() {
                   </span>
                 ) : (
                   <span className="text-yc-text-secondary">
-                    Match #{item.matchId}
+                    {t("activity.matchNum", { id: item.matchId })}
                   </span>
                 )}
               </p>

@@ -1,3 +1,4 @@
+import { useI18n } from "../../lib/i18n";
 import type { Team } from "../../types";
 
 const FLAG_BASE = "https://hatscripts.github.io/circle-flags/flags";
@@ -8,24 +9,26 @@ interface GroupTableProps {
 }
 
 export default function GroupTable({ groupId, teams }: GroupTableProps) {
+  const { t } = useI18n();
+
   return (
     <div className="bg-yc-bg-surface border border-yc-border rounded-xl overflow-hidden">
       <div className="px-4 py-3 border-b border-yc-border">
         <h3 className="font-heading text-base font-bold">
-          Group <span className="text-yc-green">{groupId}</span>
+          {t("match.group", { id: "" })} <span className="text-yc-green">{groupId}</span>
         </h3>
       </div>
 
       <table className="w-full text-sm">
         <thead>
           <tr className="text-yc-text-tertiary text-xs uppercase tracking-wider">
-            <th className="text-left pl-4 pr-2 py-2">Team</th>
-            <th className="w-8 text-center py-2">P</th>
-            <th className="w-8 text-center py-2">W</th>
-            <th className="w-8 text-center py-2">D</th>
-            <th className="w-8 text-center py-2">L</th>
-            <th className="w-10 text-center py-2">GD</th>
-            <th className="w-10 text-center pr-4 py-2 font-bold">Pts</th>
+            <th className="text-left pl-4 pr-2 py-2">{t("groupTable.team")}</th>
+            <th className="w-8 text-center py-2">{t("groupTable.played")}</th>
+            <th className="w-8 text-center py-2">{t("groupTable.won")}</th>
+            <th className="w-8 text-center py-2">{t("groupTable.drawn")}</th>
+            <th className="w-8 text-center py-2">{t("groupTable.lost")}</th>
+            <th className="w-10 text-center py-2">{t("groupTable.gd")}</th>
+            <th className="w-10 text-center pr-4 py-2 font-bold">{t("groupTable.pts")}</th>
           </tr>
         </thead>
         <tbody>
@@ -59,7 +62,7 @@ export default function GroupTable({ groupId, teams }: GroupTableProps) {
 
       <div className="px-4 py-2 border-t border-yc-border/50">
         <p className="text-yc-text-tertiary text-[10px]">
-          Top 2 advance. Best 3rd-place teams also qualify.
+          {t("groups.advanceNote")}
         </p>
       </div>
     </div>

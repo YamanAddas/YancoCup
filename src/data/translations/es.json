@@ -47,6 +47,15 @@
 
   "groups.title": "Grupos",
   "groups.subtitle": "12 grupos de 4 equipos",
+  "groups.advanceNote": "Los 2 primeros avanzan. Los mejores terceros también clasifican.",
+
+  "groupTable.team": "Equipo",
+  "groupTable.played": "PJ",
+  "groupTable.won": "G",
+  "groupTable.drawn": "E",
+  "groupTable.lost": "P",
+  "groupTable.gd": "DG",
+  "groupTable.pts": "Pts",
 
   "predictions.title": "Predicciones",
   "predictions.predicted": "{count} predicho",
@@ -62,14 +71,26 @@
   "predictions.update": "Actualizar",
   "predictions.saved": "Guardado",
   "predictions.share": "Compartir",
+  "predictions.sharePrediction": "Compartir predicción",
+  "predictions.copied": "¡Copiado!",
+  "predictions.failed": "Error",
   "predictions.predicted_count": "{count} predicho",
   "predictions.validScores": "Ingresa marcadores válidos (0-99)",
+  "predictions.pts": "{count} pts",
 
   "howToPlay.title": "Cómo jugar",
+  "howToPlay.desc": "Predice el marcador final de cada partido antes del inicio. Los puntos se otorgan según la precisión.",
   "howToPlay.exactScore": "Marcador exacto",
   "howToPlay.correctGD": "Diferencia de goles correcta",
   "howToPlay.correctWinner": "Ganador/empate correcto",
   "howToPlay.wrong": "Predicción incorrecta",
+  "howToPlay.bonuses": "Bonificaciones",
+  "howToPlay.upsetBonus": "Bonus por sorpresa",
+  "howToPlay.upsetDesc": "El equipo de menor ranking gana y lo predijiste",
+  "howToPlay.perfectGroup": "Fase de grupos perfecta",
+  "howToPlay.perfectDesc": "Los 3 partidos de grupo exactos",
+  "howToPlay.exampleYou": "Tú: {score}",
+  "howToPlay.exampleResult": "Resultado: {score}",
 
   "leaderboard.title": "Clasificación",
   "leaderboard.players": "{count} jugador compitiendo",
@@ -111,6 +132,11 @@
 
   "activity.noPredictions": "Aún no hay predicciones. ¡Sé el primero!",
   "activity.predicted": "predijo",
+  "activity.justNow": "justo ahora",
+  "activity.minsAgo": "hace {count}m",
+  "activity.hoursAgo": "hace {count}h",
+  "activity.daysAgo": "hace {count}d",
+  "activity.matchNum": "Partido #{id}",
 
   "countdown.days": "días",
   "countdown.hours": "horas",
@@ -121,5 +147,12 @@
   "match.ht": "ET",
   "match.ft": "FT",
   "match.vs": "vs",
-  "match.group": "Grupo {id}"
+  "match.group": "Grupo {id}",
+  "match.tbd": "Por definir",
+  "match.htScore": "ET {home}-{away}",
+  "match.matchId": "#{id}",
+
+  "globe.loading": "Cargando globo...",
+  "globe.seats": "{count} asientos",
+  "lang.title": "Idioma"
 }

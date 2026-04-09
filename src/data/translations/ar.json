@@ -47,6 +47,15 @@
 
   "groups.title": "المجموعات",
   "groups.subtitle": "12 مجموعة من 4 فرق",
+  "groups.advanceNote": "يتأهل الأول والثاني. أفضل فرق المركز الثالث تتأهل أيضاً.",
+
+  "groupTable.team": "الفريق",
+  "groupTable.played": "لعب",
+  "groupTable.won": "ف",
+  "groupTable.drawn": "ت",
+  "groupTable.lost": "خ",
+  "groupTable.gd": "فارق",
+  "groupTable.pts": "نقاط",
 
   "predictions.title": "التوقعات",
   "predictions.predicted": "{count} توقّع",
@@ -62,14 +71,26 @@
   "predictions.update": "تحديث",
   "predictions.saved": "تم الحفظ",
   "predictions.share": "مشاركة",
+  "predictions.sharePrediction": "مشاركة التوقّع",
+  "predictions.copied": "تم النسخ!",
+  "predictions.failed": "فشل",
   "predictions.predicted_count": "{count} توقّع",
   "predictions.validScores": "أدخل نتيجة صحيحة (0-99)",
+  "predictions.pts": "{count} نقاط",
 
   "howToPlay.title": "طريقة اللعب",
+  "howToPlay.desc": "توقّع النتيجة النهائية لكل مباراة قبل الانطلاقة. تُمنح النقاط بناءً على الدقة.",
   "howToPlay.exactScore": "النتيجة الدقيقة",
   "howToPlay.correctGD": "فارق الأهداف الصحيح",
   "howToPlay.correctWinner": "الفائز/التعادل الصحيح",
   "howToPlay.wrong": "توقّع خاطئ",
+  "howToPlay.bonuses": "مكافآت",
+  "howToPlay.upsetBonus": "مكافأة المفاجأة",
+  "howToPlay.upsetDesc": "الفريق الأضعف يفوز وأنت توقّعت ذلك",
+  "howToPlay.perfectGroup": "دور مجموعات مثالي",
+  "howToPlay.perfectDesc": "جميع مباريات المجموعة الـ3 بنتيجة دقيقة",
+  "howToPlay.exampleYou": "أنت: {score}",
+  "howToPlay.exampleResult": "النتيجة: {score}",
 
   "leaderboard.title": "الترتيب",
   "leaderboard.players": "{count} لاعب يتنافس",
@@ -111,6 +132,11 @@
 
   "activity.noPredictions": "لا توجد توقعات بعد. كن أول من يتوقّع!",
   "activity.predicted": "توقّع",
+  "activity.justNow": "الآن",
+  "activity.minsAgo": "منذ {count} د",
+  "activity.hoursAgo": "منذ {count} س",
+  "activity.daysAgo": "منذ {count} ي",
+  "activity.matchNum": "المباراة #{id}",
 
   "countdown.days": "أيام",
   "countdown.hours": "ساعات",
@@ -121,5 +147,12 @@
   "match.ht": "استراحة",
   "match.ft": "انتهت",
   "match.vs": "ضد",
-  "match.group": "المجموعة {id}"
+  "match.group": "المجموعة {id}",
+  "match.tbd": "لم يُحدد",
+  "match.htScore": "استراحة {home}-{away}",
+  "match.matchId": "#{id}",
+
+  "globe.loading": "جارٍ تحميل الكرة الأرضية...",
+  "globe.seats": "{count} مقعد",
+  "lang.title": "اللغة"
 }

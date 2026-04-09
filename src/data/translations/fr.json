@@ -46,7 +46,16 @@
   "round.final": "Finale",
 
   "groups.title": "Groupes",
-  "groups.subtitle": "12 groupes de 4 équipes",
+  "groups.subtitle": "12 groupes · 48 équipes · Les 2 premiers + meilleurs 3es se qualifient",
+  "groups.advanceNote": "Les 2 premiers se qualifient. Les meilleures équipes classées 3es aussi.",
+
+  "groupTable.team": "Équipe",
+  "groupTable.played": "J",
+  "groupTable.won": "V",
+  "groupTable.drawn": "N",
+  "groupTable.lost": "D",
+  "groupTable.gd": "DB",
+  "groupTable.pts": "Pts",
 
   "predictions.title": "Pronostics",
   "predictions.predicted": "{count} pronostiqué(s)",
@@ -62,14 +71,26 @@
   "predictions.update": "Mettre à jour",
   "predictions.saved": "Enregistré",
   "predictions.share": "Partager",
+  "predictions.sharePrediction": "Partager le pronostic",
+  "predictions.copied": "Copié !",
+  "predictions.failed": "Échec",
   "predictions.predicted_count": "{count} pronostiqué(s)",
   "predictions.validScores": "Entrez des scores valides (0-99)",
+  "predictions.pts": "{count} pts",
 
   "howToPlay.title": "Comment jouer",
+  "howToPlay.desc": "Pronostiquez le score final de chaque match avant le coup d'envoi. Les points sont attribués selon la précision.",
   "howToPlay.exactScore": "Score exact",
   "howToPlay.correctGD": "Bonne différence de buts",
   "howToPlay.correctWinner": "Bon vainqueur/match nul",
   "howToPlay.wrong": "Mauvais pronostic",
+  "howToPlay.bonuses": "Bonus",
+  "howToPlay.upsetBonus": "Bonus surprise",
+  "howToPlay.upsetDesc": "L'équipe moins bien classée gagne et vous l'avez pronostiqué",
+  "howToPlay.perfectGroup": "Phase de groupes parfaite",
+  "howToPlay.perfectDesc": "Les 3 matchs de groupe exacts",
+  "howToPlay.exampleYou": "Vous : {score}",
+  "howToPlay.exampleResult": "Résultat : {score}",
 
   "leaderboard.title": "Classement",
   "leaderboard.players": "{count} joueur en compétition",
@@ -111,6 +132,11 @@
 
   "activity.noPredictions": "Aucun pronostic pour le moment. Soyez le premier !",
   "activity.predicted": "a pronostiqué",
+  "activity.justNow": "à l'instant",
+  "activity.minsAgo": "il y a {count}min",
+  "activity.hoursAgo": "il y a {count}h",
+  "activity.daysAgo": "il y a {count}j",
+  "activity.matchNum": "Match #{id}",
 
   "countdown.days": "jours",
   "countdown.hours": "heures",
@@ -121,5 +147,12 @@
   "match.ht": "MT",
   "match.ft": "FIN",
   "match.vs": "c.",
-  "match.group": "Groupe {id}"
+  "match.group": "Groupe {id}",
+  "match.tbd": "À déterminer",
+  "match.htScore": "MT {home}-{away}",
+  "match.matchId": "#{id}",
+
+  "globe.loading": "Chargement du globe...",
+  "globe.seats": "{count} places",
+  "lang.title": "Langue"
 }

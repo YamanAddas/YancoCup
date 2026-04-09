@@ -47,6 +47,15 @@
 
   "groups.title": "Gruppen",
   "groups.subtitle": "12 Gruppen mit je 4 Teams",
+  "groups.advanceNote": "Die besten 2 kommen weiter. Die besten Gruppendritten qualifizieren sich ebenfalls.",
+
+  "groupTable.team": "Team",
+  "groupTable.played": "Sp",
+  "groupTable.won": "S",
+  "groupTable.drawn": "U",
+  "groupTable.lost": "N",
+  "groupTable.gd": "TD",
+  "groupTable.pts": "Pkt",
 
   "predictions.title": "Tipps",
   "predictions.predicted": "{count} getippt",
@@ -62,14 +71,26 @@
   "predictions.update": "Aktualisieren",
   "predictions.saved": "Gespeichert",
   "predictions.share": "Teilen",
+  "predictions.sharePrediction": "Tipp teilen",
+  "predictions.copied": "Kopiert!",
+  "predictions.failed": "Fehlgeschlagen",
   "predictions.predicted_count": "{count} getippt",
   "predictions.validScores": "Gültige Ergebnisse eingeben (0–99)",
+  "predictions.pts": "{count} Pkt",
 
   "howToPlay.title": "So funktioniert's",
+  "howToPlay.desc": "Tippe das Endergebnis jedes Spiels vor dem Anpfiff. Punkte werden nach Genauigkeit vergeben.",
   "howToPlay.exactScore": "Exaktes Ergebnis",
   "howToPlay.correctGD": "Richtige Tordifferenz",
   "howToPlay.correctWinner": "Richtiger Sieger/Unentschieden",
   "howToPlay.wrong": "Falscher Tipp",
+  "howToPlay.bonuses": "Boni",
+  "howToPlay.upsetBonus": "Überraschungsbonus",
+  "howToPlay.upsetDesc": "Niedrig platziertes Team gewinnt und du hast es richtig getippt",
+  "howToPlay.perfectGroup": "Perfekte Gruppenphase",
+  "howToPlay.perfectDesc": "Alle 3 Gruppenspiele exakt getippt",
+  "howToPlay.exampleYou": "Du: {score}",
+  "howToPlay.exampleResult": "Ergebnis: {score}",
 
   "leaderboard.title": "Rangliste",
   "leaderboard.players": "{count} Spieler im Wettbewerb",
@@ -111,6 +132,11 @@
 
   "activity.noPredictions": "Noch keine Tipps. Sei der Erste!",
   "activity.predicted": "getippt",
+  "activity.justNow": "gerade eben",
+  "activity.minsAgo": "vor {count} Min",
+  "activity.hoursAgo": "vor {count} Std",
+  "activity.daysAgo": "vor {count} T",
+  "activity.matchNum": "Spiel #{id}",
 
   "countdown.days": "Tage",
   "countdown.hours": "Stunden",
@@ -121,5 +147,12 @@
   "match.ht": "HZ",
   "match.ft": "Ende",
   "match.vs": "vs",
-  "match.group": "Gruppe {id}"
+  "match.group": "Gruppe {id}",
+  "match.tbd": "N.N.",
+  "match.htScore": "HZ {home}-{away}",
+  "match.matchId": "#{id}",
+
+  "globe.loading": "Globus wird geladen...",
+  "globe.seats": "{count} Plätze",
+  "lang.title": "Sprache"
 }

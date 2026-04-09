@@ -25,11 +25,11 @@ function TypeIcon({ type }: { type: Broadcaster["type"] }) {
   return <Radio size={14} className="text-yc-text-tertiary" />;
 }
 
-function typeLabel(type: Broadcaster["type"]): string {
-  if (type === "tv") return "TV";
-  if (type === "streaming") return "Streaming";
-  return "TV + Streaming";
-}
+const TYPE_KEYS: Record<Broadcaster["type"], string> = {
+  tv: "watch.tv",
+  streaming: "watch.streaming",
+  both: "watch.tvStreaming",
+};
 
 export default function WatchPage() {
   const [search, setSearch] = useState("");
@@ -137,7 +137,7 @@ export default function WatchPage() {
                       {b.name}
                     </span>
                     <span className="text-yc-text-tertiary text-xs">
-                      {typeLabel(b.type)}
+                      {t(TYPE_KEYS[b.type])}
                     </span>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import { MapPin, Clock } from "lucide-react";
+import { useI18n } from "../../lib/i18n";
 import type { Match, Team, Venue } from "../../types";
 import type { LocalLiveScore } from "../../hooks/useScores";
 
@@ -45,21 +46,19 @@ function formatMatchDate(date: string): string {
   return dt.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 
-function roundLabel(round: Match["round"]): string {
-  const labels: Record<Match["round"], string> = {
-    group: "Group Stage",
-    "round-of-32": "Round of 32",
-    "round-of-16": "Round of 16",
-    quarterfinal: "Quarterfinal",
-    semifinal: "Semifinal",
-    "third-place": "3rd Place",
-    final: "Final",
-  };
-  return labels[round];
-}
+const ROUND_KEYS: Record<Match["round"], string> = {
+  group: "round.group",
+  "round-of-32": "round.roundOf32",
+  "round-of-16": "round.roundOf16",
+  quarterfinal: "round.quarterfinal",
+  semifinal: "round.semifinal",
+  "third-place": "round.thirdPlace",
+  final: "round.final",
+};
 
 /** Status badge for match state */
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useI18n();
   if (status === "IN_PLAY" || status === "PAUSED") {
     return (
       <span className="flex items-center gap-1.5 text-yc-green text-xs font-medium">
@@ -67,12 +66,12 @@ function StatusBadge({ status }: { status: string }) {
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yc-green opacity-75" />
           <span className="relative inline-flex rounded-full h-2 w-2 bg-yc-green" />
         </span>
-        {status === "PAUSED" ? "HT" : "LIVE"}
+        {status === "PAUSED" ? t("match.ht") : t("match.live")}
       </span>
     );
   }
   if (status === "FINISHED") {
-    return <span className="text-yc-text-tertiary text-xs font-medium">FT</span>;
+    return <span className="text-yc-text-tertiary text-xs font-medium">{t("match.ft")}</span>;
   }
   return null;
 }
@@ -86,6 +85,7 @@ interface MatchCardProps {
 }
 
 export default function MatchCard({ match, teamMap, venueMap, liveScore, compact }: MatchCardProps) {
+  const { t } = useI18n();
   const home = match.homeTeam ? teamMap.get(match.homeTeam) : undefined;
   const away = match.awayTeam ? teamMap.get(match.awayTeam) : undefined;
   const venue = venueMap.get(match.venueId);
@@ -93,6 +93,8 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
   const isLive = liveScore?.status === "IN_PLAY" || liveScore?.status === "PAUSED";
   const isFinished = liveScore?.status === "FINISHED";
   const hasScore = liveScore && liveScore.homeScore !== null && liveScore.awayScore !== null;
+
+  const tbd = t("match.tbd");
 
   return (
     <div
@@ -105,12 +107,12 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
       {/* Header: round + group badge */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-yc-text-tertiary text-xs uppercase tracking-wider">
-          {match.group ? `Group ${match.group}` : roundLabel(match.round)}
+          {match.group ? t("match.group", { id: match.group }) : t(ROUND_KEYS[match.round])}
         </span>
         {liveScore ? (
           <StatusBadge status={liveScore.status} />
         ) : (
-          <span className="text-yc-text-tertiary text-xs">#{match.id}</span>
+          <span className="text-yc-text-tertiary text-xs">{t("match.matchId", { id: match.id })}</span>
         )}
       </div>
 
@@ -119,7 +121,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
         {home ? (
           <TeamBadge team={home} side="home" />
         ) : (
-          <Placeholder label={match.homePlaceholder ?? "TBD"} side="home" />
+          <Placeholder label={match.homePlaceholder ?? tbd} side="home" />
         )}
 
         <div className="flex flex-col items-center gap-0.5 shrink-0 min-w-[60px]">
@@ -134,13 +136,13 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
               </span>
               {liveScore.halfTimeHome !== null && liveScore.halfTimeAway !== null && isFinished && (
                 <span className="text-yc-text-tertiary text-[10px] font-mono">
-                  HT {liveScore.halfTimeHome}-{liveScore.halfTimeAway}
+                  {t("match.ht")} {liveScore.halfTimeHome}-{liveScore.halfTimeAway}
                 </span>
               )}
             </>
           ) : (
             <>
-              <span className="text-yc-green font-mono text-lg font-bold">vs</span>
+              <span className="text-yc-green font-mono text-lg font-bold">{t("match.vs")}</span>
               <div className="flex items-center gap-1 text-yc-text-secondary">
                 <Clock size={10} />
                 <span className="text-[11px]">{formatMatchTime(match.date, match.time)}</span>
@@ -152,7 +154,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
         {away ? (
           <TeamBadge team={away} side="away" />
         ) : (
-          <Placeholder label={match.awayPlaceholder ?? "TBD"} side="away" />
+          <Placeholder label={match.awayPlaceholder ?? tbd} side="away" />
         )}
       </div>
 

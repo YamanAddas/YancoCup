@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { LANGUAGES, useI18n } from "../../lib/i18n";
 import type { LangCode } from "../../lib/i18n";
+// No translation needed for language names — they are in their native form
 
 const FLAG_BASE = "https://hatscripts.github.io/circle-flags/flags";
 
 export default function LanguageSwitcher() {
-  const { lang, setLang } = useI18n();
+  const { lang, setLang, t } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -27,7 +28,7 @@ export default function LanguageSwitcher() {
       <button
         onClick={() => setOpen(!open)}
         className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-yc-bg-elevated transition-colors"
-        title="Language"
+        title={t("lang.title")}
       >
         <img
           src={`${FLAG_BASE}/${current.flag}.svg`}

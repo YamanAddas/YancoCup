@@ -47,6 +47,15 @@
 
   "groups.title": "Grupos",
   "groups.subtitle": "12 grupos de 4 seleções",
+  "groups.advanceNote": "Os 2 primeiros avançam. As melhores seleções em 3º lugar também se classificam.",
+
+  "groupTable.team": "Seleção",
+  "groupTable.played": "J",
+  "groupTable.won": "V",
+  "groupTable.drawn": "E",
+  "groupTable.lost": "D",
+  "groupTable.gd": "SG",
+  "groupTable.pts": "Pts",
 
   "predictions.title": "Palpites",
   "predictions.predicted": "{count} palpite dado",
@@ -62,14 +71,26 @@
   "predictions.update": "Atualizar",
   "predictions.saved": "Salvo",
   "predictions.share": "Compartilhar",
+  "predictions.sharePrediction": "Compartilhar palpite",
+  "predictions.copied": "Copiado!",
+  "predictions.failed": "Falhou",
   "predictions.predicted_count": "{count} palpite dado",
   "predictions.validScores": "Insira placares válidos (0-99)",
+  "predictions.pts": "{count} pts",
 
   "howToPlay.title": "Como Jogar",
+  "howToPlay.desc": "Dê seu palpite no placar final de cada jogo antes do apito inicial. Pontos são dados de acordo com a precisão.",
   "howToPlay.exactScore": "Placar exato",
   "howToPlay.correctGD": "Saldo de gols correto",
   "howToPlay.correctWinner": "Vencedor/empate correto",
   "howToPlay.wrong": "Palpite errado",
+  "howToPlay.bonuses": "Bônus",
+  "howToPlay.upsetBonus": "Bônus de zebra",
+  "howToPlay.upsetDesc": "Seleção de ranking inferior vence e você acertou",
+  "howToPlay.perfectGroup": "Fase de grupos perfeita",
+  "howToPlay.perfectDesc": "Placar exato nos 3 jogos do grupo",
+  "howToPlay.exampleYou": "Você: {score}",
+  "howToPlay.exampleResult": "Resultado: {score}",
 
   "leaderboard.title": "Classificação",
   "leaderboard.players": "{count} jogador competindo",
@@ -111,6 +132,11 @@
 
   "activity.noPredictions": "Nenhum palpite ainda. Seja o primeiro!",
   "activity.predicted": "palpitou",
+  "activity.justNow": "agora mesmo",
+  "activity.minsAgo": "{count}min atrás",
+  "activity.hoursAgo": "{count}h atrás",
+  "activity.daysAgo": "{count}d atrás",
+  "activity.matchNum": "Jogo #{id}",
 
   "countdown.days": "dias",
   "countdown.hours": "horas",
@@ -121,5 +147,12 @@
   "match.ht": "INT",
   "match.ft": "FJ",
   "match.vs": "x",
-  "match.group": "Grupo {id}"
+  "match.group": "Grupo {id}",
+  "match.tbd": "A definir",
+  "match.htScore": "INT {home}-{away}",
+  "match.matchId": "#{id}",
+
+  "globe.loading": "Carregando globo...",
+  "globe.seats": "{count} lugares",
+  "lang.title": "Idioma"
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Lock, Check, Loader2, Users as UsersIcon, Share2 } from "lucide-react";
 import { upsertPrediction, canPredict } from "../../hooks/usePredictions";
 import { buildShareText, sharePrediction } from "../../lib/share";
+import { useI18n } from "../../lib/i18n";
 import type { Match, Team, Venue } from "../../types";
 import type { Prediction } from "../../hooks/usePredictions";
 
@@ -26,6 +27,7 @@ export default function PredictionCard({
   userId,
   onSaved,
 }: PredictionCardProps) {
+  const { t } = useI18n();
   const home = match.homeTeam ? teamMap.get(match.homeTeam) : undefined;
   const away = match.awayTeam ? teamMap.get(match.awayTeam) : undefined;
   const venue = venueMap.get(match.venueId);
@@ -55,7 +57,7 @@ export default function PredictionCard({
     const h = parseInt(homeScore, 10);
     const a = parseInt(awayScore, 10);
     if (isNaN(h) || isNaN(a) || h < 0 || a < 0 || h > 99 || a > 99) {
-      setError("Enter valid scores (0-99)");
+      setError(t("predictions.validScores"));
       return;
     }
     setSaving(true);
@@ -76,10 +78,10 @@ export default function PredictionCard({
     const text = buildShareText(match, home, away, prediction.home_score, prediction.away_score);
     const result = await sharePrediction(text);
     if (result === "copied") {
-      setShareStatus("Copied!");
+      setShareStatus(t("predictions.copied"));
       setTimeout(() => setShareStatus(null), 2000);
     } else if (result === "failed") {
-      setShareStatus("Failed");
+      setShareStatus(t("predictions.failed"));
       setTimeout(() => setShareStatus(null), 2000);
     }
   };
@@ -95,18 +97,22 @@ export default function PredictionCard({
     minute: "2-digit",
   });
 
+  const roundLabel = match.group
+    ? t("match.group", { id: match.group })
+    : t(`round.${match.round === "round-of-32" ? "roundOf32" : match.round === "round-of-16" ? "roundOf16" : match.round === "third-place" ? "thirdPlace" : match.round}`);
+
   // Can't predict knockout matches with TBD teams
   if (!home || !away) {
     return (
       <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-4 opacity-50">
         <div className="flex items-center justify-between mb-2">
           <span className="text-yc-text-tertiary text-xs uppercase tracking-wider">
-            {match.group ? `Group ${match.group}` : match.round}
+            {roundLabel}
           </span>
           <span className="text-yc-text-tertiary text-xs">{kickoffLabel}</span>
         </div>
         <p className="text-yc-text-tertiary text-sm text-center py-4">
-          Teams TBD — predictions open once teams are confirmed
+          {t("predictions.teamsTbd")}
         </p>
       </div>
     );
@@ -121,7 +127,7 @@ export default function PredictionCard({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-yc-text-tertiary text-xs uppercase tracking-wider">
-          {match.group ? `Group ${match.group}` : match.round}
+          {roundLabel}
         </span>
         <div className="flex items-center gap-2 text-yc-text-tertiary text-xs">
           <span>{kickoffLabel}, {kickoffTime}</span>
@@ -188,7 +194,7 @@ export default function PredictionCard({
           {predictionCount > 0 && (
             <span className="flex items-center gap-1">
               <UsersIcon size={10} />
-              {predictionCount} predicted
+              {t("predictions.predicted_count", { count: predictionCount })}
             </span>
           )}
         </div>
@@ -204,7 +210,7 @@ export default function PredictionCard({
             ) : saved ? (
               <Check size={12} />
             ) : null}
-            {saved ? "Saved" : hasPrediction ? "Update" : "Save"}
+            {saved ? t("predictions.saved") : hasPrediction ? t("predictions.update") : t("predictions.save")}
           </button>
         )}
 
@@ -212,10 +218,10 @@ export default function PredictionCard({
           <button
             onClick={handleShare}
             className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-yc-text-tertiary hover:text-yc-text-primary transition-colors"
-            title="Share prediction"
+            title={t("predictions.sharePrediction")}
           >
             <Share2 size={12} />
-            {shareStatus ?? "Share"}
+            {shareStatus ?? t("predictions.share")}
           </button>
         )}
 
@@ -235,7 +241,7 @@ export default function PredictionCard({
                       : "text-yc-text-tertiary bg-yc-bg-elevated"
                 }`}
               >
-                {prediction.points} pts
+                {t("predictions.pts", { count: prediction.points })}
               </span>
             )}
           </div>

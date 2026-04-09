@@ -46,7 +46,16 @@
   "round.final": "Final",
 
   "groups.title": "Groups",
-  "groups.subtitle": "12 groups of 4 teams",
+  "groups.subtitle": "12 groups · 48 teams · Top 2 + best 3rd-place advance",
+  "groups.advanceNote": "Top 2 advance. Best 3rd-place teams also qualify.",
+
+  "groupTable.team": "Team",
+  "groupTable.played": "P",
+  "groupTable.won": "W",
+  "groupTable.drawn": "D",
+  "groupTable.lost": "L",
+  "groupTable.gd": "GD",
+  "groupTable.pts": "Pts",
 
   "predictions.title": "Predictions",
   "predictions.predicted": "{count} predicted",
@@ -62,14 +71,26 @@
   "predictions.update": "Update",
   "predictions.saved": "Saved",
   "predictions.share": "Share",
+  "predictions.sharePrediction": "Share prediction",
+  "predictions.copied": "Copied!",
+  "predictions.failed": "Failed",
   "predictions.predicted_count": "{count} predicted",
   "predictions.validScores": "Enter valid scores (0-99)",
+  "predictions.pts": "{count} pts",
 
   "howToPlay.title": "How to Play",
+  "howToPlay.desc": "Predict the final score of each match before kickoff. Points are awarded based on accuracy.",
   "howToPlay.exactScore": "Exact score",
   "howToPlay.correctGD": "Correct goal difference",
   "howToPlay.correctWinner": "Correct winner/draw",
   "howToPlay.wrong": "Wrong prediction",
+  "howToPlay.bonuses": "Bonuses",
+  "howToPlay.upsetBonus": "Upset bonus",
+  "howToPlay.upsetDesc": "Lower-ranked team wins and you predicted it",
+  "howToPlay.perfectGroup": "Perfect group stage",
+  "howToPlay.perfectDesc": "All 3 group matches exact",
+  "howToPlay.exampleYou": "You: {score}",
+  "howToPlay.exampleResult": "Result: {score}",
 
   "leaderboard.title": "Leaderboard",
   "leaderboard.players": "{count} player competing",
@@ -111,6 +132,11 @@
 
   "activity.noPredictions": "No predictions yet. Be the first!",
   "activity.predicted": "predicted",
+  "activity.justNow": "just now",
+  "activity.minsAgo": "{count}m ago",
+  "activity.hoursAgo": "{count}h ago",
+  "activity.daysAgo": "{count}d ago",
+  "activity.matchNum": "Match #{id}",
 
   "countdown.days": "days",
   "countdown.hours": "hours",
@@ -121,5 +147,12 @@
   "match.ht": "HT",
   "match.ft": "FT",
   "match.vs": "vs",
-  "match.group": "Group {id}"
+  "match.group": "Group {id}",
+  "match.tbd": "TBD",
+  "match.htScore": "HT {home}-{away}",
+  "match.matchId": "#{id}",
+
+  "globe.loading": "Loading globe...",
+  "globe.seats": "{count} seats",
+  "lang.title": "Language"
 }

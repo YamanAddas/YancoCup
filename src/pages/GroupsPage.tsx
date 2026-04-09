@@ -1,11 +1,13 @@
 import { useGroups } from "../hooks/useGroups";
 import { useTeams } from "../hooks/useTeams";
+import { useI18n } from "../lib/i18n";
 import GroupTable from "../components/match/GroupTable";
 import type { Team } from "../types";
 
 export default function GroupsPage() {
   const groups = useGroups();
   const allTeams = useTeams();
+  const { t } = useI18n();
 
   const teamsByGroup = new Map<string, Team[]>();
   for (const team of allTeams) {
@@ -17,9 +19,9 @@ export default function GroupsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-6">
-        <h2 className="font-heading text-2xl font-bold">Groups</h2>
+        <h2 className="font-heading text-2xl font-bold">{t("groups.title")}</h2>
         <p className="text-yc-text-tertiary text-sm mt-1">
-          12 groups &middot; 48 teams &middot; Top 2 + best 3rd-place advance
+          {t("groups.subtitle")}
         </p>
       </div>
 
