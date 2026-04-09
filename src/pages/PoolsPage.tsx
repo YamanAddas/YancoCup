@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../lib/auth";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
+import { supabase } from "../lib/supabase";
 import {
   useMyPools,
   usePoolMembers,
@@ -9,7 +10,7 @@ import {
   joinPoolByCode,
   leavePool,
 } from "../hooks/usePools";
-import type { Pool } from "../hooks/usePools";
+import type { Pool, PoolMember } from "../hooks/usePools";
 import {
   Users,
   Plus,
@@ -19,6 +20,7 @@ import {
   Crown,
   LogOut,
   Loader2,
+  Activity,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -164,6 +166,74 @@ function JoinPoolForm({
   );
 }
 
+interface PoolPrediction {
+  handle: string;
+  display_name: string | null;
+  match_id: number;
+  home_score: number;
+  away_score: number;
+  created_at: string;
+}
+
+function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; competitionId: string }) {
+  const [predictions, setPredictions] = useState<PoolPrediction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      if (members.length === 0) { setLoading(false); return; }
+      const memberIds = members.map((m) => m.user_id);
+      const { data } = await supabase
+        .from("yc_predictions")
+        .select("user_id, match_id, home_score, away_score, created_at")
+        .eq("competition_id", competitionId)
+        .in("user_id", memberIds)
+        .order("created_at", { ascending: false })
+        .limit(8);
+
+      if (data) {
+        const memberMap = new Map(members.map((m) => [m.user_id, m]));
+        setPredictions(data.map((p) => ({
+          handle: memberMap.get(p.user_id)?.handle ?? "?",
+          display_name: memberMap.get(p.user_id)?.display_name ?? null,
+          match_id: p.match_id,
+          home_score: p.home_score,
+          away_score: p.away_score,
+          created_at: p.created_at,
+        })));
+      }
+      setLoading(false);
+    }
+    load();
+  }, [members, competitionId]);
+
+  if (loading) return <div className="h-12 bg-yc-bg-elevated rounded animate-pulse" />;
+  if (predictions.length === 0) return <p className="text-xs text-yc-text-tertiary">No predictions yet</p>;
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1 text-xs text-yc-text-tertiary mb-1">
+        <Activity size={10} />
+        Recent Activity
+      </div>
+      {predictions.map((p, i) => {
+        const ago = Math.floor((Date.now() - new Date(p.created_at).getTime()) / 60000);
+        const timeLabel = ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.floor(ago / 60)}h` : `${Math.floor(ago / 1440)}d`;
+        return (
+          <div key={i} className="flex items-center gap-2 text-xs">
+            <span className="text-yc-text-primary font-medium truncate max-w-[80px]">
+              {p.display_name ?? p.handle}
+            </span>
+            <span className="text-yc-text-tertiary">predicted</span>
+            <span className="text-yc-green font-mono font-bold">{p.home_score}-{p.away_score}</span>
+            <span className="text-yc-text-tertiary ml-auto">{timeLabel}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function PoolCard({
   pool,
   userId,
@@ -253,25 +323,31 @@ function PoolCard({
           {membersLoading ? (
             <div className="h-8 bg-yc-bg-elevated rounded animate-pulse" />
           ) : (
-            <div className="space-y-1">
-              {members.map((m) => (
-                <div key={m.user_id} className="flex items-center gap-2 py-1">
-                  {m.avatar_url ? (
-                    <img src={m.avatar_url} alt="" className="w-6 h-6 rounded-full" />
-                  ) : (
-                    <div className="w-6 h-6 rounded-full bg-yc-bg-elevated flex items-center justify-center text-[10px] font-bold text-yc-text-secondary">
-                      {(m.handle ?? "?").charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <span className="text-yc-text-secondary text-sm">
-                    {m.display_name ?? m.handle}
-                  </span>
-                  {m.user_id === pool.created_by && (
-                    <Crown size={10} className="text-yc-warning" />
-                  )}
-                </div>
-              ))}
-            </div>
+            <>
+              <div className="space-y-1">
+                {members.map((m) => (
+                  <div key={m.user_id} className="flex items-center gap-2 py-1">
+                    {m.avatar_url ? (
+                      <img src={m.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-yc-bg-elevated flex items-center justify-center text-[10px] font-bold text-yc-text-secondary">
+                        {(m.handle ?? "?").charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-yc-text-secondary text-sm">
+                      {m.display_name ?? m.handle}
+                    </span>
+                    {m.user_id === pool.created_by && (
+                      <Crown size={10} className="text-yc-warning" />
+                    )}
+                  </div>
+                ))}
+              </div>
+              {/* Pool activity feed */}
+              <div className="pt-2 border-t border-yc-border/50">
+                <PoolActivityFeed members={members} competitionId={pool.competition_id} />
+              </div>
+            </>
           )}
         </div>
       )}

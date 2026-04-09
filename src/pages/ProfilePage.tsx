@@ -3,10 +3,11 @@ import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { getRank, getRankStars } from "../lib/ranks";
 import { fetchBadges, fetchUserBadges, type Badge, type UserBadge } from "../lib/badges";
+import { requestNotificationPermission, notificationsEnabled } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
 import {
   Trophy, Target, TrendingUp, Flame, Award, Shield, Globe, Medal,
-  Eye, Zap, Crosshair, CheckCircle, Shuffle, Star,
+  Eye, Zap, Crosshair, CheckCircle, Shuffle, Star, Bell,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -231,6 +232,33 @@ export default function ProfilePage() {
           <StatBox label="Predictions" value={stats.totalPredictions} icon={Target} />
           <StatBox label="Exact Scores" value={stats.exactScores} icon={Crosshair} />
           <StatBox label="Accuracy" value={`${accuracy}%`} icon={TrendingUp} />
+        </div>
+      )}
+
+      {/* Notifications toggle */}
+      {"Notification" in window && (
+        <div className="mb-8 bg-yc-bg-surface border border-yc-border rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Bell size={18} className="text-yc-green" />
+            <div>
+              <p className="text-sm font-medium text-yc-text-primary">Match Notifications</p>
+              <p className="text-xs text-yc-text-tertiary">Get reminded before prediction deadlines</p>
+            </div>
+          </div>
+          <button
+            onClick={async () => {
+              const granted = await requestNotificationPermission();
+              // Force re-render by updating a dummy state
+              if (granted) window.location.reload();
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              notificationsEnabled()
+                ? "bg-yc-green/15 text-yc-green border border-yc-green/30"
+                : "bg-yc-bg-elevated text-yc-text-secondary hover:text-yc-text-primary border border-yc-border"
+            }`}
+          >
+            {notificationsEnabled() ? "Enabled" : "Enable"}
+          </button>
         </div>
       )}
 

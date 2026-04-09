@@ -3,6 +3,7 @@ import { Lock, Check, Loader2, Users as UsersIcon, Share2, Sparkles } from "luci
 import { upsertPrediction, canPredict } from "../../hooks/usePredictions";
 import { useConsensus } from "../../hooks/useConsensus";
 import { buildShareText, sharePrediction } from "../../lib/share";
+import { sharePredictionCard } from "../../lib/shareCard";
 import { useI18n } from "../../lib/i18n";
 import TeamCrest from "../match/TeamCrest";
 import type { Match, Team, Venue } from "../../types";
@@ -80,6 +81,30 @@ export default function PredictionCard({
 
   const handleShare = async () => {
     if (!match.homeTeam || !match.awayTeam || !prediction) return;
+
+    const homeName = match.homeTeamName ?? home?.name ?? homeCode;
+    const awayName = match.awayTeamName ?? away?.name ?? awayCode;
+
+    // Try shareable image card first
+    const cardResult = await sharePredictionCard({
+      homeTeam: homeName,
+      awayTeam: awayName,
+      homeScore: prediction.home_score,
+      awayScore: prediction.away_score,
+      actualHome: match.homeScore,
+      actualAway: match.awayScore,
+      points: prediction.points,
+      competition: competitionId,
+      matchday: match.matchday ? `Matchday ${match.matchday}` : undefined,
+    });
+
+    if (cardResult === "shared" || cardResult === "downloaded") {
+      setShareStatus(cardResult === "shared" ? "Shared!" : "Saved!");
+      setTimeout(() => setShareStatus(null), 2000);
+      return;
+    }
+
+    // Fallback to text share
     const shareHome = home ?? { id: match.homeTeam, name: homeCode, fifaCode: homeCode, isoCode: "", confederation: "", group: "" };
     const shareAway = away ?? { id: match.awayTeam, name: awayCode, fifaCode: awayCode, isoCode: "", confederation: "", group: "" };
     const text = buildShareText(match, shareHome, shareAway, prediction.home_score, prediction.away_score);
