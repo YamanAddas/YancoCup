@@ -18,6 +18,7 @@ const SignInPage = lazy(() => import("./pages/SignInPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const PoolsPage = lazy(() => import("./pages/PoolsPage"));
 const JoinPoolPage = lazy(() => import("./pages/JoinPoolPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 function PageLoader() {
@@ -126,6 +127,7 @@ export default function App() {
                 <Route path="pool/:joinCode" element={<JoinPoolPage />} />
 
                 {/* Global routes (not competition-scoped) */}
+                <Route path="profile" element={<ProfilePage />} />
                 <Route path="watch" element={<WatchPage />} />
                 <Route path="sign-in" element={<SignInPage />} />
                 <Route path="admin" element={<AdminPage />} />

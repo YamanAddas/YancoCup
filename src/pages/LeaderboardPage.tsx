@@ -1,9 +1,31 @@
+import { Link } from "react-router-dom";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { useAuth } from "../lib/auth";
 import { useAutoScore } from "../hooks/useAutoScore";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
-import { Trophy, TrendingUp, Target, Award } from "lucide-react";
+import { getRank, getRankStars } from "../lib/ranks";
+import { Trophy, TrendingUp, Target, Award, Star } from "lucide-react";
+
+/** Compact rank badge for leaderboard rows */
+function RankPill({ points }: { points: number }) {
+  const rank = getRank(points);
+  const stars = getRankStars(points);
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${rank.bgColor} ${rank.color} ${rank.borderColor} border`}
+      title={`${rank.name} — ${stars}/5 stars`}
+    >
+      {rank.name.charAt(0)}
+      <span className="flex gap-px">
+        {Array.from({ length: Math.min(stars, 5) }).map((_, i) => (
+          <Star key={i} size={7} fill="currentColor" />
+        ))}
+      </span>
+    </span>
+  );
+}
 
 export default function LeaderboardPage() {
   const comp = useCompetition();
@@ -28,8 +50,15 @@ export default function LeaderboardPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-16">
-          <div className="w-8 h-8 rounded-full border-2 border-yc-green border-t-transparent animate-spin mx-auto" />
+        <div className="space-y-0">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-yc-border/30">
+              <div className="w-6 h-4 bg-yc-bg-elevated rounded animate-pulse" />
+              <div className="w-7 h-7 bg-yc-bg-elevated rounded-full animate-pulse" />
+              <div className="flex-1 h-4 bg-yc-bg-elevated rounded animate-pulse max-w-[120px]" />
+              <div className="w-10 h-4 bg-yc-bg-elevated rounded animate-pulse" />
+            </div>
+          ))}
         </div>
       ) : entries.length === 0 ? (
         <div className="text-center py-16">
@@ -50,25 +79,28 @@ export default function LeaderboardPage() {
                 const medals = ["text-gray-400", "text-yc-green", "text-amber-600"];
                 return (
                   <div key={entry.userId} className="flex flex-col items-center">
-                    {entry.avatarUrl ? (
-                      <img
-                        src={entry.avatarUrl}
-                        alt={entry.displayName ?? entry.handle}
-                        className={`w-12 h-12 rounded-full border-2 ${rank === 1 ? "border-yc-green" : "border-yc-border"} mb-2`}
-                      />
-                    ) : (
-                      <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold mb-2 ${
-                          rank === 1 ? "bg-yc-green-dark text-yc-green border-2 border-yc-green" : "bg-yc-bg-elevated text-yc-text-secondary border-2 border-yc-border"
-                        }`}
-                      >
-                        {entry.handle.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <Link to="/profile" className="flex flex-col items-center">
+                      {entry.avatarUrl ? (
+                        <img
+                          src={entry.avatarUrl}
+                          alt={entry.displayName ?? entry.handle}
+                          className={`w-12 h-12 rounded-full border-2 ${rank === 1 ? "border-yc-green" : "border-yc-border"} mb-2`}
+                        />
+                      ) : (
+                        <div
+                          className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold mb-2 ${
+                            rank === 1 ? "bg-yc-green-dark text-yc-green border-2 border-yc-green" : "bg-yc-bg-elevated text-yc-text-secondary border-2 border-yc-border"
+                          }`}
+                        >
+                          {entry.handle.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </Link>
                     <span className="text-yc-text-primary text-sm font-medium truncate max-w-full">
                       {entry.displayName ?? entry.handle}
                     </span>
-                    <span className="text-yc-green font-mono text-sm font-bold">
+                    <RankPill points={entry.totalPoints} />
+                    <span className="text-yc-green font-mono text-sm font-bold mt-1">
                       {entry.totalPoints} pts
                     </span>
                     <div
@@ -128,13 +160,14 @@ export default function LeaderboardPage() {
                               {entry.handle.charAt(0).toUpperCase()}
                             </div>
                           )}
-                          <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <span
-                              className={`font-medium truncate block ${isMe ? "text-yc-green" : "text-yc-text-primary"}`}
+                              className={`font-medium truncate ${isMe ? "text-yc-green" : "text-yc-text-primary"}`}
                             >
                               {entry.displayName ?? entry.handle}
                               {isMe && <span className="text-yc-text-tertiary text-xs ml-1">{t("leaderboard.you")}</span>}
                             </span>
+                            <RankPill points={entry.totalPoints} />
                           </div>
                         </div>
                       </td>

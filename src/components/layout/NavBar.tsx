@@ -79,7 +79,7 @@ export default function NavBar() {
             <div className="w-8 h-8 rounded-full bg-yc-bg-elevated animate-pulse" />
           ) : user ? (
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
+              <NavLink to="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                 {profile?.avatar_url ? (
                   <img
                     src={profile.avatar_url}
@@ -94,7 +94,7 @@ export default function NavBar() {
                 <span className="hidden md:block text-yc-text-secondary text-sm max-w-[100px] truncate">
                   {profile?.display_name ?? profile?.handle ?? "User"}
                 </span>
-              </div>
+              </NavLink>
               <button
                 onClick={signOut}
                 className="text-yc-text-tertiary hover:text-yc-text-primary transition-colors p-1.5"
