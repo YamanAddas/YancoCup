@@ -5,6 +5,7 @@
   "nav.predictions": "Pronostics",
   "nav.leaderboard": "Classement",
   "nav.watch": "Regarder",
+  "nav.standings": "Classement",
   "nav.signIn": "Se connecter",
   "nav.signOut": "Se déconnecter",
 
@@ -13,6 +14,7 @@
   "home.subtitle": "États-Unis, Mexique et Canada",
   "home.kickoffIn": "Coup d'envoi dans",
   "home.cta": "Pronostiquez les matchs avec vos amis",
+  "home.competitions": "Compétitions",
   "home.todaysMatches": "Matchs du jour",
   "home.nextMatches": "Prochains matchs",
   "home.noUpcoming": "Aucun match à venir",
@@ -48,6 +50,7 @@
   "groups.title": "Groupes",
   "groups.subtitle": "12 groupes · 48 équipes · Les 2 premiers + meilleurs 3es se qualifient",
   "groups.advanceNote": "Les 2 premiers se qualifient. Les meilleures équipes classées 3es aussi.",
+  "standings.noData": "Aucune donnée de classement disponible.",
 
   "groupTable.team": "Équipe",
   "groupTable.played": "J",

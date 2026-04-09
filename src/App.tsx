@@ -1,13 +1,15 @@
 import { lazy, Suspense } from "react";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./lib/auth";
 import { I18nProvider } from "./lib/i18n";
+import { CompetitionProvider } from "./lib/CompetitionProvider";
 import AppLayout from "./components/layout/AppLayout";
 
 // Lazy load all pages — only HomePage is eager for fast first paint
 import HomePage from "./pages/HomePage";
 const MatchesPage = lazy(() => import("./pages/MatchesPage"));
 const GroupsPage = lazy(() => import("./pages/GroupsPage"));
+const StandingsPage = lazy(() => import("./pages/StandingsPage"));
 const PredictionsPage = lazy(() => import("./pages/PredictionsPage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 const WatchPage = lazy(() => import("./pages/WatchPage"));
@@ -23,28 +25,94 @@ function PageLoader() {
   );
 }
 
+/**
+ * Wrapper that provides CompetitionProvider for competition-scoped routes.
+ */
+function CompetitionLayout({ children }: { children: React.ReactNode }) {
+  return <CompetitionProvider>{children}</CompetitionProvider>;
+}
+
 export default function App() {
   return (
     <I18nProvider>
-    <AuthProvider>
-      <HashRouter>
-        <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route index element={<HomePage />} />
-            <Route path="matches" element={<MatchesPage />} />
-            <Route path="groups" element={<GroupsPage />} />
-            <Route path="predictions" element={<PredictionsPage />} />
-            <Route path="leaderboard" element={<LeaderboardPage />} />
-            <Route path="watch" element={<WatchPage />} />
-            <Route path="sign-in" element={<SignInPage />} />
-            <Route path="admin" element={<AdminPage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Route>
-        </Routes>
-        </Suspense>
-      </HashRouter>
-    </AuthProvider>
+      <AuthProvider>
+        <HashRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route element={<AppLayout />}>
+                {/* Home — competition cards, globe */}
+                <Route index element={<HomePage />} />
+
+                {/* Competition-scoped routes */}
+                <Route
+                  path=":competition/matches"
+                  element={
+                    <CompetitionLayout>
+                      <MatchesPage />
+                    </CompetitionLayout>
+                  }
+                />
+                <Route
+                  path=":competition/groups"
+                  element={
+                    <CompetitionLayout>
+                      <GroupsPage />
+                    </CompetitionLayout>
+                  }
+                />
+                <Route
+                  path=":competition/standings"
+                  element={
+                    <CompetitionLayout>
+                      <StandingsPage />
+                    </CompetitionLayout>
+                  }
+                />
+                <Route
+                  path=":competition/predictions"
+                  element={
+                    <CompetitionLayout>
+                      <PredictionsPage />
+                    </CompetitionLayout>
+                  }
+                />
+                <Route
+                  path=":competition/leaderboard"
+                  element={
+                    <CompetitionLayout>
+                      <LeaderboardPage />
+                    </CompetitionLayout>
+                  }
+                />
+
+                {/* Backward-compatible redirects (old /matches → /WC/matches) */}
+                <Route
+                  path="matches"
+                  element={<Navigate to="/WC/matches" replace />}
+                />
+                <Route
+                  path="groups"
+                  element={<Navigate to="/WC/groups" replace />}
+                />
+                <Route
+                  path="predictions"
+                  element={<Navigate to="/WC/predictions" replace />}
+                />
+                <Route
+                  path="leaderboard"
+                  element={<Navigate to="/WC/leaderboard" replace />}
+                />
+
+                {/* Global routes (not competition-scoped) */}
+                <Route path="watch" element={<WatchPage />} />
+                <Route path="sign-in" element={<SignInPage />} />
+                <Route path="admin" element={<AdminPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </HashRouter>
+      </AuthProvider>
     </I18nProvider>
   );
 }

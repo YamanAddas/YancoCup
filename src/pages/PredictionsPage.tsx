@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
-import { useSchedule } from "../hooks/useSchedule";
+import { useCompetition } from "../lib/CompetitionProvider";
+import { useCompetitionSchedule } from "../hooks/useCompetitionSchedule";
 import { useTeamMap } from "../hooks/useTeams";
 import { useVenueMap } from "../hooks/useVenues";
 import {
@@ -17,11 +18,12 @@ import { LogIn, AlertCircle } from "lucide-react";
 export default function PredictionsPage() {
   const { user, loading: authLoading } = useAuth();
   const { t } = useI18n();
-  const allMatches = useSchedule();
+  const comp = useCompetition();
+  const { matches: allMatches } = useCompetitionSchedule();
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
   const { predictions, predsLoading, refresh } = useAutoScore();
-  const predictionCounts = usePredictionCounts();
+  const predictionCounts = usePredictionCounts(comp.id);
 
   const predictionMap = useMemo(
     () => new Map(predictions.map((p) => [p.match_id, p])),

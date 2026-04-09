@@ -5,6 +5,7 @@
   "nav.predictions": "Tipps",
   "nav.leaderboard": "Rangliste",
   "nav.watch": "Schauen",
+  "nav.standings": "Tabelle",
   "nav.signIn": "Anmelden",
   "nav.signOut": "Abmelden",
 
@@ -13,6 +14,7 @@
   "home.subtitle": "USA, Mexiko & Kanada",
   "home.kickoffIn": "Anpfiff in",
   "home.cta": "Tippe Spiele mit Freunden",
+  "home.competitions": "Wettbewerbe",
   "home.todaysMatches": "Heutige Spiele",
   "home.nextMatches": "Nächste Spiele",
   "home.noUpcoming": "Keine anstehenden Spiele",
@@ -48,6 +50,7 @@
   "groups.title": "Gruppen",
   "groups.subtitle": "12 Gruppen mit je 4 Teams",
   "groups.advanceNote": "Die besten 2 kommen weiter. Die besten Gruppendritten qualifizieren sich ebenfalls.",
+  "standings.noData": "Noch keine Tabellendaten verfügbar.",
 
   "groupTable.team": "Team",
   "groupTable.played": "Sp",

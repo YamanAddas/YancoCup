@@ -5,6 +5,7 @@
   "nav.predictions": "Palpites",
   "nav.leaderboard": "Classificação",
   "nav.watch": "Assistir",
+  "nav.standings": "Classificação",
   "nav.signIn": "Entrar",
   "nav.signOut": "Sair",
 
@@ -13,6 +14,7 @@
   "home.subtitle": "Estados Unidos, México e Canadá",
   "home.kickoffIn": "Começa em",
   "home.cta": "Dê seus palpites com os amigos",
+  "home.competitions": "Competições",
   "home.todaysMatches": "Jogos de Hoje",
   "home.nextMatches": "Próximos Jogos",
   "home.noUpcoming": "Nenhum Jogo Próximo",
@@ -48,6 +50,7 @@
   "groups.title": "Grupos",
   "groups.subtitle": "12 grupos de 4 seleções",
   "groups.advanceNote": "Os 2 primeiros avançam. As melhores seleções em 3º lugar também se classificam.",
+  "standings.noData": "Dados de classificação ainda não disponíveis.",
 
   "groupTable.team": "Seleção",
   "groupTable.played": "J",

@@ -5,13 +5,14 @@ import type { MatchResult } from "./useScoring";
 /**
  * Converts live scores from the Worker into MatchResult[] for the scoring engine.
  * Maps API statuses to scoring-friendly statuses.
+ * matchId is the football-data.org API ID (same as schedule.json and yc_predictions).
  */
 export function useLiveResults(): { results: MatchResult[]; loading: boolean } {
   const { scoreMap, loading } = useScores();
 
   const results = useMemo(() => {
     const out: MatchResult[] = [];
-    for (const [localId, score] of scoreMap) {
+    for (const [apiId, score] of scoreMap) {
       if (score.homeScore === null || score.awayScore === null) continue;
 
       let status: MatchResult["status"];
@@ -24,7 +25,7 @@ export function useLiveResults(): { results: MatchResult[]; loading: boolean } {
       }
 
       out.push({
-        matchId: localId,
+        matchId: apiId,
         homeScore: score.homeScore,
         awayScore: score.awayScore,
         status,

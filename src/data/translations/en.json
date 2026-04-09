@@ -5,6 +5,7 @@
   "nav.predictions": "Predictions",
   "nav.leaderboard": "Leaderboard",
   "nav.watch": "Watch",
+  "nav.standings": "Standings",
   "nav.signIn": "Sign In",
   "nav.signOut": "Sign Out",
 
@@ -13,6 +14,7 @@
   "home.subtitle": "United States, Mexico & Canada",
   "home.kickoffIn": "Kickoff in",
   "home.cta": "Predict matches with friends",
+  "home.competitions": "Competitions",
   "home.todaysMatches": "Today's Matches",
   "home.nextMatches": "Next Matches",
   "home.noUpcoming": "No Upcoming Matches",
@@ -48,6 +50,8 @@
   "groups.title": "Groups",
   "groups.subtitle": "12 groups · 48 teams · Top 2 + best 3rd-place advance",
   "groups.advanceNote": "Top 2 advance. Best 3rd-place teams also qualify.",
+
+  "standings.noData": "No standings data available yet.",
 
   "groupTable.team": "Team",
   "groupTable.played": "P",

@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useParams } from "react-router-dom";
 import {
   Globe as GlobeIcon,
   Calendar,
@@ -8,16 +8,18 @@ import {
 } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
 
-const links = [
-  { to: "/", labelKey: "nav.home", icon: GlobeIcon },
-  { to: "/matches", labelKey: "nav.matches", icon: Calendar },
-  { to: "/predictions", labelKey: "nav.predictions", icon: Trophy },
-  { to: "/leaderboard", labelKey: "nav.leaderboard", icon: BarChart3 },
-  { to: "/watch", labelKey: "nav.watch", icon: Tv },
-] as const;
-
 export default function MobileNav() {
   const { t } = useI18n();
+  const { competition } = useParams<{ competition: string }>();
+  const comp = competition?.toUpperCase() ?? "WC";
+
+  const links = [
+    { to: "/", labelKey: "nav.home", icon: GlobeIcon },
+    { to: `/${comp}/matches`, labelKey: "nav.matches", icon: Calendar },
+    { to: `/${comp}/predictions`, labelKey: "nav.predictions", icon: Trophy },
+    { to: `/${comp}/leaderboard`, labelKey: "nav.leaderboard", icon: BarChart3 },
+    { to: "/watch", labelKey: "nav.watch", icon: Tv },
+  ] as const;
 
   return (
     <nav className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-[var(--yc-bg-glass)] backdrop-blur-xl border-t border-yc-border safe-bottom">

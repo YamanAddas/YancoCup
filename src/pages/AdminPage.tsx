@@ -100,7 +100,7 @@ export default function AdminPage() {
               type="number"
               value={matchId}
               onChange={(e) => setMatchId(e.target.value)}
-              placeholder="1-104"
+              placeholder="API ID"
               className="w-full bg-yc-bg-elevated border border-yc-border rounded-lg px-3 py-2 text-sm text-yc-text-primary focus:outline-none focus:border-yc-green-muted"
             />
           </div>

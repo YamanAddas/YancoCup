@@ -9,8 +9,63 @@ import { useVenueMap } from "../hooks/useVenues";
 import { useScores } from "../hooks/useScores";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { useI18n } from "../lib/i18n";
+import { COMPETITION_LIST } from "../lib/competitions";
 import ActivityFeed from "../components/activity/ActivityFeed";
-import { Trophy, ArrowRight, Calendar, BarChart3, Activity } from "lucide-react";
+import {
+  Trophy,
+  ArrowRight,
+  Calendar,
+  BarChart3,
+  Activity,
+  ChevronRight,
+} from "lucide-react";
+
+function CompetitionCards() {
+  const { t } = useI18n();
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 border-t border-yc-border">
+      <div className="flex items-center gap-2 mb-4">
+        <Trophy size={18} className="text-yc-green" />
+        <h3 className="font-heading text-xl font-bold">
+          {t("home.competitions")}
+        </h3>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {COMPETITION_LIST.map((comp) => (
+          <NavLink
+            key={comp.id}
+            to={`/${comp.id}/matches`}
+            className="group bg-yc-bg-surface border border-yc-border rounded-xl p-4 hover:border-yc-green-muted/40 transition-all"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span
+                className="text-xs font-bold font-mono px-1.5 py-0.5 rounded"
+                style={{
+                  backgroundColor: comp.accentColor + "20",
+                  color: comp.accentColor,
+                }}
+              >
+                {comp.emoji}
+              </span>
+              <ChevronRight
+                size={14}
+                className="text-yc-text-tertiary group-hover:text-yc-green transition-colors"
+              />
+            </div>
+            <p className="text-yc-text-primary text-sm font-medium leading-tight">
+              {comp.shortName}
+            </p>
+            <p className="text-yc-text-tertiary text-xs mt-0.5">
+              {comp.seasonLabel}
+            </p>
+          </NavLink>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function TodaysMatches() {
   const allMatches = useSchedule();
@@ -24,9 +79,9 @@ function TodaysMatches() {
     return allMatches.filter((m) => m.date === today);
   }, [allMatches]);
 
-  // If no matches today, show next upcoming matches
   const displayMatches = useMemo(() => {
-    if (todaysMatches.length > 0) return { matches: todaysMatches, label: t("home.todaysMatches") };
+    if (todaysMatches.length > 0)
+      return { matches: todaysMatches, label: t("home.todaysMatches") };
 
     const today = new Date().toISOString().slice(0, 10);
     const upcoming = allMatches.filter((m) => m.date > today);
@@ -34,12 +89,18 @@ function TodaysMatches() {
     if (first) {
       const nextDate = first.date;
       const nextMatches = upcoming.filter((m) => m.date === nextDate);
-      const dateLabel = new Date(`${nextDate}T00:00:00Z`).toLocaleDateString(undefined, {
-        weekday: "long",
-        month: "short",
-        day: "numeric",
-      });
-      return { matches: nextMatches, label: `${t("home.nextMatches")} — ${dateLabel}` };
+      const dateLabel = new Date(`${nextDate}T00:00:00Z`).toLocaleDateString(
+        undefined,
+        {
+          weekday: "long",
+          month: "short",
+          day: "numeric",
+        },
+      );
+      return {
+        matches: nextMatches,
+        label: `${t("home.nextMatches")} — ${dateLabel}`,
+      };
     }
 
     return { matches: [], label: t("home.noUpcoming") };
@@ -50,10 +111,12 @@ function TodaysMatches() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Calendar size={18} className="text-yc-green" />
-          <h3 className="font-heading text-xl font-bold">{displayMatches.label}</h3>
+          <h3 className="font-heading text-xl font-bold">
+            {displayMatches.label}
+          </h3>
         </div>
         <NavLink
-          to="/matches"
+          to="/WC/matches"
           className="flex items-center gap-1 text-yc-green text-sm hover:underline"
         >
           {t("home.allMatches")} <ArrowRight size={14} />
@@ -67,7 +130,14 @@ function TodaysMatches() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {displayMatches.matches.slice(0, 6).map((m) => (
-            <MatchCard key={m.id} match={m} teamMap={teamMap} venueMap={venueMap} liveScore={scoreMap.get(m.id)} compact />
+            <MatchCard
+              key={m.id}
+              match={m}
+              teamMap={teamMap}
+              venueMap={venueMap}
+              liveScore={scoreMap.get(m.id)}
+              compact
+            />
           ))}
         </div>
       )}
@@ -104,7 +174,11 @@ function LeaderboardSnippetInner() {
             {i + 1}
           </span>
           {entry.avatarUrl ? (
-            <img src={entry.avatarUrl} alt="" className="w-7 h-7 rounded-full" />
+            <img
+              src={entry.avatarUrl}
+              alt=""
+              className="w-7 h-7 rounded-full"
+            />
           ) : (
             <div className="w-7 h-7 rounded-full bg-yc-bg-elevated flex items-center justify-center text-xs font-bold text-yc-text-secondary">
               {entry.handle.charAt(0).toUpperCase()}
@@ -134,7 +208,8 @@ export default function HomePage() {
         <div className="flex flex-col items-center lg:items-start gap-6">
           <div>
             <h2 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight mb-2">
-              {t("home.title")} <span className="text-yc-green">{t("home.year")}</span>
+              {t("home.title")}{" "}
+              <span className="text-yc-green">{t("home.year")}</span>
             </h2>
             <p className="text-yc-text-secondary text-sm">
               {t("home.subtitle")}
@@ -149,7 +224,7 @@ export default function HomePage() {
           </div>
 
           <a
-            href="#/predictions"
+            href="#/WC/predictions"
             className="inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all"
           >
             <Trophy size={18} />
@@ -158,19 +233,23 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Competition cards */}
+      <CompetitionCards />
+
       <TodaysMatches />
 
       {/* Leaderboard + Activity side by side */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8 border-t border-yc-border grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Leaderboard snippet */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <BarChart3 size={18} className="text-yc-green" />
-              <h3 className="font-heading text-xl font-bold">{t("home.leaderboard")}</h3>
+              <h3 className="font-heading text-xl font-bold">
+                {t("home.leaderboard")}
+              </h3>
             </div>
             <NavLink
-              to="/leaderboard"
+              to="/WC/leaderboard"
               className="flex items-center gap-1 text-yc-green text-sm hover:underline"
             >
               {t("home.fullStandings")} <ArrowRight size={14} />
@@ -179,11 +258,12 @@ export default function HomePage() {
           <LeaderboardSnippetInner />
         </div>
 
-        {/* Activity feed */}
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Activity size={18} className="text-yc-green" />
-            <h3 className="font-heading text-xl font-bold">{t("home.recentActivity")}</h3>
+            <h3 className="font-heading text-xl font-bold">
+              {t("home.recentActivity")}
+            </h3>
           </div>
           <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-2">
             <ActivityFeed />

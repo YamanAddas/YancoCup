@@ -6,16 +6,18 @@ export interface Prediction {
   id: string;
   user_id: string;
   match_id: number;
+  competition_id: string;
   home_score: number;
   away_score: number;
   points: number | null;
   scored_at: string | null;
+  is_joker: boolean;
   created_at: string;
   updated_at: string;
 }
 
-/** All predictions for the signed-in user */
-export function useMyPredictions() {
+/** All predictions for the signed-in user, filtered by competition */
+export function useMyPredictions(competitionId = "WC") {
   const { user } = useAuth();
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,10 +32,11 @@ export function useMyPredictions() {
       .from("yc_predictions")
       .select("*")
       .eq("user_id", user.id)
+      .eq("competition_id", competitionId)
       .order("match_id");
     setPredictions((data as Prediction[]) ?? []);
     setLoading(false);
-  }, [user]);
+  }, [user, competitionId]);
 
   useEffect(() => {
     refresh();
@@ -48,29 +51,32 @@ export async function upsertPrediction(
   matchId: number,
   homeScore: number,
   awayScore: number,
+  competitionId = "WC",
 ): Promise<string | null> {
   const { error } = await supabase.from("yc_predictions").upsert(
     {
       user_id: userId,
       match_id: matchId,
+      competition_id: competitionId,
       home_score: homeScore,
       away_score: awayScore,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "user_id,match_id" },
+    { onConflict: "user_id,competition_id,match_id" },
   );
   return error?.message ?? null;
 }
 
-/** Count of predictions per match (all users) */
-export function usePredictionCounts() {
+/** Count of predictions per match (all users), filtered by competition */
+export function usePredictionCounts(competitionId = "WC") {
   const [counts, setCounts] = useState<Map<number, number>>(new Map());
 
   useEffect(() => {
     async function fetch() {
       const { data } = await supabase
         .from("yc_predictions")
-        .select("match_id");
+        .select("match_id")
+        .eq("competition_id", competitionId);
       if (!data) return;
       const map = new Map<number, number>();
       for (const row of data as { match_id: number }[]) {
@@ -79,7 +85,7 @@ export function usePredictionCounts() {
       setCounts(map);
     }
     fetch();
-  }, []);
+  }, [competitionId]);
 
   return counts;
 }

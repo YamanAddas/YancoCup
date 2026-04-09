@@ -1,11 +1,13 @@
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { useAuth } from "../lib/auth";
 import { useAutoScore } from "../hooks/useAutoScore";
+import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import { Trophy, TrendingUp, Target, Award } from "lucide-react";
 
 export default function LeaderboardPage() {
-  const { entries, loading } = useLeaderboard();
+  const comp = useCompetition();
+  const { entries, loading } = useLeaderboard(comp.id);
   const { user } = useAuth();
   const { t } = useI18n();
   // Auto-score any unscored predictions when user views leaderboard

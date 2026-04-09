@@ -8,22 +8,29 @@ export interface ActivityItem {
   displayName: string | null;
   avatarUrl: string | null;
   matchId: number;
+  competitionId: string;
   homeScore: number;
   awayScore: number;
   createdAt: string;
 }
 
-export function useActivityFeed(limit = 10) {
+export function useActivityFeed(limit = 10, competitionId?: string) {
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetch() {
-      const { data } = await supabase
+      let query = supabase
         .from("yc_predictions")
-        .select("id, user_id, match_id, home_score, away_score, created_at")
+        .select("id, user_id, match_id, competition_id, home_score, away_score, created_at")
         .order("created_at", { ascending: false })
         .limit(limit);
+
+      if (competitionId) {
+        query = query.eq("competition_id", competitionId);
+      }
+
+      const { data } = await query;
 
       if (!data || data.length === 0) {
         setLoading(false);
@@ -49,6 +56,7 @@ export function useActivityFeed(limit = 10) {
           displayName: profile?.display_name ?? null,
           avatarUrl: profile?.avatar_url ?? null,
           matchId: d.match_id,
+          competitionId: d.competition_id,
           homeScore: d.home_score,
           awayScore: d.away_score,
           createdAt: d.created_at,
@@ -77,7 +85,7 @@ export function useActivityFeed(limit = 10) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [limit]);
+  }, [limit, competitionId]);
 
   return { items, loading };
 }

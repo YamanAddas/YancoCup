@@ -1,29 +1,12 @@
 /**
  * Frontend client for the YancoCup Cloudflare Worker API.
  * All live score data flows through the Worker (never direct to football-data.org).
+ *
+ * Match IDs are football-data.org API IDs everywhere — no local ID mapping needed.
  */
 
 const WORKER_URL =
   import.meta.env.VITE_WORKER_URL ?? "https://yancocup-api.catbyte1985.workers.dev";
-
-// Match ID mapping: our schedule ID -> football-data.org API ID
-import matchIdMap from "../data/match-id-map.json";
-
-const idMap = matchIdMap as Record<string, number>;
-
-/** Convert our local match ID to the API's match ID */
-export function toApiId(localId: number): number | undefined {
-  return idMap[String(localId)];
-}
-
-/** Convert an API match ID back to our local ID */
-const reverseMap: Map<number, number> = new Map(
-  Object.entries(idMap).map(([local, api]) => [api, Number(local)]),
-);
-
-export function toLocalId(apiId: number): number | undefined {
-  return reverseMap.get(apiId);
-}
 
 // ---------------------------------------------------------------------------
 // Types (mirror Worker response shapes)
@@ -105,15 +88,6 @@ export async function fetchMatch(
     `/api/match/${apiId}`,
   );
   return data?.match ?? null;
-}
-
-/** Fetch a single match by our local schedule ID. */
-export async function fetchMatchByLocalId(
-  localId: number,
-): Promise<LiveMatchScore | null> {
-  const apiId = toApiId(localId);
-  if (!apiId) return null;
-  return fetchMatch(apiId);
 }
 
 /** Check Worker health. */

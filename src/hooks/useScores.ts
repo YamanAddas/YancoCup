@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { fetchScores, toLocalId } from "../lib/api";
+import { fetchScores } from "../lib/api";
 import type { LiveMatchScore } from "../lib/api";
 
-/** Live score mapped to our local match ID */
+/** Live score keyed by API match ID */
 export interface LocalLiveScore {
-  localId: number;
   apiId: number;
   status: string;
   homeTeam: string | null;
@@ -25,7 +24,7 @@ function hasLiveMatch(scores: LiveMatchScore[]): boolean {
  * Polls the Worker for live scores.
  * - Every 60s when a match is live (IN_PLAY or PAUSED)
  * - Every 5 min otherwise
- * - Returns a Map<localId, LocalLiveScore> for easy lookup
+ * - Returns a Map<apiId, LocalLiveScore> for easy lookup
  */
 export function useScores() {
   const [scoreMap, setScoreMap] = useState<Map<number, LocalLiveScore>>(
@@ -44,10 +43,7 @@ export function useScores() {
 
     const map = new Map<number, LocalLiveScore>();
     for (const s of raw) {
-      const localId = toLocalId(s.apiId);
-      if (localId === undefined) continue;
-      map.set(localId, {
-        localId,
+      map.set(s.apiId, {
         apiId: s.apiId,
         status: s.status,
         homeTeam: s.homeTeam,

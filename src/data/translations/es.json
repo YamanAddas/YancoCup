@@ -5,6 +5,7 @@
   "nav.predictions": "Predicciones",
   "nav.leaderboard": "Clasificación",
   "nav.watch": "Ver en vivo",
+  "nav.standings": "Clasificación",
   "nav.signIn": "Iniciar sesión",
   "nav.signOut": "Cerrar sesión",
 
@@ -13,6 +14,7 @@
   "home.subtitle": "Estados Unidos, México y Canadá",
   "home.kickoffIn": "Comienza en",
   "home.cta": "Predice partidos con tus amigos",
+  "home.competitions": "Competiciones",
   "home.todaysMatches": "Partidos de hoy",
   "home.nextMatches": "Próximos partidos",
   "home.noUpcoming": "No hay partidos próximos",
@@ -48,6 +50,7 @@
   "groups.title": "Grupos",
   "groups.subtitle": "12 grupos de 4 equipos",
   "groups.advanceNote": "Los 2 primeros avanzan. Los mejores terceros también clasifican.",
+  "standings.noData": "No hay datos de clasificación disponibles.",
 
   "groupTable.team": "Equipo",
   "groupTable.played": "PJ",

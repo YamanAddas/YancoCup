@@ -13,16 +13,17 @@ export interface LeaderboardEntry {
   pointsPerPrediction: number;
 }
 
-export function useLeaderboard() {
+export function useLeaderboard(competitionId = "WC") {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetch() {
-      // Single query for all predictions
+      // Single query for all predictions in this competition
       const { data: predictions } = await supabase
         .from("yc_predictions")
-        .select("user_id, points, scored_at");
+        .select("user_id, points, scored_at")
+        .eq("competition_id", competitionId);
 
       if (!predictions || predictions.length === 0) {
         setEntries([]);
@@ -89,7 +90,7 @@ export function useLeaderboard() {
     }
 
     fetch();
-  }, []);
+  }, [competitionId]);
 
   return { entries, loading };
 }

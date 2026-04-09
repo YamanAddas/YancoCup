@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useParams } from "react-router-dom";
 import {
   Globe as GlobeIcon,
   Calendar,
@@ -8,23 +8,35 @@ import {
   Tv,
   LogIn,
   LogOut,
+  Table,
 } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 import { useI18n } from "../../lib/i18n";
+import { COMPETITIONS } from "../../lib/competitions";
 import LanguageSwitcher from "./LanguageSwitcher";
 
-const links = [
-  { to: "/", labelKey: "nav.home", icon: GlobeIcon },
-  { to: "/matches", labelKey: "nav.matches", icon: Calendar },
-  { to: "/groups", labelKey: "nav.groups", icon: Users },
-  { to: "/predictions", labelKey: "nav.predictions", icon: Trophy },
-  { to: "/leaderboard", labelKey: "nav.leaderboard", icon: BarChart3 },
-  { to: "/watch", labelKey: "nav.watch", icon: Tv },
-] as const;
+function useCurrentCompetition(): string {
+  const { competition } = useParams<{ competition: string }>();
+  return competition?.toUpperCase() ?? "WC";
+}
 
 export default function NavBar() {
   const { user, profile, loading, signOut } = useAuth();
   const { t } = useI18n();
+  const comp = useCurrentCompetition();
+  const compConfig = COMPETITIONS[comp];
+  const isTournament = compConfig?.type === "tournament";
+
+  const links = [
+    { to: "/", labelKey: "nav.home", icon: GlobeIcon, end: true },
+    { to: `/${comp}/matches`, labelKey: "nav.matches", icon: Calendar, end: false },
+    ...(isTournament && compConfig?.hasGroups
+      ? [{ to: `/${comp}/groups`, labelKey: "nav.groups", icon: Users, end: false }]
+      : [{ to: `/${comp}/standings`, labelKey: "nav.standings", icon: Table, end: false }]),
+    { to: `/${comp}/predictions`, labelKey: "nav.predictions", icon: Trophy, end: false },
+    { to: `/${comp}/leaderboard`, labelKey: "nav.leaderboard", icon: BarChart3, end: false },
+    { to: "/watch", labelKey: "nav.watch", icon: Tv, end: false },
+  ];
 
   return (
     <header className="sticky top-0 z-50 bg-[var(--yc-bg-glass)] backdrop-blur-xl border-b border-yc-border">
@@ -38,11 +50,11 @@ export default function NavBar() {
         </NavLink>
 
         <nav className="hidden sm:flex items-center gap-1">
-          {links.map(({ to, labelKey, icon: Icon }) => (
+          {links.map(({ to, labelKey, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
-              end={to === "/"}
+              end={end}
               className={({ isActive }) =>
                 `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
@@ -99,8 +111,6 @@ export default function NavBar() {
             </NavLink>
           )}
         </div>
-
-        {/* Mobile nav — bottom bar, built in Session 15 */}
       </div>
     </header>
   );
