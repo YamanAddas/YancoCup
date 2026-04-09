@@ -111,7 +111,7 @@ const FD_ID_TO_CODE = new Map(
 );
 
 // Competitions with active standings to rotate through
-const STANDINGS_COMPS = ["WC", "PL", "PD", "BL1", "SA", "FL1", "CL"];
+const STANDINGS_COMPS = ["WC", "PL", "PD", "BL1", "SA", "FL1", "CL", "EC"];
 
 // ---------------------------------------------------------------------------
 // KV key patterns
@@ -842,6 +842,34 @@ app.get("/api/h2h/:id", async (c) => {
   const data = (await res.json()) as Record<string, unknown>;
   await kvPut(c.env.SCORES_KV,cacheKey, JSON.stringify(data), {
     expirationTtl: 86400,
+  });
+  return c.json(data);
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/:comp/scorers — top scorers for a competition (on-demand, 1hr cache)
+// ---------------------------------------------------------------------------
+
+app.get("/api/:comp/scorers", async (c) => {
+  const comp = c.req.param("comp").toUpperCase();
+  const def = COMPETITIONS[comp];
+  if (!def) return c.json({ error: "Unknown competition" }, 404);
+
+  const cacheKey = `${comp}:scorers`;
+  const cached = await c.env.SCORES_KV.get(cacheKey);
+  if (cached) return c.json(JSON.parse(cached));
+
+  const res = await fetchFromFootballData(
+    `/competitions/${comp}/scorers?limit=20`,
+    c.env.FOOTBALL_DATA_API_KEY,
+  );
+  if (!res.ok) {
+    return c.json({ error: "Scorers data not available" }, res.status as 400 | 404 | 500);
+  }
+
+  const data = (await res.json()) as Record<string, unknown>;
+  await kvPut(c.env.SCORES_KV, cacheKey, JSON.stringify(data), {
+    expirationTtl: 3600,
   });
   return c.json(data);
 });

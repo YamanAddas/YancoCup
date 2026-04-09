@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
+import { fetchScorers } from "../lib/api";
+import type { Scorer } from "../lib/api";
 import TeamCrest from "../components/match/TeamCrest";
 import type { StandingsZones } from "../lib/competitions";
+import { Target } from "lucide-react";
 
 const WORKER_URL =
   import.meta.env.VITE_WORKER_URL ??
@@ -21,6 +24,16 @@ interface StandingRow {
   goalDifference: number;
   points: number;
   form: string | null;
+}
+
+interface MatchScore {
+  apiId: number;
+  utcDate: string;
+  status: string;
+  homeTeam: string | null;
+  awayTeam: string | null;
+  homeScore: number | null;
+  awayScore: number | null;
 }
 
 function FormDot({ result }: { result: string }) {
@@ -66,33 +79,72 @@ export default function StandingsPage() {
   const comp = useCompetition();
   const { t } = useI18n();
   const [standings, setStandings] = useState<StandingRow[]>([]);
+  const [matchScores, setMatchScores] = useState<MatchScore[]>([]);
+  const [scorers, setScorers] = useState<Scorer[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const res = await globalThis.fetch(
-          `${WORKER_URL}/api/${comp.id}/standings`,
-        );
-        if (!res.ok) {
-          setLoading(false);
-          return;
+        const [standingsRes, scoresRes] = await Promise.all([
+          globalThis.fetch(`${WORKER_URL}/api/${comp.id}/standings`),
+          globalThis.fetch(`${WORKER_URL}/api/${comp.id}/scores`),
+        ]);
+
+        if (standingsRes.ok) {
+          const data = (await standingsRes.json()) as {
+            standings: Array<{ table: StandingRow[] }>;
+          };
+          const first = data.standings?.[0];
+          if (first) setStandings(first.table ?? []);
         }
-        const data = (await res.json()) as {
-          standings: Array<{ table: StandingRow[] }>;
-        };
-        const first = data.standings?.[0];
-        if (first) {
-          setStandings(first.table ?? []);
+
+        if (scoresRes.ok) {
+          const data = (await scoresRes.json()) as { matches: MatchScore[] };
+          setMatchScores(data.matches ?? []);
         }
       } catch {
         // Worker unreachable
       } finally {
         setLoading(false);
       }
+
+      // Fetch scorers (non-blocking)
+      fetchScorers(comp.id).then((s) => setScorers(s));
     }
     load();
   }, [comp.id]);
+
+  // Calculate form per team from match results
+  const formMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (matchScores.length === 0) return map;
+
+    const finished = matchScores
+      .filter((m) => m.status === "FINISHED" && m.homeScore !== null && m.awayScore !== null)
+      .sort((a, b) => new Date(b.utcDate).getTime() - new Date(a.utcDate).getTime());
+
+    // Collect all TLAs from standings
+    const tlas = new Set(standings.map((r) => r.team.tla));
+
+    for (const tla of tlas) {
+      const teamMatches = finished
+        .filter((m) => m.homeTeam === tla || m.awayTeam === tla)
+        .slice(0, 5);
+
+      const results = teamMatches.map((m) => {
+        const isHome = m.homeTeam === tla;
+        const gf = isHome ? m.homeScore! : m.awayScore!;
+        const ga = isHome ? m.awayScore! : m.homeScore!;
+        return gf > ga ? "W" : gf < ga ? "L" : "D";
+      });
+
+      if (results.length > 0) {
+        map.set(tla, results.join(","));
+      }
+    }
+    return map;
+  }, [matchScores, standings]);
 
   const zones = comp.zones;
 
@@ -189,7 +241,7 @@ export default function StandingsPage() {
                       {row.points}
                     </td>
                     <td className="py-2.5 px-2 text-center hidden md:table-cell">
-                      <FormGuide form={row.form} />
+                      <FormGuide form={formMap.get(row.team.tla) ?? row.form} />
                     </td>
                   </tr>
                 ))}
@@ -224,6 +276,62 @@ export default function StandingsPage() {
                   Relegation
                 </span>
               )}
+            </div>
+          )}
+          {/* Top Scorers */}
+          {scorers.length > 0 && (
+            <div className="mt-8">
+              <div className="flex items-center gap-2 mb-4">
+                <Target size={18} className="text-yc-green" />
+                <h3 className="font-heading text-lg font-bold">Top Scorers</h3>
+              </div>
+              <div className="yc-card rounded-xl overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-yc-text-tertiary text-xs uppercase tracking-wider border-b border-yc-border">
+                      <th className="text-left py-3 px-3 w-8">#</th>
+                      <th className="text-left py-3 px-2">Player</th>
+                      <th className="text-left py-3 px-2 hidden sm:table-cell">Team</th>
+                      <th className="text-center py-3 px-2 w-10">MP</th>
+                      <th className="text-center py-3 px-2 w-10 font-bold">G</th>
+                      <th className="text-center py-3 px-2 w-10">A</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scorers.slice(0, 10).map((s, i) => (
+                      <tr
+                        key={s.player.id}
+                        className="border-b border-yc-border/30 hover:bg-white/[0.02] transition-colors"
+                      >
+                        <td className="py-2.5 px-3 text-yc-text-tertiary font-mono text-xs">
+                          {i + 1}
+                        </td>
+                        <td className="py-2.5 px-2">
+                          <span className="font-medium text-yc-text-primary">{s.player.name}</span>
+                        </td>
+                        <td className="py-2.5 px-2 hidden sm:table-cell">
+                          <Link
+                            to={`/${comp.id}/team/${s.team.id}`}
+                            className="flex items-center gap-1.5 hover:text-yc-green transition-colors"
+                          >
+                            <TeamCrest tla={s.team.tla} crest={s.team.crest} size="xs" />
+                            <span className="text-yc-text-secondary text-xs truncate">{s.team.shortName}</span>
+                          </Link>
+                        </td>
+                        <td className="py-2.5 px-2 text-center text-yc-text-secondary">
+                          {s.playedMatches}
+                        </td>
+                        <td className="py-2.5 px-2 text-center font-bold text-yc-green">
+                          {s.goals ?? 0}
+                        </td>
+                        <td className="py-2.5 px-2 text-center text-yc-text-secondary">
+                          {s.assists ?? 0}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </>

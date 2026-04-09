@@ -96,6 +96,21 @@ export async function fetchMatch(
   return data?.match ?? null;
 }
 
+export interface Scorer {
+  player: { id: number; name: string; nationality: string };
+  team: { id: number; name: string; shortName: string; tla: string; crest: string };
+  playedMatches: number;
+  goals: number | null;
+  assists: number | null;
+  penalties: number | null;
+}
+
+/** Fetch top scorers for a competition. */
+export async function fetchScorers(comp: string): Promise<Scorer[]> {
+  const data = await apiFetch<{ scorers: Scorer[] }>(`/api/${comp}/scorers`);
+  return data?.scorers ?? [];
+}
+
 /** Check Worker health. */
 export async function fetchHealth(): Promise<{
   status: string;

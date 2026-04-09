@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, User, MapPin, Calendar } from "lucide-react";
+import { ArrowLeft, User, MapPin, Calendar, Shield, TrendingUp, Home, Plane } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import TeamCrest from "../components/match/TeamCrest";
@@ -115,12 +115,23 @@ function FormDot({ result }: { result: "W" | "D" | "L" }) {
 // Main page
 // ---------------------------------------------------------------------------
 
+interface StandingEntry {
+  position: number;
+  team: { id: number; tla: string };
+  playedGames: number;
+  won: number;
+  draw: number;
+  lost: number;
+  points: number;
+}
+
 export default function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const comp = useCompetition();
   const { t } = useI18n();
   const [team, setTeam] = useState<TeamData | null>(null);
   const [matches, setMatches] = useState<MatchResult[]>([]);
+  const [leaguePosition, setLeaguePosition] = useState<StandingEntry | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Fetch team data from /api/:comp/teams
@@ -135,12 +146,25 @@ export default function TeamPage() {
         if (found) setTeam(found);
       } catch { /* */ }
 
-      // Also fetch matches for form guide
+      // Fetch matches for form guide + stats
       try {
         const res = await fetch(`${WORKER_URL}/api/${comp.id}/scores`);
         if (res.ok) {
           const data = (await res.json()) as { matches: MatchResult[] };
           setMatches(data.matches ?? []);
+        }
+      } catch { /* */ }
+
+      // Fetch standings for league position
+      try {
+        const res = await fetch(`${WORKER_URL}/api/${comp.id}/standings`);
+        if (res.ok) {
+          const data = (await res.json()) as { standings: Array<{ table: StandingEntry[] }> };
+          const table = data.standings?.[0]?.table;
+          if (table) {
+            const entry = table.find((r) => String(r.team.id) === teamId);
+            if (entry) setLeaguePosition(entry);
+          }
         }
       } catch { /* */ }
 
@@ -172,6 +196,48 @@ export default function TeamPage() {
       return { ...m, result, goalsFor, goalsAgainst, opponentTla, opponentCrest, opponentName, isHome };
     });
   }, [team, matches]);
+
+  // Computed stats from match results
+  const stats = useMemo(() => {
+    if (!team || form.length === 0) return null;
+    const tla = team.tla;
+    const finishedAll = matches
+      .filter((m) => m.status === "FINISHED" && (m.homeTeam === tla || m.awayTeam === tla))
+      .sort((a, b) => new Date(b.utcDate).getTime() - new Date(a.utcDate).getTime());
+
+    let cleanSheets = 0;
+    let homeW = 0, homeD = 0, homeL = 0;
+    let awayW = 0, awayD = 0, awayL = 0;
+    let totalGoals = 0;
+
+    for (const m of finishedAll) {
+      const isHome = m.homeTeam === tla;
+      const gf = isHome ? m.homeScore! : m.awayScore!;
+      const ga = isHome ? m.awayScore! : m.homeScore!;
+      totalGoals += gf;
+      if (ga === 0) cleanSheets++;
+      const result = gf > ga ? "W" : gf < ga ? "L" : "D";
+      if (isHome) { if (result === "W") homeW++; else if (result === "D") homeD++; else homeL++; }
+      else { if (result === "W") awayW++; else if (result === "D") awayD++; else awayL++; }
+    }
+
+    // Current streak
+    let streakResult = form[0]?.result;
+    let streakCount = 0;
+    for (const f of form) {
+      if (f.result === streakResult) streakCount++;
+      else break;
+    }
+
+    return {
+      cleanSheets,
+      homeRecord: `${homeW}W ${homeD}D ${homeL}L`,
+      awayRecord: `${awayW}W ${awayD}D ${awayL}L`,
+      goalsPerMatch: finishedAll.length > 0 ? (totalGoals / finishedAll.length).toFixed(1) : "0",
+      streak: streakResult ? `${streakCount}${streakResult}` : null,
+      played: finishedAll.length,
+    };
+  }, [team, matches, form]);
 
   // Upcoming matches
   const upcoming = useMemo(() => {
@@ -267,6 +333,66 @@ export default function TeamPage() {
           </div>
         </div>
       </div>
+
+      {/* Stats cards */}
+      {(leaguePosition || stats) && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+          {leaguePosition && (
+            <div className="yc-card p-3 rounded-xl">
+              <div className="flex items-center gap-1.5 mb-1">
+                <TrendingUp size={12} className="text-yc-green" />
+                <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider">Position</span>
+              </div>
+              <span className="font-heading text-xl font-bold text-yc-green">#{leaguePosition.position}</span>
+              <span className="text-xs text-yc-text-tertiary ml-1">{leaguePosition.points} pts</span>
+            </div>
+          )}
+          {stats && (
+            <>
+              <div className="yc-card p-3 rounded-xl">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Shield size={12} className="text-yc-text-tertiary" />
+                  <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider">Clean Sheets</span>
+                </div>
+                <span className="font-heading text-xl font-bold text-yc-text-primary">{stats.cleanSheets}</span>
+                <span className="text-xs text-yc-text-tertiary ml-1">/ {stats.played}</span>
+              </div>
+              <div className="yc-card p-3 rounded-xl">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Home size={12} className="text-yc-text-tertiary" />
+                  <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider">Home</span>
+                </div>
+                <span className="font-mono text-sm font-bold text-yc-text-primary">{stats.homeRecord}</span>
+              </div>
+              <div className="yc-card p-3 rounded-xl">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Plane size={12} className="text-yc-text-tertiary" />
+                  <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider">Away</span>
+                </div>
+                <span className="font-mono text-sm font-bold text-yc-text-primary">{stats.awayRecord}</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Streak + goals/match */}
+      {stats && (
+        <div className="flex flex-wrap gap-3 mb-6">
+          {stats.streak && (
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${
+              stats.streak.endsWith("W") ? "bg-yc-green/10 text-yc-green border-yc-green/20" :
+              stats.streak.endsWith("L") ? "bg-red-500/10 text-red-400 border-red-500/20" :
+              "bg-yc-bg-elevated text-yc-text-secondary border-yc-border"
+            }`}>
+              {stats.streak.endsWith("W") ? "🔥" : stats.streak.endsWith("L") ? "📉" : "➡️"} {stats.streak} streak
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-yc-bg-elevated text-yc-text-secondary border border-yc-border">
+            {stats.goalsPerMatch} goals/match
+          </span>
+        </div>
+      )}
 
       {/* Form guide */}
       {form.length > 0 && (

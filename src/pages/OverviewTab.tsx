@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useCompetitionSchedule } from "../hooks/useCompetitionSchedule";
@@ -9,7 +9,10 @@ import { useLeaderboard } from "../hooks/useLeaderboard";
 import { useAuth } from "../lib/auth";
 import { useAutoScore } from "../hooks/useAutoScore";
 import { useI18n } from "../lib/i18n";
+import { fetchScorers } from "../lib/api";
+import type { Scorer } from "../lib/api";
 import MatchCard from "../components/match/MatchCard";
+import TeamCrest from "../components/match/TeamCrest";
 import {
   Calendar,
   Trophy,
@@ -17,6 +20,7 @@ import {
   Users,
   ArrowRight,
   LogIn,
+  Target,
 } from "lucide-react";
 
 function StatCard({
@@ -62,6 +66,11 @@ export default function OverviewTab() {
   const { scoreMap } = useScores();
   const { entries: leaderboard } = useLeaderboard(comp.id);
   const { predictions } = useAutoScore();
+  const [scorers, setScorers] = useState<Scorer[]>([]);
+
+  useEffect(() => {
+    fetchScorers(comp.id).then((s) => setScorers(s));
+  }, [comp.id]);
 
   // Matches with teams assigned
   const confirmedMatches = useMemo(
@@ -258,6 +267,44 @@ export default function OverviewTab() {
                 competitionId={comp.id}
                 compact
               />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Top Scorers teaser */}
+      {scorers.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-yc-text-secondary text-sm font-medium flex items-center gap-2">
+              <Target size={14} className="text-yc-green" />
+              Top Scorers
+            </h3>
+            <Link
+              to="standings"
+              className="text-xs text-yc-green hover:underline flex items-center gap-1"
+            >
+              Full table <ArrowRight size={12} />
+            </Link>
+          </div>
+          <div className="yc-card rounded-xl overflow-hidden">
+            {scorers.slice(0, 3).map((s, i) => (
+              <div
+                key={s.player.id}
+                className={`flex items-center gap-3 px-4 py-2.5 ${i > 0 ? "border-t border-yc-border/30" : ""} ${i === 0 ? "bg-yc-green/[0.02]" : ""}`}
+              >
+                <span className={`font-mono text-xs w-5 text-right ${i === 0 ? "text-yc-green font-bold" : "text-yc-text-tertiary"}`}>
+                  {i + 1}
+                </span>
+                <TeamCrest tla={s.team.tla} crest={s.team.crest} size="xs" />
+                <span className="text-sm text-yc-text-primary font-medium flex-1 truncate">
+                  {s.player.name}
+                </span>
+                <span className="text-yc-green font-mono text-sm font-bold">
+                  {s.goals ?? 0}
+                </span>
+                <span className="text-yc-text-tertiary text-xs">goals</span>
+              </div>
             ))}
           </div>
         </div>
