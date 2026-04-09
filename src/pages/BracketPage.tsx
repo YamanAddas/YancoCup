@@ -68,9 +68,11 @@ function BracketNode({
   return (
     <Link
       to={`/${competitionId}/match/${m.id}`}
-      className={`yc-hex-wrap block ${isLive ? "is-live" : ""}`}
+      className={`hex-sm-wrap block relative ${isLive ? "is-live" : ""}`}
     >
+      <div className="hex-sm-border" />
       <div className="yc-hex-card hex-sm overflow-hidden w-full">
+        <div className="hex-sm-glass" />
         {/* Home row */}
         <div className={`flex items-center gap-1.5 px-3 py-1.5 relative z-2 ${homeWin && isFinished ? "bg-yc-green/[0.06]" : ""}`}>
           <TeamCrest tla={homeTla} isoCode={homeTeam?.isoCode} crest={homeCrest} size="xs" />
@@ -304,9 +306,10 @@ export default function BracketPage() {
             <span className="w-4 h-px bg-yc-green/20" />
           </h4>
           <div className="max-w-[200px]">
-            <div className="yc-hex-wrap">
+            <div className="hex-sm-wrap relative">
+              <div className="hex-sm-border" />
               <div className="yc-hex-card hex-sm overflow-hidden">
-                {/* Inline mini bracket node for third place */}
+                <div className="hex-sm-glass" />
                 <div className="flex items-center gap-1.5 px-3 py-1.5 relative z-2">
                   <TeamCrest tla={thirdPlace.homeTeam?.toUpperCase() ?? "TBD"} isoCode={teamMap.get(thirdPlace.homeTeam ?? "")?.isoCode} crest={thirdPlace.homeCrest} size="xs" />
                   <span className="text-xs flex-1 truncate text-yc-text-primary">{thirdPlace.homeTeamName ?? thirdPlace.homePlaceholder ?? "TBD"}</span>

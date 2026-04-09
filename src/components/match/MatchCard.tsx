@@ -1,9 +1,14 @@
+import { useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { MapPin, Clock } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
 import TeamCrest from "./TeamCrest";
 import type { Match, Team, Venue } from "../../types";
 import type { LocalLiveScore } from "../../hooks/useScores";
+
+const REDUCED_MOTION =
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function TeamBadge({
   team,
@@ -97,6 +102,10 @@ interface MatchCardProps {
 
 export default function MatchCard({ match, teamMap, venueMap, liveScore, compact, competitionId }: MatchCardProps) {
   const { t } = useI18n();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const specRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef(0);
+
   const home = match.homeTeam ? teamMap.get(match.homeTeam) : undefined;
   const away = match.awayTeam ? teamMap.get(match.awayTeam) : undefined;
   const venue = venueMap.get(match.venueId);
@@ -118,87 +127,151 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
 
   const detailUrl = competitionId ? `/${competitionId}/match/${match.id}` : undefined;
 
+  /* ── 3D mouse-tracking tilt (from YancoHub gaming grid) ── */
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (REDUCED_MOTION || rafRef.current) return;
+    const cx = e.clientX;
+    const cy = e.clientY;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = 0;
+      const wrap = wrapRef.current;
+      const spec = specRef.current;
+      if (!wrap) return;
+
+      const rect = wrap.getBoundingClientRect();
+      const x = (cx - rect.left) / rect.width;
+      const y = (cy - rect.top) / rect.height;
+
+      const rotY = (x - 0.5) * 14;   // ±7° horizontal
+      const rotX = (0.5 - y) * 10;   // ±5° vertical
+
+      // Remove transition during active tracking for instant response
+      wrap.style.transition = "filter 0.3s ease";
+      wrap.style.transform = `rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg)`;
+
+      if (spec) {
+        spec.style.setProperty("--spec-x", `${(x * 100).toFixed(1)}%`);
+        spec.style.setProperty("--spec-y", `${(y * 100).toFixed(1)}%`);
+      }
+    });
+  }, []);
+
+  const handlePointerLeave = useCallback(() => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
+    }
+    const wrap = wrapRef.current;
+    if (wrap) {
+      // Restore smooth spring transition for settle-back
+      wrap.style.transition =
+        "transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), filter 0.3s ease";
+      wrap.style.transform = "";
+    }
+  }, []);
+
   const card = (
-    <div className={`yc-hex-wrap ${isLive ? "is-live" : ""}`}>
-      <div className="yc-hex-card p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3 relative z-2">
-          <span className="text-yc-text-tertiary text-xs uppercase tracking-wider">
-            {headerLabel}
-          </span>
-          {effectiveStatus && (effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED" || effectiveStatus === "FINISHED") ? (
-            <StatusBadge status={effectiveStatus} />
-          ) : (
-            <span className="text-yc-text-tertiary text-xs">
-              {formatMatchDate(match.date)}
-            </span>
-          )}
-        </div>
+    <div className="yc-hex-3d">
+      <div
+        ref={wrapRef}
+        className={`yc-hex-wrap yc-hex-enter ${isLive ? "is-live" : ""}`}
+        onPointerMove={handlePointerMove}
+        onPointerLeave={handlePointerLeave}
+      >
+        {/* Crystal layers outside the clip */}
+        <div className="yc-hex-border" />
+        <div className="yc-hex-glow" />
 
-        {/* Teams + score/time */}
-        <div className="flex items-center gap-3 relative z-2">
-          {match.homeTeam ? (
-            <TeamBadge
-              team={home}
-              tla={match.homeTeam}
-              crest={match.homeCrest ?? liveScore?.homeCrest}
-              displayName={match.homeTeamName ?? liveScore?.homeTeamName}
-              side="home"
-            />
-          ) : (
-            <Placeholder label={match.homePlaceholder ?? tbd} side="home" />
-          )}
+        {/* Main hex body (clipped) */}
+        <div className="yc-hex-card py-4 px-7">
+          {/* Crystal layers inside the clip */}
+          <div className="yc-hex-glass" />
+          <div className="yc-hex-depth" />
+          <div ref={specRef} className="yc-hex-specular" />
+          <div className="yc-hex-reflect" />
 
-          <div className="flex flex-col items-center gap-0.5 shrink-0 min-w-[60px]">
-            {hasScore ? (
-              <>
-                <span
-                  className={`font-mono text-xl font-bold tracking-wider ${
-                    isLive ? "text-yc-green drop-shadow-[0_0_8px_rgba(0,255,136,0.4)]" : isFinished ? "text-yc-text-primary" : "text-yc-text-secondary"
-                  }`}
-                >
-                  {scoreHome} - {scoreAway}
-                </span>
-                {isFinished && (
-                  <span className="text-yc-text-tertiary text-[10px] font-medium">FT</span>
-                )}
-              </>
-            ) : (
-              <>
-                <span className="text-yc-green font-mono text-lg font-bold">{t("match.vs")}</span>
-                <div className="flex items-center gap-1 text-yc-text-secondary">
-                  <Clock size={10} />
-                  <span className="text-[11px]">{formatMatchTime(match.date, match.time)}</span>
-                </div>
-              </>
-            )}
-          </div>
-
-          {match.awayTeam ? (
-            <TeamBadge
-              team={away}
-              tla={match.awayTeam}
-              crest={match.awayCrest ?? liveScore?.awayCrest}
-              displayName={match.awayTeamName ?? liveScore?.awayTeamName}
-              side="away"
-            />
-          ) : (
-            <Placeholder label={match.awayPlaceholder ?? tbd} side="away" />
-          )}
-        </div>
-
-        {/* Footer: date + venue */}
-        {!compact && (
-          <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between text-yc-text-tertiary text-xs relative z-2">
-            <span>{formatMatchTime(match.date, match.time)}</span>
-            {venue && (
-              <span className="flex items-center gap-1 truncate ml-2">
-                <MapPin size={10} className="shrink-0" />
-                {venue.name}
+          {/* Content — above all crystal layers */}
+          <div className="relative z-10">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-yc-text-tertiary text-xs uppercase tracking-wider">
+                {headerLabel}
               </span>
+              {effectiveStatus && (effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED" || effectiveStatus === "FINISHED") ? (
+                <StatusBadge status={effectiveStatus} />
+              ) : (
+                <span className="text-yc-text-tertiary text-xs">
+                  {formatMatchDate(match.date)}
+                </span>
+              )}
+            </div>
+
+            {/* Teams + score/time */}
+            <div className="flex items-center gap-3">
+              {match.homeTeam ? (
+                <TeamBadge
+                  team={home}
+                  tla={match.homeTeam}
+                  crest={match.homeCrest ?? liveScore?.homeCrest}
+                  displayName={match.homeTeamName ?? liveScore?.homeTeamName}
+                  side="home"
+                />
+              ) : (
+                <Placeholder label={match.homePlaceholder ?? tbd} side="home" />
+              )}
+
+              <div className="flex flex-col items-center gap-0.5 shrink-0 min-w-[60px]">
+                {hasScore ? (
+                  <>
+                    <span
+                      className={`font-mono text-xl font-bold tracking-wider ${
+                        isLive ? "text-yc-green drop-shadow-[0_0_8px_rgba(0,255,136,0.4)]" : isFinished ? "text-yc-text-primary" : "text-yc-text-secondary"
+                      }`}
+                    >
+                      {scoreHome} - {scoreAway}
+                    </span>
+                    {isFinished && (
+                      <span className="text-yc-text-tertiary text-[10px] font-medium">FT</span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span className="text-yc-green font-mono text-lg font-bold">{t("match.vs")}</span>
+                    <div className="flex items-center gap-1 text-yc-text-secondary">
+                      <Clock size={10} />
+                      <span className="text-[11px]">{formatMatchTime(match.date, match.time)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {match.awayTeam ? (
+                <TeamBadge
+                  team={away}
+                  tla={match.awayTeam}
+                  crest={match.awayCrest ?? liveScore?.awayCrest}
+                  displayName={match.awayTeamName ?? liveScore?.awayTeamName}
+                  side="away"
+                />
+              ) : (
+                <Placeholder label={match.awayPlaceholder ?? tbd} side="away" />
+              )}
+            </div>
+
+            {/* Footer: date + venue */}
+            {!compact && (
+              <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between text-yc-text-tertiary text-xs">
+                <span>{formatMatchTime(match.date, match.time)}</span>
+                {venue && (
+                  <span className="flex items-center gap-1 truncate ml-2">
+                    <MapPin size={10} className="shrink-0" />
+                    {venue.name}
+                  </span>
+                )}
+              </div>
             )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

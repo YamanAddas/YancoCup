@@ -364,7 +364,7 @@ function TournamentMatches() {
           <p className="text-yc-text-tertiary text-sm">{t("matches.noResults")}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-fade-in">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {displayMatches.map((m) => (
             <MatchCard
               key={m.id}
@@ -534,7 +534,7 @@ function LeagueMatches() {
                       day: "numeric",
                     })}
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {dateMatches.map((m) => (
                       <MatchCard
                         key={m.id}

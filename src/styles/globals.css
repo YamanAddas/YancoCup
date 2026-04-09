@@ -112,44 +112,332 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════
-   HEX CARD — YancoHub signature shape
-   Wrapper provides drop-shadow that follows the clip.
-   Inner hex-card clips the content to the hex shape.
-   Glass highlight via ::before pseudo-element.
+   HEX CARD — Horizontal hexagonal crystal card system
+   Ported from YancoHub carousel + gaming grid cards.
+   Multi-layer composited structure with 3D mouse tilt.
+
+   Structure:
+     .yc-hex-3d          perspective container (JS tilt)
+       .yc-hex-wrap      drop-shadow wrapper
+         .yc-hex-border  gradient border (larger hex behind)
+         .yc-hex-card    main body (horizontal clip-path)
+           .yc-hex-glass    bevel highlight
+           .yc-hex-depth    inner depth shadow
+           .yc-hex-specular cursor-following highlight
+           .yc-hex-reflect  reflection sweep
+           (content)
    ══════════════════════════════════════════════════════ */
+
+:root {
+  --hex-point: 5%;
+  --hex-clip: polygon(
+    var(--hex-point) 0%,
+    calc(100% - var(--hex-point)) 0%,
+    100% 50%,
+    calc(100% - var(--hex-point)) 100%,
+    var(--hex-point) 100%,
+    0% 50%
+  );
+}
+
+/* ── 3D perspective container ── */
+.yc-hex-3d {
+  perspective: 600px;
+  transform-style: preserve-3d;
+}
+
+/* ── Drop-shadow wrapper ── */
 .yc-hex-wrap {
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4)) drop-shadow(0 0 4px rgba(0,255,136,0.06));
-  transition: filter 0.3s ease;
-}
-.yc-hex-wrap:hover {
-  filter: drop-shadow(0 4px 14px rgba(0,0,0,0.5)) drop-shadow(0 0 10px rgba(0,255,136,0.12));
-}
-
-.yc-hex-card {
-  --hex-bevel: 5%;
   position: relative;
-  clip-path: polygon(50% 0%, 100% var(--hex-bevel), 100% calc(100% - var(--hex-bevel)), 50% 100%, 0% calc(100% - var(--hex-bevel)), 0% var(--hex-bevel));
-  background: linear-gradient(170deg, rgba(14, 26, 48, 0.96) 0%, rgba(8, 14, 28, 0.98) 50%, rgba(6, 10, 22, 1) 100%);
+  filter:
+    drop-shadow(0 2px 8px rgba(0, 0, 0, 0.45))
+    drop-shadow(0 0 6px rgba(0, 255, 136, 0.06));
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), filter 0.3s ease;
+  transform-style: preserve-3d;
+  will-change: transform;
 }
 
-/* Glass highlight across the top */
-.yc-hex-card::before {
-  content: '';
+/* ── Gradient border layer (slightly larger hex behind body) ── */
+.yc-hex-border {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(175deg, rgba(200, 240, 255, 0.07) 0%, rgba(0, 255, 136, 0.02) 20%, transparent 45%);
+  inset: -2px;
+  clip-path: var(--hex-clip);
+  background: linear-gradient(170deg,
+    rgba(0, 255, 136, 0.14) 0%,
+    rgba(0, 255, 136, 0.04) 40%,
+    rgba(0, 255, 136, 0.02) 70%,
+    rgba(0, 255, 136, 0.10) 100%);
+  z-index: 0;
   pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+/* ── Main hex body ── */
+.yc-hex-card {
+  position: relative;
+  clip-path: var(--hex-clip);
+  background: linear-gradient(170deg,
+    rgba(14, 26, 48, 0.96) 0%,
+    rgba(8, 14, 28, 0.98) 50%,
+    rgba(6, 10, 22, 1) 100%);
   z-index: 1;
 }
 
-/* Live hex card */
-.yc-hex-wrap.is-live {
-  filter: drop-shadow(0 0 16px rgba(0,255,136,0.2)) drop-shadow(0 0 40px rgba(0,255,136,0.08)) drop-shadow(0 8px 20px rgba(0,0,0,0.5));
+/* ── Crystal glass highlight (top bevel light) ── */
+.yc-hex-glass {
+  position: absolute;
+  inset: 0;
+  clip-path: var(--hex-clip);
+  background: linear-gradient(175deg,
+    rgba(200, 240, 255, 0.09) 0%,
+    rgba(0, 255, 136, 0.03) 18%,
+    transparent 42%);
+  pointer-events: none;
+  z-index: 3;
 }
 
-/* Bracket-sized hex (sharper bevel for small cards) */
+/* ── Inner depth shadow (recessed feel) ── */
+.yc-hex-depth {
+  position: absolute;
+  inset: 2px;
+  clip-path: var(--hex-clip);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 30%, rgba(0, 255, 136, 0.05) 0%, transparent 60%),
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.25) 100%);
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* ── Outer glow shell ── */
+.yc-hex-glow {
+  position: absolute;
+  inset: -6px;
+  clip-path: var(--hex-clip);
+  background: rgba(0, 255, 136, 0.02);
+  filter: blur(4px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ── Specular / holographic highlight (follows cursor via --spec-x, --spec-y) ── */
+.yc-hex-specular {
+  --spec-x: 50%;
+  --spec-y: 50%;
+  position: absolute;
+  inset: 0;
+  clip-path: var(--hex-clip);
+  background: radial-gradient(
+    circle at var(--spec-x) var(--spec-y),
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.03) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Show specular on hover */
+.yc-hex-wrap:hover .yc-hex-specular {
+  opacity: 1;
+}
+
+/* ── Reflection sweep (crystal surface shine) ── */
+.yc-hex-reflect {
+  position: absolute;
+  inset: 0;
+  clip-path: var(--hex-clip);
+  background: linear-gradient(
+    105deg,
+    transparent 0%, transparent 35%,
+    rgba(255, 255, 255, 0.04) 42%,
+    rgba(200, 240, 255, 0.08) 45%,
+    rgba(255, 255, 255, 0.04) 48%,
+    transparent 55%, transparent 100%
+  );
+  background-size: 250% 100%;
+  background-position: 200% 0;
+  pointer-events: none;
+  z-index: 6;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.yc-hex-wrap:hover .yc-hex-reflect {
+  opacity: 1;
+  animation: yc-crystal-reflect 4s ease-in-out infinite;
+}
+
+@keyframes yc-crystal-reflect {
+  0%   { background-position: 200% 0; }
+  40%  { background-position: -50% 0; }
+  100% { background-position: -50% 0; }
+}
+
+/* ── Hover state — enhanced border + glow ── */
+.yc-hex-wrap:hover .yc-hex-border {
+  background: linear-gradient(170deg,
+    rgba(0, 255, 136, 0.28) 0%,
+    rgba(0, 255, 136, 0.08) 40%,
+    rgba(0, 255, 136, 0.05) 70%,
+    rgba(0, 255, 136, 0.22) 100%);
+}
+
+.yc-hex-wrap:hover .yc-hex-glow {
+  inset: -10px;
+  background: rgba(0, 255, 136, 0.04);
+  filter: blur(7px);
+}
+
+.yc-hex-wrap:hover .yc-hex-glass {
+  background: linear-gradient(175deg,
+    rgba(200, 240, 255, 0.14) 0%,
+    rgba(0, 255, 136, 0.05) 18%,
+    transparent 42%);
+}
+
+/* ── Live hex card ── */
+.yc-hex-wrap.is-live {
+  filter:
+    drop-shadow(0 0 18px rgba(0, 255, 136, 0.22))
+    drop-shadow(0 0 40px rgba(0, 255, 136, 0.08))
+    drop-shadow(0 8px 20px rgba(0, 0, 0, 0.5));
+}
+
+.yc-hex-wrap.is-live .yc-hex-border {
+  background: linear-gradient(135deg,
+    rgba(0, 255, 136, 0.40) 0%,
+    rgba(0, 255, 136, 0.12) 40%,
+    rgba(0, 255, 136, 0.08) 70%,
+    rgba(0, 255, 136, 0.30) 100%);
+  animation: yc-border-pulse 3s ease-in-out infinite;
+}
+
+.yc-hex-wrap.is-live .yc-hex-glow {
+  inset: -12px;
+  background: rgba(0, 255, 136, 0.06);
+  filter: blur(8px);
+}
+
+.yc-hex-wrap.is-live .yc-hex-reflect {
+  opacity: 1;
+  animation: yc-crystal-reflect 4s ease-in-out infinite;
+}
+
+.yc-hex-wrap.is-live .yc-hex-depth {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 25%, rgba(0, 255, 136, 0.08) 0%, transparent 55%),
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.35) 100%);
+}
+
+@keyframes yc-border-pulse {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+/* ── Entry animation (3D materialize from YancoVerse) ── */
+@keyframes yc-hex-materialize {
+  0% {
+    opacity: 0;
+    transform: perspective(1400px) translateZ(-40px) translateY(18px) scale(0.93);
+    filter: blur(5px);
+  }
+  60% {
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1400px) translateZ(0) translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.yc-hex-enter {
+  animation: yc-hex-materialize 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Bracket-sized hex (vertical orientation, sharper bevel, compact) ── */
 .yc-hex-card.hex-sm {
   --hex-bevel: 7%;
+  clip-path: polygon(
+    50% 0%,
+    100% var(--hex-bevel),
+    100% calc(100% - var(--hex-bevel)),
+    50% 100%,
+    0% calc(100% - var(--hex-bevel)),
+    0% var(--hex-bevel)
+  );
+}
+
+/* Bracket nodes: vertical hex with glass layers scaled down */
+.hex-sm-wrap {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 3px rgba(0, 255, 136, 0.05));
+  transition: filter 0.3s ease;
+}
+
+.hex-sm-wrap:hover {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 8px rgba(0, 255, 136, 0.10));
+}
+
+.hex-sm-wrap.is-live {
+  filter: drop-shadow(0 0 14px rgba(0, 255, 136, 0.2)) drop-shadow(0 0 30px rgba(0, 255, 136, 0.06)) drop-shadow(0 6px 16px rgba(0, 0, 0, 0.5));
+}
+
+.hex-sm-border {
+  position: absolute;
+  inset: -1px;
+  clip-path: polygon(
+    50% 0%,
+    100% 7%,
+    100% calc(100% - 7%),
+    50% 100%,
+    0% calc(100% - 7%),
+    0% 7%
+  );
+  background: linear-gradient(170deg,
+    rgba(0, 255, 136, 0.10) 0%,
+    rgba(0, 255, 136, 0.03) 40%,
+    rgba(0, 255, 136, 0.02) 70%,
+    rgba(0, 255, 136, 0.08) 100%);
+  z-index: 0;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.hex-sm-wrap:hover .hex-sm-border {
+  background: linear-gradient(170deg,
+    rgba(0, 255, 136, 0.22) 0%,
+    rgba(0, 255, 136, 0.06) 40%,
+    rgba(0, 255, 136, 0.04) 70%,
+    rgba(0, 255, 136, 0.18) 100%);
+}
+
+.hex-sm-wrap.is-live .hex-sm-border {
+  background: linear-gradient(135deg,
+    rgba(0, 255, 136, 0.35) 0%,
+    rgba(0, 255, 136, 0.10) 40%,
+    rgba(0, 255, 136, 0.06) 70%,
+    rgba(0, 255, 136, 0.28) 100%);
+}
+
+.hex-sm-glass {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(
+    50% 0%,
+    100% 7%,
+    100% calc(100% - 7%),
+    50% 100%,
+    0% calc(100% - 7%),
+    0% 7%
+  );
+  background: linear-gradient(175deg,
+    rgba(200, 240, 255, 0.06) 0%,
+    rgba(0, 255, 136, 0.02) 20%,
+    transparent 45%);
+  pointer-events: none;
+  z-index: 3;
 }
 
 /* ── Bracket connector line color ── */
