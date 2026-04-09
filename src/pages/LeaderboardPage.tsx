@@ -78,7 +78,7 @@ export default function LeaderboardPage() {
                 const heights = ["h-24", "h-32", "h-20"];
                 const glows = [
                   "",
-                  "shadow-[0_0_24px_rgba(0,229,193,0.12)]",
+                  "shadow-[0_0_24px_rgba(0,255,136,0.12)]",
                   "",
                 ];
                 return (
@@ -88,13 +88,13 @@ export default function LeaderboardPage() {
                         <img
                           src={entry.avatarUrl}
                           alt={entry.displayName ?? entry.handle}
-                          className={`w-12 h-12 rounded-full border-2 mb-2 ${rank === 1 ? "border-yc-green shadow-[0_0_12px_rgba(0,229,193,0.3)]" : "border-yc-border"}`}
+                          className={`w-12 h-12 rounded-full border-2 mb-2 ${rank === 1 ? "border-yc-green shadow-[0_0_12px_rgba(0,255,136,0.3)]" : "border-yc-border"}`}
                         />
                       ) : (
                         <div
                           className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold mb-2 ${
                             rank === 1
-                              ? "bg-yc-green-dark text-yc-green border-2 border-yc-green shadow-[0_0_12px_rgba(0,229,193,0.3)]"
+                              ? "bg-yc-green-dark text-yc-green border-2 border-yc-green shadow-[0_0_12px_rgba(0,255,136,0.3)]"
                               : "bg-yc-bg-elevated text-yc-text-secondary border-2 border-yc-border"
                           }`}
                         >

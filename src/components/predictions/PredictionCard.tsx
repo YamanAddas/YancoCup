@@ -265,7 +265,7 @@ export default function PredictionCard({
           <button
             onClick={handleSave}
             disabled={saving || (!hasChanged && hasPrediction && isJoker === (prediction?.is_joker ?? false)) || !homeScore || !awayScore}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none bg-yc-green text-yc-bg-deep hover:brightness-110 active:scale-[0.97] shadow-[0_0_12px_rgba(0,229,193,0.15)]"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none bg-yc-green text-yc-bg-deep hover:brightness-110 active:scale-[0.97] shadow-[0_0_12px_rgba(0,255,136,0.15)]"
           >
             {saving ? (
               <Loader2 size={12} className="animate-spin" />

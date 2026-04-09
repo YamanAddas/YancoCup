@@ -53,7 +53,7 @@ function FormGuide({ form }: { form: string | null }) {
 function getZoneStyle(position: number, zones?: StandingsZones) {
   if (!zones) return {};
   if (zones.cl.includes(position))
-    return { borderLeft: "3px solid #00e5c1", background: "rgba(0,229,193,0.04)" };
+    return { borderLeft: "3px solid #00ff88", background: "rgba(0,255,136,0.04)" };
   if (zones.el.includes(position))
     return { borderLeft: "3px solid #f59e0b", background: "rgba(245,158,11,0.04)" };
   if (zones.ecl.includes(position))

@@ -51,7 +51,7 @@ export default function NavBar() {
           <img
             src={`${import.meta.env.BASE_URL}logo-nav.png`}
             alt="YancoCup"
-            className="h-10 sm:h-11 w-auto drop-shadow-[0_0_8px_rgba(0,229,193,0.15)]"
+            className="h-10 sm:h-11 w-auto drop-shadow-[0_0_8px_rgba(0,255,136,0.15)]"
           />
         </NavLink>
 
@@ -64,7 +64,7 @@ export default function NavBar() {
               className={({ isActive }) =>
                 `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? "text-yc-green bg-yc-green/10 shadow-[0_0_12px_rgba(0,229,193,0.1)]"
+                    ? "text-yc-green bg-yc-green/10 shadow-[0_0_12px_rgba(0,255,136,0.1)]"
                     : "text-yc-text-secondary hover:text-yc-text-primary hover:bg-white/[0.03]"
                 }`
               }

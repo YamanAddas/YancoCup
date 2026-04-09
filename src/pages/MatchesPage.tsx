@@ -43,7 +43,7 @@ function DatePill({
       onClick={onClick}
       className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl text-center transition-all duration-200 shrink-0 min-w-[56px] relative ${
         isActive
-          ? "bg-yc-green/15 text-yc-green border border-[var(--yc-border-accent-bright)] shadow-[0_0_16px_rgba(0,229,193,0.1)]"
+          ? "bg-yc-green/15 text-yc-green border border-[var(--yc-border-accent-bright)] shadow-[0_0_16px_rgba(0,255,136,0.1)]"
           : isToday
             ? "bg-yc-bg-elevated text-yc-text-primary border border-yc-green/20"
             : "bg-yc-bg-surface text-yc-text-secondary border border-yc-border hover:border-yc-border-hover hover:text-yc-text-primary"
@@ -510,7 +510,7 @@ function LeagueMatches() {
                       onClick={() => setSelectedMatchday(md)}
                       className={`relative flex flex-col items-center px-3 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap shrink-0 min-w-[52px] border ${
                         selectedMatchday === md
-                          ? "bg-yc-green/15 text-yc-green border-[var(--yc-border-accent-bright)] shadow-[0_0_16px_rgba(0,229,193,0.1)]"
+                          ? "bg-yc-green/15 text-yc-green border-[var(--yc-border-accent-bright)] shadow-[0_0_16px_rgba(0,255,136,0.1)]"
                           : status === "live"
                             ? "bg-yc-bg-surface text-yc-green border-yc-green/20"
                             : status === "finished"

@@ -38,7 +38,7 @@ export default function GroupTable({ groupId, teams }: GroupTableProps) {
             <tr
               key={team.id}
               className={`border-t border-yc-border/30 transition-colors hover:bg-white/[0.02] ${i < 2 ? "bg-yc-green/[0.03]" : ""}`}
-              style={i < 2 ? { borderLeft: "3px solid rgba(0, 229, 193, 0.3)" } : undefined}
+              style={i < 2 ? { borderLeft: "3px solid rgba(0, 255, 136, 0.3)" } : undefined}
             >
               <td className="pl-4 pr-2 py-2.5">
                 <div className="flex items-center gap-2">

@@ -169,7 +169,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
             <>
               <span
                 className={`font-mono text-xl font-bold tracking-wider ${
-                  isLive ? "text-yc-green drop-shadow-[0_0_8px_rgba(0,229,193,0.4)]" : isFinished ? "text-yc-text-primary" : "text-yc-text-secondary"
+                  isLive ? "text-yc-green drop-shadow-[0_0_8px_rgba(0,255,136,0.4)]" : isFinished ? "text-yc-text-primary" : "text-yc-text-secondary"
                 }`}
               >
                 {scoreHome} - {scoreAway}

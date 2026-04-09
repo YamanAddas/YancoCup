@@ -42,7 +42,7 @@ function CompetitionCards() {
           <NavLink
             key={comp.id}
             to={`/${comp.id}/matches`}
-            className="group yc-card p-4 rounded-xl transition-all duration-300 hover:border-[var(--yc-border-accent)] hover:shadow-[0_0_20px_rgba(0,229,193,0.06)]"
+            className="group yc-card p-4 rounded-xl transition-all duration-300 hover:border-[var(--yc-border-accent)] hover:shadow-[0_0_20px_rgba(0,255,136,0.06)]"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="w-8 h-8 rounded-lg bg-yc-bg-elevated/80 flex items-center justify-center p-1">
@@ -302,7 +302,7 @@ export default function HomePage() {
           <div>
             <h2 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight mb-2">
               {t("home.title")}{" "}
-              <span className="text-yc-green drop-shadow-[0_0_12px_rgba(0,229,193,0.3)]">{t("home.year")}</span>
+              <span className="text-yc-green drop-shadow-[0_0_12px_rgba(0,255,136,0.3)]">{t("home.year")}</span>
             </h2>
             <p className="text-yc-text-secondary text-sm">
               {t("home.subtitle")}
@@ -318,7 +318,7 @@ export default function HomePage() {
 
           <a
             href="#/WC/predictions"
-            className="inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(0,229,193,0.2)]"
+            className="inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(0,255,136,0.2)]"
           >
             <Trophy size={18} />
             {t("home.cta")}

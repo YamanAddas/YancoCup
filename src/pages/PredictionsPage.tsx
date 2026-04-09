@@ -114,7 +114,7 @@ export default function PredictionsPage() {
           </p>
           <NavLink
             to="/sign-in"
-            className="inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(0,229,193,0.2)]"
+            className="inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(0,255,136,0.2)]"
           >
             <LogIn size={18} />
             {t("nav.signIn")}
@@ -167,7 +167,7 @@ export default function PredictionsPage() {
                   onClick={() => setSelectedMatchday(md)}
                   className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap shrink-0 border ${
                     selectedMatchday === md
-                      ? "bg-yc-green/15 text-yc-green border-[var(--yc-border-accent-bright)] shadow-[0_0_16px_rgba(0,229,193,0.1)]"
+                      ? "bg-yc-green/15 text-yc-green border-[var(--yc-border-accent-bright)] shadow-[0_0_16px_rgba(0,255,136,0.1)]"
                       : status === "done"
                         ? "bg-yc-bg-surface text-yc-green/60 border-yc-border"
                         : status === "locked"

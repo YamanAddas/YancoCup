@@ -6,10 +6,10 @@
   --color-yc-bg-surface: #0c1620;
   --color-yc-bg-elevated: #121e30;
 
-  /* ── Accent — cyan-teal (YancoVerse signature) ── */
-  --color-yc-green: #00e5c1;
-  --color-yc-green-muted: #00b89a;
-  --color-yc-green-dark: #003d33;
+  /* ── Accent — signature green ── */
+  --color-yc-green: #00ff88;
+  --color-yc-green-muted: #00cc6a;
+  --color-yc-green-dark: #004d29;
 
   /* ── Text hierarchy ── */
   --color-yc-text-primary: #dde5f0;
@@ -35,10 +35,10 @@
 :root {
   --yc-bg-glass: rgba(8, 16, 28, 0.88);
   --yc-bg-glass-light: rgba(12, 22, 40, 0.75);
-  --yc-accent-glow: rgba(0, 229, 193, 0.35);
-  --yc-accent-dim: rgba(0, 229, 193, 0.08);
-  --yc-border-accent: rgba(0, 229, 193, 0.12);
-  --yc-border-accent-bright: rgba(0, 229, 193, 0.25);
+  --yc-accent-glow: rgba(0, 255, 136, 0.35);
+  --yc-accent-dim: rgba(0, 255, 136, 0.08);
+  --yc-border-accent: rgba(0, 255, 136, 0.12);
+  --yc-border-accent-bright: rgba(0, 255, 136, 0.25);
 }
 
 /* ── Always dark — no light mode ── */
@@ -50,7 +50,7 @@ html {
 body {
   margin: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(0, 229, 193, 0.03) 0%, transparent 70%),
+    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(0, 255, 136, 0.03) 0%, transparent 70%),
     radial-gradient(ellipse 120% 80% at 50% 0%, rgba(10, 20, 40, 1) 0%, transparent 60%),
     linear-gradient(180deg, #050a15 0%, #0a1628 40%, #060b14 100%);
   background-attachment: fixed;
@@ -63,12 +63,12 @@ body {
 /* ── Custom scrollbar (teal accent) ── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 229, 193, 0.15) transparent;
+  scrollbar-color: rgba(0, 255, 136, 0.15) transparent;
 }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(0, 229, 193, 0.15); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0, 229, 193, 0.3); }
+::-webkit-scrollbar-thumb { background: rgba(0, 255, 136, 0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 255, 136, 0.3); }
 
 /* ── Safe area for mobile bottom nav (notch devices) ── */
 .safe-bottom {
@@ -99,15 +99,15 @@ body {
 }
 .yc-card:hover {
   border-color: var(--yc-border-accent);
-  box-shadow: 0 0 20px rgba(0, 229, 193, 0.06), 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.06), 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 /* ── Card with accent glow (for live matches, active states) ── */
 .yc-card-glow {
   border-color: var(--yc-border-accent-bright);
   box-shadow:
-    0 0 20px rgba(0, 229, 193, 0.12),
-    0 0 40px rgba(0, 229, 193, 0.04),
+    0 0 20px rgba(0, 255, 136, 0.12),
+    0 0 40px rgba(0, 255, 136, 0.04),
     0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
@@ -118,31 +118,31 @@ body {
 
 /* ── Bracket connector lines ── */
 .bracket-connector-top {
-  border-right: 2px solid rgba(0, 229, 193, 0.15);
-  border-top: 2px solid rgba(0, 229, 193, 0.15);
+  border-right: 2px solid rgba(0, 255, 136, 0.15);
+  border-top: 2px solid rgba(0, 255, 136, 0.15);
   border-top-right-radius: 6px;
 }
 .bracket-connector-bottom {
-  border-right: 2px solid rgba(0, 229, 193, 0.15);
-  border-bottom: 2px solid rgba(0, 229, 193, 0.15);
+  border-right: 2px solid rgba(0, 255, 136, 0.15);
+  border-bottom: 2px solid rgba(0, 255, 136, 0.15);
   border-bottom-right-radius: 6px;
 }
 .bracket-connector-entry {
-  border-top: 2px solid rgba(0, 229, 193, 0.15);
+  border-top: 2px solid rgba(0, 255, 136, 0.15);
 }
 
 /* ── Animations ── */
 @keyframes yc-breathe {
   0%, 100% {
     box-shadow:
-      0 0 20px rgba(0, 229, 193, 0.15),
-      0 0 40px rgba(0, 229, 193, 0.05),
+      0 0 20px rgba(0, 255, 136, 0.15),
+      0 0 40px rgba(0, 255, 136, 0.05),
       0 8px 24px rgba(0, 0, 0, 0.4);
   }
   50% {
     box-shadow:
-      0 0 28px rgba(0, 229, 193, 0.25),
-      0 0 56px rgba(0, 229, 193, 0.1),
+      0 0 28px rgba(0, 255, 136, 0.25),
+      0 0 56px rgba(0, 255, 136, 0.1),
       0 8px 24px rgba(0, 0, 0, 0.4);
   }
 }
@@ -173,7 +173,7 @@ body {
 }
 
 .animate-shimmer {
-  background: linear-gradient(105deg, transparent 40%, rgba(0, 229, 193, 0.06) 50%, transparent 60%);
+  background: linear-gradient(105deg, transparent 40%, rgba(0, 255, 136, 0.06) 50%, transparent 60%);
   background-size: 200% 100%;
   animation: yc-shimmer 4s infinite;
 }
@@ -195,7 +195,7 @@ body {
   opacity: 0.5;
 }
 .yc-orb-accent {
-  background: radial-gradient(circle, rgba(0, 229, 193, 0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(0, 255, 136, 0.12) 0%, transparent 70%);
 }
 .yc-orb-blue {
   background: radial-gradient(circle, rgba(30, 60, 120, 0.2) 0%, transparent 70%);
