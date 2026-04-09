@@ -1,8 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { supabase } from "./lib/supabase";
+import { initSentry } from "./lib/sentry";
 import App from "./App";
 import "./styles/globals.css";
+
+// Initialize error monitoring (requires VITE_SENTRY_DSN in .env)
+initSentry();
 
 /**
  * HashRouter auth redirect fix:
