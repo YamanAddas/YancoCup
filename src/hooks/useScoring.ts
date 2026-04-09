@@ -4,14 +4,14 @@ import { calculatePoints } from "../lib/scoring";
 import type { Prediction } from "./usePredictions";
 
 /**
- * Match result from live scores (will come from Cloudflare Worker in Phase 3).
- * For now this interface is ready; scoring triggers when results are available.
+ * Match result from live scores (comes from Cloudflare Worker).
  */
 export interface MatchResult {
   matchId: number;
   homeScore: number;
   awayScore: number;
   status: "finished" | "in_progress" | "scheduled";
+  round?: string;
 }
 
 /**
@@ -19,9 +19,7 @@ export interface MatchResult {
  *
  * Called when user loads the predictions or leaderboard page.
  * Finds predictions where scored_at IS NULL and the match is finished,
- * calculates points, and writes them back to Supabase.
- *
- * Each user scores their own predictions (RLS: update own rows only).
+ * calculates points (with joker + knockout multipliers), and writes them back.
  */
 export function useScoring() {
   const scorePredictions = useCallback(
@@ -44,12 +42,17 @@ export function useScoring() {
       let scored = 0;
       for (const pred of toScore) {
         const result = resultMap.get(pred.match_id)!;
-        const { points } = calculatePoints({
-          predictedHome: pred.home_score,
-          predictedAway: pred.away_score,
-          actualHome: result.homeScore,
-          actualAway: result.awayScore,
-        });
+        const { points } = calculatePoints(
+          {
+            predictedHome: pred.home_score,
+            predictedAway: pred.away_score,
+            actualHome: result.homeScore,
+            actualAway: result.awayScore,
+          },
+          result.round ?? "group",
+          pred.is_joker,
+          true,
+        );
 
         const { error } = await supabase
           .from("yc_predictions")

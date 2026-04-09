@@ -52,6 +52,7 @@ export async function upsertPrediction(
   homeScore: number,
   awayScore: number,
   competitionId = "WC",
+  isJoker = false,
 ): Promise<string | null> {
   const { error } = await supabase.from("yc_predictions").upsert(
     {
@@ -60,6 +61,7 @@ export async function upsertPrediction(
       competition_id: competitionId,
       home_score: homeScore,
       away_score: awayScore,
+      is_joker: isJoker,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id,competition_id,match_id" },

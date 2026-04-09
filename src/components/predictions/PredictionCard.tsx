@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Lock, Check, Loader2, Users as UsersIcon, Share2 } from "lucide-react";
+import { Lock, Check, Loader2, Users as UsersIcon, Share2, Sparkles } from "lucide-react";
 import { upsertPrediction, canPredict } from "../../hooks/usePredictions";
+import { useConsensus } from "../../hooks/useConsensus";
 import { buildShareText, sharePrediction } from "../../lib/share";
 import { useI18n } from "../../lib/i18n";
 import type { Match, Team, Venue } from "../../types";
@@ -35,6 +36,7 @@ export default function PredictionCard({
 
   const [homeScore, setHomeScore] = useState<string>("");
   const [awayScore, setAwayScore] = useState<string>("");
+  const [isJoker, setIsJoker] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Sync local state when prediction data loads from Supabase
@@ -42,6 +44,7 @@ export default function PredictionCard({
     if (prediction) {
       setHomeScore(String(prediction.home_score));
       setAwayScore(String(prediction.away_score));
+      setIsJoker(prediction.is_joker);
     }
   }, [prediction]);
   const [saved, setSaved] = useState(false);
@@ -49,6 +52,7 @@ export default function PredictionCard({
   const [error, setError] = useState<string | null>(null);
 
   const hasPrediction = prediction !== undefined;
+  const consensus = useConsensus(match.id, hasPrediction);
   const hasChanged =
     homeScore !== (prediction ? String(prediction.home_score) : "") ||
     awayScore !== (prediction ? String(prediction.away_score) : "");
@@ -62,7 +66,7 @@ export default function PredictionCard({
     }
     setSaving(true);
     setError(null);
-    const err = await upsertPrediction(userId, match.id, h, a);
+    const err = await upsertPrediction(userId, match.id, h, a, "WC", isJoker);
     setSaving(false);
     if (err) {
       setError(err);
@@ -187,6 +191,19 @@ export default function PredictionCard({
         </div>
       </div>
 
+      {/* Community consensus — only shown after user has predicted */}
+      {consensus && (
+        <div className="mt-2 flex items-center gap-1 text-[10px] text-yc-text-tertiary">
+          <span>{consensus.home}%</span>
+          <div className="flex-1 h-1.5 bg-yc-bg-elevated rounded-full overflow-hidden flex">
+            <div className="bg-yc-green/60 h-full" style={{ width: `${consensus.home}%` }} />
+            <div className="bg-yc-text-tertiary/30 h-full" style={{ width: `${consensus.draw}%` }} />
+            <div className="bg-yc-warning/50 h-full" style={{ width: `${consensus.away}%` }} />
+          </div>
+          <span>{consensus.away}%</span>
+        </div>
+      )}
+
       {/* Footer: venue + save button + count */}
       <div className="mt-3 pt-3 border-t border-yc-border flex items-center justify-between">
         <div className="flex items-center gap-3 text-xs text-yc-text-tertiary">
@@ -201,8 +218,23 @@ export default function PredictionCard({
 
         {!locked && (
           <button
+            onClick={() => setIsJoker(!isJoker)}
+            className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              isJoker
+                ? "bg-yc-warning/20 text-yc-warning border border-yc-warning/30"
+                : "text-yc-text-tertiary hover:text-yc-warning"
+            }`}
+            title={t("predictions.jokerTip")}
+          >
+            <Sparkles size={12} />
+            {isJoker ? "2x" : t("predictions.joker")}
+          </button>
+        )}
+
+        {!locked && (
+          <button
             onClick={handleSave}
-            disabled={saving || (!hasChanged && hasPrediction) || !homeScore || !awayScore}
+            disabled={saving || (!hasChanged && hasPrediction && isJoker === (prediction?.is_joker ?? false)) || !homeScore || !awayScore}
             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none bg-yc-green text-yc-bg-deep hover:brightness-110 active:scale-[0.97]"
           >
             {saving ? (
