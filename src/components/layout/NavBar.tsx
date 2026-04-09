@@ -33,7 +33,7 @@ export default function NavBar() {
           <img
             src={`${import.meta.env.BASE_URL}logo-nav.png`}
             alt="YancoCup"
-            className="h-9 w-auto"
+            className="h-10 sm:h-11 w-auto"
           />
         </NavLink>
 
