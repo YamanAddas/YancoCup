@@ -174,10 +174,13 @@ export async function createPool(
     }
 
     // Auto-join the creator
-    await supabase.from("yc_pool_members").insert({
+    const { error: joinErr } = await supabase.from("yc_pool_members").insert({
       pool_id: data.id,
       user_id: createdBy,
     });
+    if (joinErr) {
+      console.error("Failed to auto-join pool creator:", joinErr.message);
+    }
 
     return { pool: data as Pool, error: null };
   }
@@ -207,7 +210,7 @@ export async function joinPoolByCode(
     .select("pool_id")
     .eq("pool_id", pool.id)
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     return { pool: pool as Pool, error: null }; // Already a member

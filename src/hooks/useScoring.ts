@@ -63,7 +63,11 @@ export function useScoring() {
           })
           .eq("id", pred.id);
 
-        if (!error) scored++;
+        if (error) {
+          console.error(`Failed to score prediction ${pred.id}:`, error.message);
+        } else {
+          scored++;
+        }
       }
 
       return scored;
