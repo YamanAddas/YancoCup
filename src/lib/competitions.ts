@@ -1,5 +1,7 @@
 /** Competition configuration registry */
 
+const BASE = import.meta.env.BASE_URL;
+
 export interface StandingsZones {
   cl: number[];         // Champions League qualification spots
   el: number[];         // Europa League spots
@@ -19,7 +21,7 @@ export interface CompetitionConfig {
   seasonLabel: string;
   emoji: string; // short text icon, not actual emoji
   accentColor: string; // subtle per-competition tint
-  /** football-data.org competition emblem URL */
+  /** Local competition emblem SVG path */
   emblem: string;
   zones?: StandingsZones;
 }
@@ -37,7 +39,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2026",
     emoji: "WC",
     accentColor: "#00ff88",
-    emblem: "https://crests.football-data.org/FIFA.svg",
+    emblem: `${BASE}emblems/wc.svg`,
   },
   CL: {
     id: "CL",
@@ -51,7 +53,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "CL",
     accentColor: "#1a56db",
-    emblem: "https://crests.football-data.org/CL.png",
+    emblem: `${BASE}emblems/cl.svg`,
   },
   PL: {
     id: "PL",
@@ -65,7 +67,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "PL",
     accentColor: "#37003c",
-    emblem: "https://crests.football-data.org/PL.png",
+    emblem: `${BASE}emblems/pl.svg`,
     zones: { cl: [1, 2, 3, 4], el: [5], ecl: [6], relegation: [18, 19, 20] },
   },
   PD: {
@@ -80,7 +82,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "PD",
     accentColor: "#ee8707",
-    emblem: "https://crests.football-data.org/PD.png",
+    emblem: `${BASE}emblems/pd.svg`,
     zones: { cl: [1, 2, 3, 4], el: [5, 6], ecl: [7], relegation: [18, 19, 20] },
   },
   BL1: {
@@ -95,7 +97,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "BL",
     accentColor: "#d20515",
-    emblem: "https://crests.football-data.org/BL1.png",
+    emblem: `${BASE}emblems/bl1.svg`,
     zones: { cl: [1, 2, 3, 4], el: [5], ecl: [6], relegation: [16, 17, 18] },
   },
   SA: {
@@ -110,7 +112,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "SA",
     accentColor: "#024494",
-    emblem: "https://crests.football-data.org/SA.png",
+    emblem: `${BASE}emblems/sa.svg`,
     zones: { cl: [1, 2, 3, 4], el: [5, 6], ecl: [7], relegation: [18, 19, 20] },
   },
   FL1: {
@@ -125,22 +127,22 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "L1",
     accentColor: "#091c3e",
-    emblem: "https://crests.football-data.org/FL1.png",
+    emblem: `${BASE}emblems/fl1.svg`,
     zones: { cl: [1, 2, 3], el: [4], ecl: [5], relegation: [16, 17, 18] },
   },
-  EC: {
-    id: "EC",
-    fdCode: "EC",
-    fdId: 2018,
-    name: "European Championship",
-    shortName: "EURO",
+  EL: {
+    id: "EL",
+    fdCode: "EL",
+    fdId: 2146,
+    name: "UEFA Europa League",
+    shortName: "Europa League",
     type: "tournament",
-    hasGroups: true,
+    hasGroups: false,
     staticSchedule: false,
-    seasonLabel: "2028",
-    emoji: "EC",
-    accentColor: "#003399",
-    emblem: "https://crests.football-data.org/EC.png",
+    seasonLabel: "2025/26",
+    emoji: "EL",
+    accentColor: "#f26522",
+    emblem: `${BASE}emblems/el.svg`,
   },
 };
 

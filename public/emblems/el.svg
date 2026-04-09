@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Europa League - Orange/Amber energy wave -->
+  <defs>
+    <linearGradient id="elGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF8C00"/>
+      <stop offset="100%" stop-color="#F26522"/>
+    </linearGradient>
+    <filter id="elGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#elGlow)">
+    <!-- Outer ring -->
+    <circle cx="32" cy="30" r="20" stroke="url(#elGrad)" stroke-width="2" fill="none" opacity="0.8"/>
+    <!-- Inner ring -->
+    <circle cx="32" cy="30" r="14" stroke="url(#elGrad)" stroke-width="1" fill="none" opacity="0.4"/>
+    <!-- 8-pointed star (Europa League symbol) -->
+    <g transform="translate(32,30)" fill="url(#elGrad)" opacity="0.9">
+      <polygon points="0,-14 3,-5 -3,-5"/>
+      <polygon points="0,14 3,5 -3,5"/>
+      <polygon points="-14,0 -5,3 -5,-3"/>
+      <polygon points="14,0 5,3 5,-3"/>
+      <polygon points="-10,-10 -2,-5 -5,-2"/>
+      <polygon points="10,-10 2,-5 5,-2"/>
+      <polygon points="-10,10 -2,5 -5,2"/>
+      <polygon points="10,10 2,5 5,2"/>
+    </g>
+    <!-- Center circle -->
+    <circle cx="32" cy="30" r="4" fill="url(#elGrad)" opacity="0.7"/>
+    <!-- Energy waves -->
+    <path d="M14,30 Q20,24 26,30 Q32,36 38,30 Q44,24 50,30" stroke="url(#elGrad)" stroke-width="1.5" fill="none" opacity="0.3"/>
+    <!-- EUROPA text -->
+    <text x="32" y="58" text-anchor="middle" font-family="Inter,sans-serif" font-size="6.5" font-weight="700" fill="url(#elGrad)" opacity="0.8">EUROPA</text>
+  </g>
+</svg>

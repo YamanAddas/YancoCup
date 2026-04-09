@@ -71,7 +71,7 @@ export default function CompetitionHub() {
             <img
               src={comp.emblem}
               alt={comp.shortName}
-              className="w-7 h-7 object-contain shrink-0"
+              className="w-8 h-8 object-contain shrink-0"
               loading="lazy"
             />
             <h1 className="font-heading text-lg font-bold leading-tight truncate">

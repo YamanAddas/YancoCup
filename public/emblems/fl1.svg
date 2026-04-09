@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Ligue 1 - French tricolor accent, modern design -->
+  <defs>
+    <linearGradient id="flGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#DAFF00"/>
+      <stop offset="100%" stop-color="#8BC34A"/>
+    </linearGradient>
+    <linearGradient id="flTricolor" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#002395"/>
+      <stop offset="50%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#ED2939"/>
+    </linearGradient>
+    <filter id="flGlow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#flGlow)">
+    <!-- Hexagon shape -->
+    <polygon points="32,6 52,16 52,40 32,50 12,40 12,16" fill="none" stroke="url(#flGrad)" stroke-width="2" opacity="0.8"/>
+    <!-- Big stylized "1" -->
+    <g fill="url(#flGrad)" opacity="0.9">
+      <path d="M28,14 L34,14 L34,40 L28,40 Z"/>
+      <path d="M24,14 L28,14 L28,18 Z"/>
+      <rect x="24" y="40" width="16" height="3" rx="1"/>
+    </g>
+    <!-- Tricolor stripe -->
+    <rect x="18" y="44" width="28" height="2.5" rx="1" fill="url(#flTricolor)" opacity="0.85"/>
+    <!-- LIGUE 1 text -->
+    <text x="32" y="58" text-anchor="middle" font-family="Inter,sans-serif" font-size="7" font-weight="700" fill="url(#flGrad)" opacity="0.7">LIGUE 1</text>
+  </g>
+</svg>

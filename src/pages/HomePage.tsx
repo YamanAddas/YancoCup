@@ -45,11 +45,11 @@ function CompetitionCards() {
             className="group yc-card p-4 rounded-xl transition-all duration-300 hover:border-[var(--yc-border-accent)] hover:shadow-[0_0_20px_rgba(0,255,136,0.06)]"
           >
             <div className="flex items-center justify-between mb-3">
-              <div className="w-8 h-8 rounded-lg bg-yc-bg-elevated/80 flex items-center justify-center p-1">
+              <div className="w-10 h-10 rounded-lg bg-yc-bg-elevated/80 flex items-center justify-center p-1.5">
                 <img
                   src={comp.emblem}
                   alt={comp.shortName}
-                  className="h-5 w-5 object-contain"
+                  className="h-7 w-7 object-contain"
                   loading="lazy"
                 />
               </div>
