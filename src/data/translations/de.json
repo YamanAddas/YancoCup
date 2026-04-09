@@ -157,5 +157,29 @@
 
   "globe.loading": "Globus wird geladen...",
   "globe.seats": "{count} Plätze",
-  "lang.title": "Sprache"
+  "lang.title": "Sprache",
+
+  "pools.title": "Pools",
+  "pools.subtitle": "Tritt gegen Freunde an",
+  "pools.create": "Pool erstellen",
+  "pools.createBtn": "Erstellen",
+  "pools.namePlaceholder": "Pool-Name",
+  "pools.join": "Pool beitreten",
+  "pools.joinBtn": "Beitreten",
+  "pools.codePlaceholder": "ABCD12",
+  "pools.shareCode": "Teile diesen Code mit deinen Freunden:",
+  "pools.done": "Fertig",
+  "pools.myPools": "Meine Pools",
+  "pools.empty": "Du bist noch keinem Pool beigetreten. Erstelle einen oder gib einen Code ein.",
+  "pools.members": "Mitglieder",
+  "pools.copyLink": "Link kopieren",
+  "pools.viewLeaderboard": "Bestenliste ansehen",
+  "pools.leave": "Verlassen",
+  "pools.joining": "Tritt Pool bei...",
+  "pools.joined": "Du bist dabei!",
+  "pools.startPredicting": "Jetzt tippen",
+  "pools.signInTitle": "Anmelden für Pools",
+  "pools.signInDesc": "Erstelle oder tritt Pools bei, um gegen Freunde anzutreten.",
+  "pools.signInToJoin": "Melde dich an, um diesem Pool beizutreten.",
+  "pools.joinError": "Pool-Beitritt fehlgeschlagen"
 }

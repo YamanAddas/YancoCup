@@ -158,5 +158,29 @@
 
   "globe.loading": "Loading globe...",
   "globe.seats": "{count} seats",
-  "lang.title": "Language"
+  "lang.title": "Language",
+
+  "pools.title": "Pools",
+  "pools.subtitle": "Compete with friends",
+  "pools.create": "Create a Pool",
+  "pools.createBtn": "Create",
+  "pools.namePlaceholder": "Pool name",
+  "pools.join": "Join a Pool",
+  "pools.joinBtn": "Join",
+  "pools.codePlaceholder": "ABCD12",
+  "pools.shareCode": "Share this code with your friends:",
+  "pools.done": "Done",
+  "pools.myPools": "My Pools",
+  "pools.empty": "You haven't joined any pools yet. Create one or enter a join code.",
+  "pools.members": "members",
+  "pools.copyLink": "Copy link",
+  "pools.viewLeaderboard": "View leaderboard",
+  "pools.leave": "Leave",
+  "pools.joining": "Joining pool...",
+  "pools.joined": "You're in!",
+  "pools.startPredicting": "Start Predicting",
+  "pools.signInTitle": "Sign in to use Pools",
+  "pools.signInDesc": "Create or join pools to compete with friends.",
+  "pools.signInToJoin": "Sign in to join this pool.",
+  "pools.joinError": "Could not join pool"
 }

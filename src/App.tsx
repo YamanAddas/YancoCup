@@ -15,6 +15,8 @@ const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 const WatchPage = lazy(() => import("./pages/WatchPage"));
 const SignInPage = lazy(() => import("./pages/SignInPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
+const PoolsPage = lazy(() => import("./pages/PoolsPage"));
+const JoinPoolPage = lazy(() => import("./pages/JoinPoolPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 function PageLoader() {
@@ -77,6 +79,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path=":competition/pools"
+                  element={
+                    <CompetitionLayout>
+                      <PoolsPage />
+                    </CompetitionLayout>
+                  }
+                />
+                <Route
                   path=":competition/leaderboard"
                   element={
                     <CompetitionLayout>
@@ -102,6 +112,9 @@ export default function App() {
                   path="leaderboard"
                   element={<Navigate to="/WC/leaderboard" replace />}
                 />
+
+                {/* Pool join deeplink */}
+                <Route path="pool/:joinCode" element={<JoinPoolPage />} />
 
                 {/* Global routes (not competition-scoped) */}
                 <Route path="watch" element={<WatchPage />} />

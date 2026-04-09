@@ -3,6 +3,7 @@ import {
   Globe as GlobeIcon,
   Calendar,
   Users,
+  UsersRound,
   Trophy,
   BarChart3,
   Tv,
@@ -35,6 +36,7 @@ export default function NavBar() {
       : [{ to: `/${comp}/standings`, labelKey: "nav.standings", icon: Table, end: false }]),
     { to: `/${comp}/predictions`, labelKey: "nav.predictions", icon: Trophy, end: false },
     { to: `/${comp}/leaderboard`, labelKey: "nav.leaderboard", icon: BarChart3, end: false },
+    { to: `/${comp}/pools`, labelKey: "pools.title", icon: UsersRound, end: false },
     { to: "/watch", labelKey: "nav.watch", icon: Tv, end: false },
   ];
 

@@ -157,5 +157,29 @@
 
   "globe.loading": "Carregando globo...",
   "globe.seats": "{count} lugares",
-  "lang.title": "Idioma"
+  "lang.title": "Idioma",
+
+  "pools.title": "Grupos",
+  "pools.subtitle": "Compita com amigos",
+  "pools.create": "Criar um grupo",
+  "pools.createBtn": "Criar",
+  "pools.namePlaceholder": "Nome do grupo",
+  "pools.join": "Entrar em um grupo",
+  "pools.joinBtn": "Entrar",
+  "pools.codePlaceholder": "ABCD12",
+  "pools.shareCode": "Compartilhe este código com seus amigos:",
+  "pools.done": "Pronto",
+  "pools.myPools": "Meus grupos",
+  "pools.empty": "Você ainda não entrou em nenhum grupo. Crie um ou insira um código.",
+  "pools.members": "membros",
+  "pools.copyLink": "Copiar link",
+  "pools.viewLeaderboard": "Ver classificação",
+  "pools.leave": "Sair",
+  "pools.joining": "Entrando no grupo...",
+  "pools.joined": "Você entrou!",
+  "pools.startPredicting": "Começar a prever",
+  "pools.signInTitle": "Entre para usar Grupos",
+  "pools.signInDesc": "Crie ou entre em grupos para competir com amigos.",
+  "pools.signInToJoin": "Entre para participar deste grupo.",
+  "pools.joinError": "Não foi possível entrar no grupo"
 }

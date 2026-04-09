@@ -157,5 +157,29 @@
 
   "globe.loading": "Chargement du globe...",
   "globe.seats": "{count} places",
-  "lang.title": "Langue"
+  "lang.title": "Langue",
+
+  "pools.title": "Groupes",
+  "pools.subtitle": "Affrontez vos amis",
+  "pools.create": "Créer un groupe",
+  "pools.createBtn": "Créer",
+  "pools.namePlaceholder": "Nom du groupe",
+  "pools.join": "Rejoindre un groupe",
+  "pools.joinBtn": "Rejoindre",
+  "pools.codePlaceholder": "ABCD12",
+  "pools.shareCode": "Partagez ce code avec vos amis :",
+  "pools.done": "Terminé",
+  "pools.myPools": "Mes groupes",
+  "pools.empty": "Vous n'avez rejoint aucun groupe. Créez-en un ou entrez un code.",
+  "pools.members": "membres",
+  "pools.copyLink": "Copier le lien",
+  "pools.viewLeaderboard": "Voir le classement",
+  "pools.leave": "Quitter",
+  "pools.joining": "Rejoindre le groupe...",
+  "pools.joined": "Vous êtes dedans !",
+  "pools.startPredicting": "Commencer à prédire",
+  "pools.signInTitle": "Connectez-vous pour les Groupes",
+  "pools.signInDesc": "Créez ou rejoignez des groupes pour affronter vos amis.",
+  "pools.signInToJoin": "Connectez-vous pour rejoindre ce groupe.",
+  "pools.joinError": "Impossible de rejoindre le groupe"
 }

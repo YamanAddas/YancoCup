@@ -157,5 +157,29 @@
 
   "globe.loading": "جارٍ تحميل الكرة الأرضية...",
   "globe.seats": "{count} مقعد",
-  "lang.title": "اللغة"
+  "lang.title": "اللغة",
+
+  "pools.title": "المجموعات",
+  "pools.subtitle": "تنافس مع أصدقائك",
+  "pools.create": "إنشاء مجموعة",
+  "pools.createBtn": "إنشاء",
+  "pools.namePlaceholder": "اسم المجموعة",
+  "pools.join": "الانضمام لمجموعة",
+  "pools.joinBtn": "انضمام",
+  "pools.codePlaceholder": "ABCD12",
+  "pools.shareCode": "شارك هذا الرمز مع أصدقائك:",
+  "pools.done": "تم",
+  "pools.myPools": "مجموعاتي",
+  "pools.empty": "لم تنضم لأي مجموعة بعد. أنشئ واحدة أو أدخل رمز الانضمام.",
+  "pools.members": "أعضاء",
+  "pools.copyLink": "نسخ الرابط",
+  "pools.viewLeaderboard": "عرض الترتيب",
+  "pools.leave": "مغادرة",
+  "pools.joining": "جاري الانضمام...",
+  "pools.joined": "!أنت في المجموعة",
+  "pools.startPredicting": "ابدأ التوقع",
+  "pools.signInTitle": "سجّل دخول لاستخدام المجموعات",
+  "pools.signInDesc": "أنشئ أو انضم لمجموعات للتنافس مع أصدقائك.",
+  "pools.signInToJoin": "سجّل دخول للانضمام لهذه المجموعة.",
+  "pools.joinError": "تعذر الانضمام للمجموعة"
 }
