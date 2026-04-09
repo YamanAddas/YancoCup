@@ -19,6 +19,8 @@ export interface CompetitionConfig {
   seasonLabel: string;
   emoji: string; // short text icon, not actual emoji
   accentColor: string; // subtle per-competition tint
+  /** football-data.org competition emblem URL */
+  emblem: string;
   zones?: StandingsZones;
 }
 
@@ -35,6 +37,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2026",
     emoji: "WC",
     accentColor: "#00ff88",
+    emblem: "https://crests.football-data.org/FIFA.svg",
   },
   CL: {
     id: "CL",
@@ -48,6 +51,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "CL",
     accentColor: "#1a56db",
+    emblem: "https://crests.football-data.org/CL.png",
   },
   PL: {
     id: "PL",
@@ -61,6 +65,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "PL",
     accentColor: "#37003c",
+    emblem: "https://crests.football-data.org/PL.png",
     zones: { cl: [1, 2, 3, 4], el: [5], ecl: [6], relegation: [18, 19, 20] },
   },
   PD: {
@@ -75,6 +80,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "PD",
     accentColor: "#ee8707",
+    emblem: "https://crests.football-data.org/PD.png",
     zones: { cl: [1, 2, 3, 4], el: [5, 6], ecl: [7], relegation: [18, 19, 20] },
   },
   BL1: {
@@ -89,6 +95,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "BL",
     accentColor: "#d20515",
+    emblem: "https://crests.football-data.org/BL1.png",
     zones: { cl: [1, 2, 3, 4], el: [5], ecl: [6], relegation: [16, 17, 18] },
   },
   SA: {
@@ -103,6 +110,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "SA",
     accentColor: "#024494",
+    emblem: "https://crests.football-data.org/SA.png",
     zones: { cl: [1, 2, 3, 4], el: [5, 6], ecl: [7], relegation: [18, 19, 20] },
   },
   FL1: {
@@ -117,6 +125,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2025/26",
     emoji: "L1",
     accentColor: "#091c3e",
+    emblem: "https://crests.football-data.org/FL1.png",
     zones: { cl: [1, 2, 3], el: [4], ecl: [5], relegation: [16, 17, 18] },
   },
   EC: {
@@ -131,6 +140,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     seasonLabel: "2028",
     emoji: "EC",
     accentColor: "#003399",
+    emblem: "https://crests.football-data.org/EC.png",
   },
 };
 

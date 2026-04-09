@@ -5,20 +5,24 @@ import TeamCrest from "./TeamCrest";
 import type { Match, Team, Venue } from "../../types";
 import type { LocalLiveScore } from "../../hooks/useScores";
 
-/** Displays a team with crest/flag + code. */
+/** Displays a team with crest/flag + name. */
 function TeamBadge({
   team,
   tla,
   crest,
+  displayName,
   side,
 }: {
   team: Team | undefined;
   tla: string | null;
   crest?: string | null;
+  displayName?: string | null;
   side: "home" | "away";
 }) {
   const align = side === "home" ? "items-end text-right" : "items-start text-left";
   const code = team?.fifaCode ?? tla?.toUpperCase() ?? "?";
+  // Show full name for clubs, FIFA code for national teams
+  const label = displayName ?? team?.name ?? code;
 
   return (
     <div className={`flex flex-col ${align} gap-1 min-w-0 flex-1`}>
@@ -29,7 +33,7 @@ function TeamBadge({
         size="lg"
       />
       <span className="text-yc-text-primary text-sm font-semibold truncate w-full block">
-        {code}
+        {label}
       </span>
     </div>
   );
@@ -110,11 +114,11 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
 
   const tbd = t("match.tbd");
 
-  // For league matches, show matchday instead of round
+  // For league matches, show "Matchday X" instead of round name
   const headerLabel = match.group
     ? t("match.group", { id: match.group })
     : match.matchday && match.round === "group"
-      ? `MD ${match.matchday}`
+      ? `Matchday ${match.matchday}`
       : t(ROUND_KEYS[match.round]);
 
   const detailUrl = competitionId ? `/${competitionId}/match/${match.id}` : undefined;
@@ -146,7 +150,13 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
       {/* Teams + score/time */}
       <div className="flex items-center gap-3">
         {match.homeTeam ? (
-          <TeamBadge team={home} tla={match.homeTeam} crest={liveScore?.homeCrest} side="home" />
+          <TeamBadge
+            team={home}
+            tla={match.homeTeam}
+            crest={match.homeCrest ?? liveScore?.homeCrest}
+            displayName={match.homeTeamName ?? liveScore?.homeTeamName}
+            side="home"
+          />
         ) : (
           <Placeholder label={match.homePlaceholder ?? tbd} side="home" />
         )}
@@ -179,7 +189,13 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
         </div>
 
         {match.awayTeam ? (
-          <TeamBadge team={away} tla={match.awayTeam} crest={liveScore?.awayCrest} side="away" />
+          <TeamBadge
+            team={away}
+            tla={match.awayTeam}
+            crest={match.awayCrest ?? liveScore?.awayCrest}
+            displayName={match.awayTeamName ?? liveScore?.awayTeamName}
+            side="away"
+          />
         ) : (
           <Placeholder label={match.awayPlaceholder ?? tbd} side="away" />
         )}

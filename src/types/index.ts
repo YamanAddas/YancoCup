@@ -31,6 +31,14 @@ export interface Match {
   awayTeam: string | null;
   homePlaceholder?: string;
   awayPlaceholder?: string;
+  /** football-data.org crest URL for home team (clubs only) */
+  homeCrest?: string | null;
+  /** football-data.org crest URL for away team (clubs only) */
+  awayCrest?: string | null;
+  /** Full display name for home team (e.g., "Arsenal") */
+  homeTeamName?: string | null;
+  /** Full display name for away team (e.g., "Chelsea") */
+  awayTeamName?: string | null;
   venueId: string;
   group: string | null;
   round: "group" | "round-of-32" | "round-of-16" | "quarterfinal" | "semifinal" | "third-place" | "final";

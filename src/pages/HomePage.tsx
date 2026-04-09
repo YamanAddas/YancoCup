@@ -45,15 +45,12 @@ function CompetitionCards() {
             className="group bg-yc-bg-surface border border-yc-border rounded-xl p-4 hover:border-yc-green-muted/40 transition-all"
           >
             <div className="flex items-center justify-between mb-2">
-              <span
-                className="text-xs font-bold font-mono px-1.5 py-0.5 rounded"
-                style={{
-                  backgroundColor: comp.accentColor + "20",
-                  color: comp.accentColor,
-                }}
-              >
-                {comp.emoji}
-              </span>
+              <img
+                src={comp.emblem}
+                alt={comp.shortName}
+                className="h-6 w-6 object-contain"
+                loading="lazy"
+              />
               <ChevronRight
                 size={14}
                 className="text-yc-text-tertiary group-hover:text-yc-green transition-colors"
@@ -98,6 +95,10 @@ function TodaysMatches() {
             group: string | null;
             homeTeam: string | null;
             awayTeam: string | null;
+            homeCrest: string | null;
+            awayCrest: string | null;
+            homeTeamName: string | null;
+            awayTeamName: string | null;
           }>;
         };
         if (data.matches.length > 0) {
@@ -109,6 +110,10 @@ function TodaysMatches() {
               time: d.toISOString().slice(11, 16),
               homeTeam: m.homeTeam?.toLowerCase() ?? null,
               awayTeam: m.awayTeam?.toLowerCase() ?? null,
+              homeCrest: m.homeCrest ?? null,
+              awayCrest: m.awayCrest ?? null,
+              homeTeamName: m.homeTeamName ?? null,
+              awayTeamName: m.awayTeamName ?? null,
               venueId: "",
               group: m.group,
               round: "group" as const,
