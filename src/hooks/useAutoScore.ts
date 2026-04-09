@@ -13,6 +13,14 @@ export function useAutoScore() {
   const { results, loading: resultsLoading } = useLiveResults();
   const { scorePredictions } = useScoring();
   const hasRun = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (predsLoading || resultsLoading || hasRun.current) return;
@@ -30,7 +38,7 @@ export function useAutoScore() {
 
     hasRun.current = true;
     scorePredictions(predictions, results).then((count) => {
-      if (count > 0) refresh();
+      if (count > 0 && mountedRef.current) refresh();
     });
   }, [predsLoading, resultsLoading, predictions, results, scorePredictions, refresh]);
 

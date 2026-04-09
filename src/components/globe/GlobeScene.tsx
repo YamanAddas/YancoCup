@@ -9,7 +9,7 @@ import type { GlobeMethods } from "r3f-globe";
 import cities from "../../data/cities.json";
 import CityPopup from "./CityPopup";
 
-/** Catch internal r3f-globe/Kapsule errors that fire during unmount */
+/** Catch internal r3f-globe/Kapsule errors that fire during unmount/cleanup */
 class GlobeErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
   static getDerivedStateFromError() {
@@ -18,6 +18,30 @@ class GlobeErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
   componentDidCatch(_error: Error, _info: ErrorInfo) {
     // Suppress __kapsuleInstance errors from three-globe internals
   }
+  componentDidMount() {
+    // Catch unhandled errors from r3f-globe/Kapsule during React effect cleanup.
+    // These fire outside the render cycle so ErrorBoundary alone can't catch them.
+    this._onError = (event: ErrorEvent) => {
+      if (event.error?.toString?.().includes("kapsuleInstance") ||
+          event.message?.includes("kapsuleInstance")) {
+        event.preventDefault();
+      }
+    };
+    this._onRejection = (event: PromiseRejectionEvent) => {
+      const msg = event.reason?.toString?.() ?? "";
+      if (msg.includes("kapsuleInstance")) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener("error", this._onError);
+    window.addEventListener("unhandledrejection", this._onRejection);
+  }
+  componentWillUnmount() {
+    if (this._onError) window.removeEventListener("error", this._onError);
+    if (this._onRejection) window.removeEventListener("unhandledrejection", this._onRejection);
+  }
+  private _onError?: (event: ErrorEvent) => void;
+  private _onRejection?: (event: PromiseRejectionEvent) => void;
   render() {
     if (this.state.hasError) return null;
     return this.props.children;
@@ -67,10 +91,23 @@ function GlobeInner({
   const resumeTimerRef = useRef<number>(0);
   const flyTargetRef = useRef<Vector3 | null>(null);
   const isFlyingRef = useRef(false);
+  const mountedRef = useRef(true);
   const { invalidate } = useThree();
+
+  // Track mount state to prevent post-unmount state updates
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      clearTimeout(resumeTimerRef.current);
+      isFlyingRef.current = false;
+      flyTargetRef.current = null;
+    };
+  }, []);
 
   // Fly camera to selected city
   useEffect(() => {
+    if (!mountedRef.current) return;
     if (flyToCity && globeRef.current) {
       try {
         const coords = globeRef.current.getCoords(flyToCity.lat, flyToCity.lng);
@@ -88,6 +125,7 @@ function GlobeInner({
 
   // Animate fly-to each frame
   useFrame(({ camera }) => {
+    if (!mountedRef.current) return;
     if (isFlyingRef.current && flyTargetRef.current) {
       camera.position.lerp(flyTargetRef.current, FLY_LERP_SPEED);
       camera.lookAt(0, 0, 0);
@@ -99,7 +137,7 @@ function GlobeInner({
         // Only resume auto-rotate on desktop
         if (!device.isMobile) {
           resumeTimerRef.current = window.setTimeout(() => {
-            setAutoRotate(true);
+            if (mountedRef.current) setAutoRotate(true);
           }, AUTO_ROTATE_RESUME_MS);
         }
       }
@@ -120,13 +158,9 @@ function GlobeInner({
     if (device.isMobile) return;
     clearTimeout(resumeTimerRef.current);
     resumeTimerRef.current = window.setTimeout(() => {
-      setAutoRotate(true);
+      if (mountedRef.current) setAutoRotate(true);
     }, AUTO_ROTATE_RESUME_MS);
   }, [device.isMobile]);
-
-  useEffect(() => {
-    return () => clearTimeout(resumeTimerRef.current);
-  }, []);
 
   const handleClick = useCallback(
     (_layer: string, data: object | undefined) => {

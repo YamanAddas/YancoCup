@@ -30,18 +30,19 @@ export function useActivityFeed(limit = 10, competitionId?: string) {
         query = query.eq("competition_id", competitionId);
       }
 
-      const { data } = await query;
+      const { data, error } = await query;
 
-      if (!data || data.length === 0) {
+      if (error || !data || data.length === 0) {
         setLoading(false);
         return;
       }
 
       const userIds = [...new Set(data.map((d) => d.user_id))];
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profErr } = await supabase
         .from("profiles_public")
         .select("id, handle, display_name, avatar_url")
         .in("id", userIds);
+      if (profErr) console.error("Failed to fetch profiles:", profErr.message);
 
       const profileMap = new Map(
         (profiles ?? []).map((p) => [p.id, p]),

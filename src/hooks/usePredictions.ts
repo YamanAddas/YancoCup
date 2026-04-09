@@ -28,12 +28,15 @@ export function useMyPredictions(competitionId = "WC") {
       setLoading(false);
       return;
     }
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("yc_predictions")
       .select("*")
       .eq("user_id", user.id)
       .eq("competition_id", competitionId)
       .order("match_id");
+    if (error) {
+      console.error("Failed to fetch predictions:", error.message);
+    }
     setPredictions((data as Prediction[]) ?? []);
     setLoading(false);
   }, [user, competitionId]);
@@ -75,11 +78,11 @@ export function usePredictionCounts(competitionId = "WC") {
 
   useEffect(() => {
     async function fetch() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("yc_predictions")
         .select("match_id")
         .eq("competition_id", competitionId);
-      if (!data) return;
+      if (error || !data) return;
       const map = new Map<number, number>();
       for (const row of data as { match_id: number }[]) {
         map.set(row.match_id, (map.get(row.match_id) ?? 0) + 1);

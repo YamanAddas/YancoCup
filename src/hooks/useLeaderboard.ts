@@ -20,12 +20,12 @@ export function useLeaderboard(competitionId = "WC") {
   useEffect(() => {
     async function fetch() {
       // Single query for all predictions in this competition
-      const { data: predictions } = await supabase
+      const { data: predictions, error: predErr } = await supabase
         .from("yc_predictions")
         .select("user_id, points, scored_at")
         .eq("competition_id", competitionId);
 
-      if (!predictions || predictions.length === 0) {
+      if (predErr || !predictions || predictions.length === 0) {
         setEntries([]);
         setLoading(false);
         return;
@@ -35,10 +35,11 @@ export function useLeaderboard(competitionId = "WC") {
       const userIds = [...new Set(predictions.map((p) => p.user_id))];
 
       // Fetch profiles
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profErr } = await supabase
         .from("profiles_public")
         .select("id, handle, display_name, avatar_url")
         .in("id", userIds);
+      if (profErr) console.error("Failed to fetch profiles:", profErr.message);
 
       const profileMap = new Map(
         (profiles ?? []).map((p) => [p.id, p]),

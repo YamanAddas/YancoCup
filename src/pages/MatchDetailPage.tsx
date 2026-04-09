@@ -213,6 +213,7 @@ function EventsTimeline({ match }: { match: MatchData }) {
   if (afEvents && afEvents.length > 0) {
     // Use API-Football events (rich data)
     for (const ev of afEvents) {
+      if (!ev.team || !ev.player) continue;
       const side = ev.team.id === match.homeTeam.id ? "home" : "away";
       let type: typeof events[number]["type"] = "goal";
       if (ev.type === "Goal") {

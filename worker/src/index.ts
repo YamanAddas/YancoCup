@@ -114,6 +114,18 @@ const FD_ID_TO_CODE = new Map(
 const STANDINGS_COMPS = ["WC", "PL", "PD", "BL1", "SA", "FL1", "CL", "EC"];
 
 // ---------------------------------------------------------------------------
+// Safe JSON parse — returns null on corrupt KV data instead of crashing
+// ---------------------------------------------------------------------------
+
+function safeParse<T>(json: string): T | null {
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // KV key patterns
 // ---------------------------------------------------------------------------
 
@@ -194,7 +206,7 @@ async function findApiFootballFixture(
   let fixtures: Array<Record<string, unknown>>;
 
   if (dayCached) {
-    fixtures = JSON.parse(dayCached);
+    fixtures = safeParse(dayCached) ?? [];
   } else {
     // Fetch all fixtures for this league on this date (1 API call for ~10 matches)
     const season = parseInt(matchDate.slice(0, 4), 10);
@@ -238,7 +250,7 @@ async function fetchApiFootballDetail(
 ): Promise<Record<string, unknown> | null> {
   const cacheKey = `af:fixture:${fixtureId}`;
   const cached = await env.SCORES_KV.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+  if (cached) return safeParse(cached) ?? {};
 
   // Fetch fixture detail with events, lineups, statistics
   const res = await fetchFromApiFootball(
@@ -354,7 +366,7 @@ async function handleCron(env: Env): Promise<void> {
         let merged = scores;
 
         if (existing) {
-          const prev: MatchScore[] = JSON.parse(existing);
+          const prev = safeParse<MatchScore[]>(existing) ?? [];
           // Keep entries from other days, replace today's
           const todayIds = new Set(scores.map((s) => s.apiId));
           const kept = prev.filter((p) => !todayIds.has(p.apiId));
@@ -412,7 +424,7 @@ async function handleCron(env: Env): Promise<void> {
           let merged = scores;
 
           if (existing) {
-            const prev: MatchScore[] = JSON.parse(existing);
+            const prev = safeParse<MatchScore[]>(existing) ?? [];
             const newIds = new Set(scores.map((s) => s.apiId));
             const kept = prev.filter((p) => !newIds.has(p.apiId));
             merged = [...kept, ...scores];
@@ -538,7 +550,7 @@ app.get("/api/live", async (c) => {
   if (!cached) {
     return c.json({ matches: [] });
   }
-  return c.json({ matches: JSON.parse(cached) });
+  return c.json({ matches: safeParse(cached) ?? [] });
 });
 
 // ---------------------------------------------------------------------------
@@ -559,7 +571,7 @@ app.get("/api/:comp/scores", async (c) => {
     });
   }
 
-  const scores: MatchScore[] = JSON.parse(cached);
+  const scores = safeParse<MatchScore[]>(cached) ?? [];
 
   // Optional filters
   const status = c.req.query("status");
@@ -598,7 +610,7 @@ app.get("/api/:comp/standings", async (c) => {
       message: `No standings data for ${comp} yet.`,
     });
   }
-  return c.json({ standings: JSON.parse(cached) });
+  return c.json({ standings: safeParse(cached) ?? [] });
 });
 
 // ---------------------------------------------------------------------------
@@ -614,7 +626,7 @@ app.get("/api/:comp/match/:id", async (c) => {
       404,
     );
   }
-  return c.json({ match: JSON.parse(cached) });
+  return c.json({ match: safeParse(cached) ?? null });
 });
 
 // ---------------------------------------------------------------------------
@@ -631,7 +643,7 @@ app.get("/api/:comp/matches", async (c) => {
   // Check KV cache first
   const cached = await c.env.SCORES_KV.get(kvSchedule(comp));
   if (cached) {
-    const matches: MatchScore[] = JSON.parse(cached);
+    const matches = safeParse<MatchScore[]>(cached) ?? [];
     // Apply optional filters
     const matchday = c.req.query("matchday");
     if (matchday) {
@@ -686,7 +698,10 @@ app.get("/api/:comp/teams", async (c) => {
 
   const cacheKey = `${comp}:teams`;
   const cached = await c.env.SCORES_KV.get(cacheKey);
-  if (cached) return c.json(JSON.parse(cached));
+  if (cached) {
+    const parsed = safeParse(cached);
+    if (parsed) return c.json(parsed);
+  }
 
   const res = await fetchFromFootballData(
     `/competitions/${comp}/teams`,
@@ -716,7 +731,7 @@ app.get("/api/scores", async (c) => {
       message: "No data yet. Scores populate during the tournament.",
     });
   }
-  const scores: MatchScore[] = JSON.parse(cached);
+  const scores = safeParse<MatchScore[]>(cached) ?? [];
 
   const status = c.req.query("status");
   const date = c.req.query("date");
@@ -737,7 +752,7 @@ app.get("/api/standings", async (c) => {
   if (!cached) {
     return c.json({ standings: [], message: "No standings data yet." });
   }
-  return c.json({ standings: JSON.parse(cached) });
+  return c.json({ standings: safeParse(cached) ?? [] });
 });
 
 app.get("/api/match/:id", async (c) => {
@@ -749,7 +764,7 @@ app.get("/api/match/:id", async (c) => {
       404,
     );
   }
-  return c.json({ match: JSON.parse(cached) });
+  return c.json({ match: safeParse(cached) ?? null });
 });
 
 // ---------------------------------------------------------------------------
@@ -762,7 +777,7 @@ app.get("/api/match/:id/detail", async (c) => {
   // Check for enriched cache first
   const enrichedKey = `matchenriched:${id}`;
   const enrichedCached = await c.env.SCORES_KV.get(enrichedKey);
-  if (enrichedCached) return c.json(JSON.parse(enrichedCached));
+  if (enrichedCached) return c.json(safeParse(enrichedCached) ?? {});
 
   // Fetch basic data from football-data.org
   const basicKey = `matchdetail:${id}`;
@@ -770,7 +785,7 @@ app.get("/api/match/:id/detail", async (c) => {
   const basicCached = await c.env.SCORES_KV.get(basicKey);
 
   if (basicCached) {
-    basicData = JSON.parse(basicCached);
+    basicData = safeParse(basicCached) ?? {};
   } else {
     const res = await fetchFromFootballData(
       `/matches/${id}`,
@@ -829,7 +844,10 @@ app.get("/api/h2h/:id", async (c) => {
   const id = c.req.param("id");
   const cacheKey = `h2h:${id}`;
   const cached = await c.env.SCORES_KV.get(cacheKey);
-  if (cached) return c.json(JSON.parse(cached));
+  if (cached) {
+    const parsed = safeParse(cached);
+    if (parsed) return c.json(parsed);
+  }
 
   const res = await fetchFromFootballData(
     `/matches/${id}/head2head?limit=10`,
@@ -857,14 +875,18 @@ app.get("/api/:comp/scorers", async (c) => {
 
   const cacheKey = `${comp}:scorers`;
   const cached = await c.env.SCORES_KV.get(cacheKey);
-  if (cached) return c.json(JSON.parse(cached));
+  if (cached) {
+    const parsed = safeParse(cached);
+    if (parsed) return c.json(parsed);
+  }
 
   const res = await fetchFromFootballData(
     `/competitions/${comp}/scorers?limit=20`,
     c.env.FOOTBALL_DATA_API_KEY,
   );
   if (!res.ok) {
-    return c.json({ error: "Scorers data not available" }, res.status as 400 | 404 | 500);
+    const status = res.status >= 500 ? 502 : res.status === 404 ? 404 : 400;
+    return c.json({ error: "Scorers data not available" }, status as 400 | 404 | 502);
   }
 
   const data = (await res.json()) as Record<string, unknown>;
