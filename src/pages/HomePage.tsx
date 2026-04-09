@@ -184,6 +184,7 @@ function TodaysMatches() {
               teamMap={teamMap}
               venueMap={venueMap}
               liveScore={scoreMap.get(m.id)}
+              competitionId="WC"
               compact
             />
           ))}

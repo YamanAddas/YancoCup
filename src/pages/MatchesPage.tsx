@@ -50,6 +50,7 @@ function SelectFilter({
 
 /** Tournament matches page (WC, CL, EC) — filters by round, group, team, venue */
 function TournamentMatches() {
+  const comp = useCompetition();
   const [round, setRound] = useState("");
   const [group, setGroup] = useState("");
   const [team, setTeam] = useState("");
@@ -172,6 +173,7 @@ function TournamentMatches() {
                     teamMap={teamMap}
                     venueMap={venueMap}
                     liveScore={scoreMap.get(m.id)}
+                    competitionId={comp.id}
                   />
                 ))}
               </div>
@@ -267,6 +269,7 @@ function LeagueMatches() {
                         teamMap={teamMap}
                         venueMap={venueMap}
                         liveScore={scoreMap.get(m.id)}
+                        competitionId={comp.id}
                       />
                     ))}
                   </div>

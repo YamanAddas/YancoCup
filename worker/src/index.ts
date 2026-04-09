@@ -590,6 +590,59 @@ app.get("/api/match/:id", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /api/match/:id/detail — full match detail (on-demand, KV cached)
+// ---------------------------------------------------------------------------
+
+app.get("/api/match/:id/detail", async (c) => {
+  const id = c.req.param("id");
+  const cacheKey = `matchdetail:${id}`;
+  const cached = await c.env.SCORES_KV.get(cacheKey);
+  if (cached) return c.json(JSON.parse(cached));
+
+  const res = await fetchFromFootballData(
+    `/matches/${id}`,
+    c.env.FOOTBALL_DATA_API_KEY,
+  );
+  if (!res.ok) {
+    return c.json({ error: "Match not found" }, 404);
+  }
+
+  const data = (await res.json()) as Record<string, unknown>;
+  const status = data.status as string;
+  const ttl = status === "FINISHED" ? 3600 : status === "IN_PLAY" || status === "PAUSED" ? 120 : 300;
+
+  await c.env.SCORES_KV.put(cacheKey, JSON.stringify(data), {
+    expirationTtl: ttl,
+  });
+  return c.json(data);
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/h2h/:id — head-to-head for a match (on-demand, 24hr cache)
+// ---------------------------------------------------------------------------
+
+app.get("/api/h2h/:id", async (c) => {
+  const id = c.req.param("id");
+  const cacheKey = `h2h:${id}`;
+  const cached = await c.env.SCORES_KV.get(cacheKey);
+  if (cached) return c.json(JSON.parse(cached));
+
+  const res = await fetchFromFootballData(
+    `/matches/${id}/head2head?limit=10`,
+    c.env.FOOTBALL_DATA_API_KEY,
+  );
+  if (!res.ok) {
+    return c.json({ error: "H2H data not available" }, 404);
+  }
+
+  const data = (await res.json()) as Record<string, unknown>;
+  await c.env.SCORES_KV.put(cacheKey, JSON.stringify(data), {
+    expirationTtl: 86400,
+  });
+  return c.json(data);
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/health — status check
 // ---------------------------------------------------------------------------
 
@@ -620,6 +673,8 @@ app.notFound((c) => {
         "GET /api/:comp/standings",
         "GET /api/:comp/matches",
         "GET /api/:comp/match/:id",
+        "GET /api/match/:id/detail",
+        "GET /api/h2h/:id",
         "GET /api/scores (alias → WC)",
         "GET /api/standings (alias → WC)",
         "GET /api/match/:id (alias)",

@@ -8,6 +8,7 @@ import AppLayout from "./components/layout/AppLayout";
 // Lazy load all pages — only HomePage is eager for fast first paint
 import HomePage from "./pages/HomePage";
 const MatchesPage = lazy(() => import("./pages/MatchesPage"));
+const MatchDetailPage = lazy(() => import("./pages/MatchDetailPage"));
 const GroupsPage = lazy(() => import("./pages/GroupsPage"));
 const StandingsPage = lazy(() => import("./pages/StandingsPage"));
 const PredictionsPage = lazy(() => import("./pages/PredictionsPage"));
@@ -51,6 +52,14 @@ export default function App() {
                   element={
                     <CompetitionLayout>
                       <MatchesPage />
+                    </CompetitionLayout>
+                  }
+                />
+                <Route
+                  path=":competition/match/:id"
+                  element={
+                    <CompetitionLayout>
+                      <MatchDetailPage />
                     </CompetitionLayout>
                   }
                 />

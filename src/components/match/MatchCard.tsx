@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { MapPin, Clock } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
 import TeamCrest from "./TeamCrest";
@@ -93,10 +94,13 @@ interface MatchCardProps {
   venueMap: Map<string, Venue>;
   liveScore?: LocalLiveScore;
   compact?: boolean;
+  /** Competition ID for linking to match detail. If provided, card is clickable. */
+  competitionId?: string;
 }
 
-export default function MatchCard({ match, teamMap, venueMap, liveScore, compact }: MatchCardProps) {
+export default function MatchCard({ match, teamMap, venueMap, liveScore, compact, competitionId }: MatchCardProps) {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const home = match.homeTeam ? teamMap.get(match.homeTeam) : undefined;
   const away = match.awayTeam ? teamMap.get(match.awayTeam) : undefined;
   const venue = venueMap.get(match.venueId);
@@ -114,9 +118,17 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
       ? `MD ${match.matchday}`
       : t(ROUND_KEYS[match.round]);
 
+  const handleClick = competitionId
+    ? () => navigate(`/${competitionId}/match/${match.id}`)
+    : undefined;
+
   return (
     <div
+      onClick={handleClick}
+      role={handleClick ? "link" : undefined}
       className={`bg-yc-bg-surface border rounded-xl p-4 transition-colors ${
+        handleClick ? "cursor-pointer" : ""
+      } ${
         isLive
           ? "border-yc-green-muted/50 shadow-[0_0_12px_rgba(0,255,136,0.08)]"
           : "border-yc-border hover:border-yc-border-hover"
