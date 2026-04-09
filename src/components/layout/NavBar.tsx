@@ -10,6 +10,7 @@ import {
   LogIn,
   LogOut,
   Table,
+  GitBranch,
 } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 import { useI18n } from "../../lib/i18n";
@@ -32,7 +33,10 @@ export default function NavBar() {
     { to: "/", labelKey: "nav.home", icon: GlobeIcon, end: true },
     { to: `/${comp}/matches`, labelKey: "nav.matches", icon: Calendar, end: false },
     ...(isTournament && compConfig?.hasGroups
-      ? [{ to: `/${comp}/groups`, labelKey: "nav.groups", icon: Users, end: false }]
+      ? [
+          { to: `/${comp}/groups`, labelKey: "nav.groups", icon: Users, end: false },
+          { to: `/${comp}/bracket`, labelKey: "nav.bracket", icon: GitBranch, end: false },
+        ]
       : [{ to: `/${comp}/standings`, labelKey: "nav.standings", icon: Table, end: false }]),
     { to: `/${comp}/predictions`, labelKey: "nav.predictions", icon: Trophy, end: false },
     { to: `/${comp}/leaderboard`, labelKey: "nav.leaderboard", icon: BarChart3, end: false },
