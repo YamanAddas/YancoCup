@@ -111,24 +111,50 @@ body {
     0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
-/* ── Hex clip-path (YancoHub signature shape) ── */
-.yc-hex {
-  clip-path: polygon(50% 0%, 100% 9%, 100% 91%, 50% 100%, 0% 91%, 0% 9%);
+/* ══════════════════════════════════════════════════════
+   HEX CARD — YancoHub signature shape
+   Wrapper provides drop-shadow that follows the clip.
+   Inner hex-card clips the content to the hex shape.
+   Glass highlight via ::before pseudo-element.
+   ══════════════════════════════════════════════════════ */
+.yc-hex-wrap {
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4)) drop-shadow(0 0 4px rgba(0,255,136,0.06));
+  transition: filter 0.3s ease;
+}
+.yc-hex-wrap:hover {
+  filter: drop-shadow(0 4px 14px rgba(0,0,0,0.5)) drop-shadow(0 0 10px rgba(0,255,136,0.12));
 }
 
-/* ── Bracket connector lines ── */
-.bracket-connector-top {
-  border-right: 2px solid rgba(0, 255, 136, 0.15);
-  border-top: 2px solid rgba(0, 255, 136, 0.15);
-  border-top-right-radius: 6px;
+.yc-hex-card {
+  --hex-bevel: 5%;
+  position: relative;
+  clip-path: polygon(50% 0%, 100% var(--hex-bevel), 100% calc(100% - var(--hex-bevel)), 50% 100%, 0% calc(100% - var(--hex-bevel)), 0% var(--hex-bevel));
+  background: linear-gradient(170deg, rgba(14, 26, 48, 0.96) 0%, rgba(8, 14, 28, 0.98) 50%, rgba(6, 10, 22, 1) 100%);
 }
-.bracket-connector-bottom {
-  border-right: 2px solid rgba(0, 255, 136, 0.15);
-  border-bottom: 2px solid rgba(0, 255, 136, 0.15);
-  border-bottom-right-radius: 6px;
+
+/* Glass highlight across the top */
+.yc-hex-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(175deg, rgba(200, 240, 255, 0.07) 0%, rgba(0, 255, 136, 0.02) 20%, transparent 45%);
+  pointer-events: none;
+  z-index: 1;
 }
-.bracket-connector-entry {
-  border-top: 2px solid rgba(0, 255, 136, 0.15);
+
+/* Live hex card */
+.yc-hex-wrap.is-live {
+  filter: drop-shadow(0 0 16px rgba(0,255,136,0.2)) drop-shadow(0 0 40px rgba(0,255,136,0.08)) drop-shadow(0 8px 20px rgba(0,0,0,0.5));
+}
+
+/* Bracket-sized hex (sharper bevel for small cards) */
+.yc-hex-card.hex-sm {
+  --hex-bevel: 7%;
+}
+
+/* ── Bracket connector line color ── */
+:root {
+  --bracket-line: rgba(0, 255, 136, 0.18);
 }
 
 /* ── Animations ── */

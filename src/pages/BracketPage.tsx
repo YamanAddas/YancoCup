@@ -32,7 +32,7 @@ const ROUND_LABELS: Record<RoundId, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Match node — glass-styled
+// Bracket match node — hex-styled
 // ---------------------------------------------------------------------------
 
 function BracketNode({
@@ -56,128 +56,145 @@ function BracketNode({
 
   const homeTeam = m.homeTeam ? teamMap.get(m.homeTeam) : undefined;
   const awayTeam = m.awayTeam ? teamMap.get(m.awayTeam) : undefined;
-
   const homeName = m.homeTeamName ?? homeTeam?.name ?? bm.homeLabel;
   const awayName = m.awayTeamName ?? awayTeam?.name ?? bm.awayLabel;
   const homeCrest = m.homeCrest ?? bm.homeCrest;
   const awayCrest = m.awayCrest ?? bm.awayCrest;
   const homeTla = m.homeTeam?.toUpperCase() ?? "TBD";
   const awayTla = m.awayTeam?.toUpperCase() ?? "TBD";
-
   const homeWin = hasScore && (homeScore ?? 0) > (awayScore ?? 0);
   const awayWin = hasScore && (awayScore ?? 0) > (homeScore ?? 0);
 
   return (
     <Link
       to={`/${competitionId}/match/${m.id}`}
-      className={`block rounded-lg overflow-hidden transition-all duration-300 w-full ${
-        isLive
-          ? "yc-card-glow animate-breathe"
-          : "yc-card"
-      }`}
+      className={`yc-hex-wrap block ${isLive ? "is-live" : ""}`}
     >
-      {/* Home team row */}
-      <div className={`flex items-center gap-1.5 px-2.5 py-2 ${homeWin && isFinished ? "bg-yc-green/5" : ""}`}>
-        <TeamCrest tla={homeTla} isoCode={homeTeam?.isoCode} crest={homeCrest} size="xs" />
-        <span className={`text-xs flex-1 truncate ${m.homeTeam ? "text-yc-text-primary" : "text-yc-text-tertiary"} ${homeWin && isFinished ? "font-semibold" : ""}`}>
-          {homeName}
-        </span>
-        {hasScore && (
-          <span className={`text-xs font-mono font-bold min-w-[14px] text-right ${
-            isLive ? "text-yc-green" : homeWin ? "text-yc-green" : "text-yc-text-secondary"
-          }`}>
-            {homeScore}
+      <div className="yc-hex-card hex-sm overflow-hidden w-full">
+        {/* Home row */}
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 relative z-2 ${homeWin && isFinished ? "bg-yc-green/[0.06]" : ""}`}>
+          <TeamCrest tla={homeTla} isoCode={homeTeam?.isoCode} crest={homeCrest} size="xs" />
+          <span className={`text-xs flex-1 truncate ${m.homeTeam ? "text-yc-text-primary" : "text-yc-text-tertiary"} ${homeWin && isFinished ? "font-semibold" : ""}`}>
+            {homeName}
           </span>
-        )}
-      </div>
-      {/* Divider */}
-      <div className="h-px bg-yc-border" />
-      {/* Away team row */}
-      <div className={`flex items-center gap-1.5 px-2.5 py-2 ${awayWin && isFinished ? "bg-yc-green/5" : ""}`}>
-        <TeamCrest tla={awayTla} isoCode={awayTeam?.isoCode} crest={awayCrest} size="xs" />
-        <span className={`text-xs flex-1 truncate ${m.awayTeam ? "text-yc-text-primary" : "text-yc-text-tertiary"} ${awayWin && isFinished ? "font-semibold" : ""}`}>
-          {awayName}
-        </span>
-        {hasScore && (
-          <span className={`text-xs font-mono font-bold min-w-[14px] text-right ${
-            isLive ? "text-yc-green" : awayWin ? "text-yc-green" : "text-yc-text-secondary"
-          }`}>
-            {awayScore}
+          {hasScore && (
+            <span className={`text-xs font-mono font-bold min-w-[14px] text-right ${
+              isLive ? "text-yc-green" : homeWin ? "text-yc-green" : "text-yc-text-secondary"
+            }`}>
+              {homeScore}
+            </span>
+          )}
+        </div>
+        {/* Divider */}
+        <div className="h-px bg-white/[0.06] relative z-2" />
+        {/* Away row */}
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 relative z-2 ${awayWin && isFinished ? "bg-yc-green/[0.06]" : ""}`}>
+          <TeamCrest tla={awayTla} isoCode={awayTeam?.isoCode} crest={awayCrest} size="xs" />
+          <span className={`text-xs flex-1 truncate ${m.awayTeam ? "text-yc-text-primary" : "text-yc-text-tertiary"} ${awayWin && isFinished ? "font-semibold" : ""}`}>
+            {awayName}
           </span>
-        )}
+          {hasScore && (
+            <span className={`text-xs font-mono font-bold min-w-[14px] text-right ${
+              isLive ? "text-yc-green" : awayWin ? "text-yc-green" : "text-yc-text-secondary"
+            }`}>
+              {awayScore}
+            </span>
+          )}
+        </div>
       </div>
-      {/* Live indicator */}
-      {isLive && (
-        <div className="h-0.5 bg-gradient-to-r from-transparent via-yc-green to-transparent" />
-      )}
     </Link>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Bracket connector lines between rounds
+// Group matches into pairs
 // ---------------------------------------------------------------------------
 
-function BracketConnectors({ matchCount }: { matchCount: number }) {
-  const pairs = Math.ceil(matchCount / 2);
+function groupIntoPairs<T>(items: T[]): T[][] {
+  const pairs: T[][] = [];
+  for (let i = 0; i < items.length; i += 2) {
+    pairs.push(items.slice(i, i + 2));
+  }
+  return pairs;
+}
+
+// ---------------------------------------------------------------------------
+// Connector column between two rounds
+// Draws bracket lines: ─┐ and ─┘ for each pair, connecting to next round
+// ---------------------------------------------------------------------------
+
+function ConnectorColumn({ pairCount }: { pairCount: number }) {
   return (
-    <div className="flex flex-col justify-around w-8 shrink-0">
-      {Array.from({ length: pairs }).map((_, i) => (
+    <div className="flex flex-col w-6 shrink-0">
+      {Array.from({ length: pairCount }).map((_, i) => (
         <div key={i} className="flex-1 flex flex-col">
-          <div className="flex-1 bracket-connector-top" />
-          <div className="flex-1 bracket-connector-bottom" />
+          {/* Top half: right border + top border = ─┐ */}
+          <div className="flex-1 border-r-2 border-t-2 rounded-tr-md" style={{ borderColor: "var(--bracket-line)" }} />
+          {/* Bottom half: right border + bottom border = ─┘ */}
+          <div className="flex-1 border-r-2 border-b-2 rounded-br-md" style={{ borderColor: "var(--bracket-line)" }} />
         </div>
       ))}
     </div>
   );
 }
 
-// Entry connector (horizontal line into each match in rounds 2+)
-function EntryConnector() {
-  return <div className="w-4 shrink-0 bracket-connector-entry self-center" />;
+// ---------------------------------------------------------------------------
+// Entry line column (horizontal lines from connector to next-round matches)
+// ---------------------------------------------------------------------------
+
+function EntryColumn({ matchCount }: { matchCount: number }) {
+  return (
+    <div className="flex flex-col justify-around w-4 shrink-0">
+      {Array.from({ length: matchCount }).map((_, i) => (
+        <div key={i} className="flex-1 flex items-center">
+          <div className="w-full h-0.5" style={{ background: "var(--bracket-line)" }} />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
-// Bracket column
+// Round column — matches grouped into pairs with flex:1
 // ---------------------------------------------------------------------------
 
-function BracketColumn({
+function RoundColumn({
   roundId,
   matches,
   teamMap,
   competitionId,
-  roundIndex,
   scoreMap,
 }: {
   roundId: RoundId;
   matches: BracketMatch[];
   teamMap: Map<string, Team>;
   competitionId: string;
-  roundIndex: number;
   scoreMap: Map<number, { status: string; homeScore: number | null; awayScore: number | null }>;
 }) {
-  // Gap increases per round to align with bracket tree
-  const gapPx = roundIndex === 0 ? 8 : roundIndex === 1 ? 24 : roundIndex === 2 ? 56 : roundIndex === 3 ? 120 : 180;
+  const pairs = groupIntoPairs(matches);
 
   return (
-    <div className="flex flex-col shrink-0" style={{ minWidth: 170 }}>
-      <h4 className="text-[10px] text-yc-text-tertiary uppercase tracking-wider text-center mb-4 font-medium flex items-center justify-center gap-1.5">
-        <span className="w-3 h-px bg-yc-text-tertiary/30" />
+    <div className="flex flex-col shrink-0" style={{ minWidth: 165 }}>
+      {/* Round header */}
+      <h4 className="text-[10px] text-yc-text-tertiary uppercase tracking-wider text-center mb-3 font-medium flex items-center justify-center gap-1.5">
+        <span className="w-4 h-px bg-yc-green/20" />
         {ROUND_LABELS[roundId]}
-        <span className="w-3 h-px bg-yc-text-tertiary/30" />
+        <span className="w-4 h-px bg-yc-green/20" />
       </h4>
-      <div className="flex flex-col justify-center flex-1" style={{ gap: gapPx }}>
-        {matches.map((bm) => (
-          <div key={bm.match.id} className="flex items-center">
-            {roundIndex > 0 && <EntryConnector />}
-            <div className="flex-1">
+
+      {/* Matches in pairs, each pair takes equal vertical space */}
+      <div className="flex flex-col flex-1">
+        {pairs.map((pair, pi) => (
+          <div key={pi} className="flex-1 flex flex-col justify-center gap-1.5">
+            {pair.map((bm) => (
               <BracketNode
+                key={bm.match.id}
                 bm={bm}
                 teamMap={teamMap}
                 competitionId={competitionId}
                 liveScore={scoreMap.get(bm.match.id)}
               />
-            </div>
+            ))}
           </div>
         ))}
       </div>
@@ -186,7 +203,7 @@ function BracketColumn({
 }
 
 // ---------------------------------------------------------------------------
-// Main page
+// Main bracket page
 // ---------------------------------------------------------------------------
 
 export default function BracketPage() {
@@ -226,6 +243,10 @@ export default function BracketPage() {
 
   const thirdPlace = matches.find((m) => m.round === "third-place");
 
+  // Calculate min height based on first round match count
+  const firstRoundCount = bracketRounds[0]?.matches.length ?? 0;
+  const minHeight = Math.max(400, firstRoundCount * 56);
+
   if (bracketRounds.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
@@ -260,30 +281,40 @@ export default function BracketPage() {
         <div className="w-10 h-10 rounded-xl bg-yc-green/10 flex items-center justify-center">
           <GitBranch size={20} className="text-yc-green" />
         </div>
-        <h2 className="font-heading text-2xl font-bold">
-          Knockout Bracket
-        </h2>
+        <h2 className="font-heading text-2xl font-bold">Knockout Bracket</h2>
       </div>
 
-      {/* Horizontally scrollable bracket with connector lines */}
-      <div className="yc-card p-6 overflow-x-auto">
-        <div className="flex items-stretch min-w-max">
-          {bracketRounds.map((round, i) => (
-            <Fragment key={round.id}>
-              <BracketColumn
-                roundId={round.id}
-                matches={round.matches}
-                teamMap={teamMap}
-                competitionId={comp.id}
-                roundIndex={i}
-                scoreMap={scoreMap}
-              />
-              {/* Connector lines between rounds */}
-              {i < bracketRounds.length - 1 && (
-                <BracketConnectors matchCount={round.matches.length} />
-              )}
-            </Fragment>
-          ))}
+      {/* Bracket tree — horizontally scrollable */}
+      <div className="yc-card p-6 overflow-x-auto overflow-y-hidden">
+        <div className="flex items-stretch min-w-max" style={{ minHeight }}>
+          {bracketRounds.map((round, i) => {
+            const isFirst = i === 0;
+            const isLast = i === bracketRounds.length - 1;
+            const pairCount = Math.ceil(round.matches.length / 2);
+
+            return (
+              <Fragment key={round.id}>
+                {/* Entry lines from previous connector */}
+                {!isFirst && (
+                  <EntryColumn matchCount={round.matches.length} />
+                )}
+
+                {/* Round column */}
+                <RoundColumn
+                  roundId={round.id}
+                  matches={round.matches}
+                  teamMap={teamMap}
+                  competitionId={comp.id}
+                  scoreMap={scoreMap}
+                />
+
+                {/* Connector lines to next round */}
+                {!isLast && (
+                  <ConnectorColumn pairCount={pairCount} />
+                )}
+              </Fragment>
+            );
+          })}
         </div>
       </div>
 
@@ -291,23 +322,25 @@ export default function BracketPage() {
       {thirdPlace && (
         <div className="mt-6">
           <h4 className="text-[10px] text-yc-text-tertiary uppercase tracking-wider mb-2 font-medium flex items-center gap-1.5">
-            <span className="w-3 h-px bg-yc-text-tertiary/30" />
+            <span className="w-4 h-px bg-yc-green/20" />
             Third Place
-            <span className="w-3 h-px bg-yc-text-tertiary/30" />
+            <span className="w-4 h-px bg-yc-green/20" />
           </h4>
           <div className="max-w-[200px]">
-            <BracketNode
-              bm={{
-                match: thirdPlace,
-                homeLabel: thirdPlace.homePlaceholder ?? thirdPlace.homeTeamName ?? "TBD",
-                awayLabel: thirdPlace.awayPlaceholder ?? thirdPlace.awayTeamName ?? "TBD",
-                homeCrest: thirdPlace.homeCrest,
-                awayCrest: thirdPlace.awayCrest,
-              }}
-              teamMap={teamMap}
-              competitionId={comp.id}
-              liveScore={scoreMap.get(thirdPlace.id)}
-            />
+            <div className="yc-hex-wrap">
+              <div className="yc-hex-card hex-sm overflow-hidden">
+                {/* Inline mini bracket node for third place */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 relative z-2">
+                  <TeamCrest tla={thirdPlace.homeTeam?.toUpperCase() ?? "TBD"} isoCode={teamMap.get(thirdPlace.homeTeam ?? "")?.isoCode} crest={thirdPlace.homeCrest} size="xs" />
+                  <span className="text-xs flex-1 truncate text-yc-text-primary">{thirdPlace.homeTeamName ?? thirdPlace.homePlaceholder ?? "TBD"}</span>
+                </div>
+                <div className="h-px bg-white/[0.06] relative z-2" />
+                <div className="flex items-center gap-1.5 px-3 py-1.5 relative z-2">
+                  <TeamCrest tla={thirdPlace.awayTeam?.toUpperCase() ?? "TBD"} isoCode={teamMap.get(thirdPlace.awayTeam ?? "")?.isoCode} crest={thirdPlace.awayCrest} size="xs" />
+                  <span className="text-xs flex-1 truncate text-yc-text-primary">{thirdPlace.awayTeamName ?? thirdPlace.awayPlaceholder ?? "TBD"}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
