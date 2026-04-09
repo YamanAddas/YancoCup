@@ -47,7 +47,9 @@ export default function MobileNav() {
           }
         >
           {compConfig?.emblem ? (
-            <img src={compConfig.emblem} alt="" className="w-5 h-5 object-contain yc-emblem" />
+            <span className="w-6 h-6 rounded flex items-center justify-center p-0.5" style={{ backgroundColor: compConfig.emblemBg }}>
+              <img src={compConfig.emblem} alt="" className="w-5 h-5 object-contain" />
+            </span>
           ) : (
             <Trophy size={20} />
           )}

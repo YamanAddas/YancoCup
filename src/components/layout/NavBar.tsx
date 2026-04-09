@@ -24,10 +24,10 @@ export default function NavBar() {
   const links = [
     { to: "/", labelKey: "nav.home", icon: GlobeIcon, end: true },
     ...(compConfig
-      ? [{ to: `/${comp}/overview`, label: compConfig.shortName, emblem: compConfig.emblem, end: false }]
+      ? [{ to: `/${comp}/overview`, label: compConfig.shortName, emblem: compConfig.emblem, emblemBg: compConfig.emblemBg, end: false }]
       : []),
     { to: "/watch", labelKey: "nav.watch", icon: Tv, end: false },
-  ] as Array<{ to: string; labelKey?: string; label?: string; icon?: React.ComponentType<{ size?: number }>; emblem?: string; end: boolean }>;
+  ] as Array<{ to: string; labelKey?: string; label?: string; icon?: React.ComponentType<{ size?: number }>; emblem?: string; emblemBg?: string; end: boolean }>;
 
   return (
     <header className="sticky top-0 z-50 yc-glass border-b border-yc-border">
@@ -55,7 +55,9 @@ export default function NavBar() {
               }
             >
               {link.emblem ? (
-                <img src={link.emblem} alt="" className="w-4 h-4 object-contain yc-emblem" />
+                <span className="w-5 h-5 rounded flex items-center justify-center p-0.5" style={{ backgroundColor: link.emblemBg }}>
+                  <img src={link.emblem} alt="" className="w-4 h-4 object-contain" />
+                </span>
               ) : link.icon ? (
                 <link.icon size={16} />
               ) : null}

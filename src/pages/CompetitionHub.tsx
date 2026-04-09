@@ -68,12 +68,17 @@ export default function CompetitionHub() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           {/* Competition info row */}
           <div className="flex items-center gap-3 pt-3">
-            <img
-              src={comp.emblem}
-              alt={comp.shortName}
-              className="w-8 h-8 object-contain shrink-0 yc-emblem"
-              loading="lazy"
-            />
+            <div
+              className="w-9 h-9 rounded-lg flex items-center justify-center p-1 shrink-0"
+              style={{ backgroundColor: comp.emblemBg }}
+            >
+              <img
+                src={comp.emblem}
+                alt={comp.shortName}
+                className="w-7 h-7 object-contain"
+                loading="lazy"
+              />
+            </div>
             <h1 className="font-heading text-lg font-bold leading-tight truncate">
               {comp.shortName}
             </h1>

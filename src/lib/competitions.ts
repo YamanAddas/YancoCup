@@ -21,6 +21,8 @@ export interface CompetitionConfig {
   accentColor: string; // subtle per-competition tint
   /** Competition emblem URL */
   emblem: string;
+  /** Background color for emblem container (brand-tinted) */
+  emblemBg: string;
   zones?: StandingsZones;
 }
 
@@ -38,6 +40,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     emoji: "WC",
     accentColor: "#00ff88",
     emblem: "https://crests.football-data.org/wm26.png",
+    emblemBg: "#FFFFFF",
   },
   CL: {
     id: "CL",
@@ -52,6 +55,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     emoji: "CL",
     accentColor: "#1a56db",
     emblem: "https://crests.football-data.org/CL.png",
+    emblemBg: "#E8EAF6",
   },
   PL: {
     id: "PL",
@@ -66,6 +70,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     emoji: "PL",
     accentColor: "#37003c",
     emblem: "https://crests.football-data.org/PL.png",
+    emblemBg: "#F3E5F5",
     zones: { cl: [1, 2, 3, 4], el: [5], ecl: [6], relegation: [18, 19, 20] },
   },
   PD: {
@@ -81,6 +86,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     emoji: "PD",
     accentColor: "#ee8707",
     emblem: "https://crests.football-data.org/laliga.png",
+    emblemBg: "#FFF5F5",
     zones: { cl: [1, 2, 3, 4], el: [5, 6], ecl: [7], relegation: [18, 19, 20] },
   },
   BL1: {
@@ -96,6 +102,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     emoji: "BL",
     accentColor: "#d20515",
     emblem: "https://crests.football-data.org/BL1.png",
+    emblemBg: "#FFFFFF",
     zones: { cl: [1, 2, 3, 4], el: [5], ecl: [6], relegation: [16, 17, 18] },
   },
   SA: {
@@ -111,6 +118,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     emoji: "SA",
     accentColor: "#024494",
     emblem: "https://crests.football-data.org/c111.png",
+    emblemBg: "#E8F4FD",
     zones: { cl: [1, 2, 3, 4], el: [5, 6], ecl: [7], relegation: [18, 19, 20] },
   },
   FL1: {
@@ -126,6 +134,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     emoji: "L1",
     accentColor: "#091c3e",
     emblem: "https://crests.football-data.org/FL1.png",
+    emblemBg: "#ECEFF1",
     zones: { cl: [1, 2, 3], el: [4], ecl: [5], relegation: [16, 17, 18] },
   },
   EL: {
@@ -141,6 +150,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     emoji: "EL",
     accentColor: "#f26522",
     emblem: "https://crests.football-data.org/EL.png",
+    emblemBg: "#FFF3E0",
   },
 };
 
