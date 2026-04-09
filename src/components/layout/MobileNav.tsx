@@ -47,7 +47,7 @@ export default function MobileNav() {
           }
         >
           {compConfig?.emblem ? (
-            <img src={compConfig.emblem} alt="" className="w-5 h-5 object-contain" />
+            <img src={compConfig.emblem} alt="" className="w-5 h-5 object-contain yc-emblem" />
           ) : (
             <Trophy size={20} />
           )}

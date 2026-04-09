@@ -55,7 +55,7 @@ export default function NavBar() {
               }
             >
               {link.emblem ? (
-                <img src={link.emblem} alt="" className="w-4 h-4 object-contain" />
+                <img src={link.emblem} alt="" className="w-4 h-4 object-contain yc-emblem" />
               ) : link.icon ? (
                 <link.icon size={16} />
               ) : null}

@@ -49,7 +49,7 @@ function CompetitionCards() {
                 <img
                   src={comp.emblem}
                   alt={comp.shortName}
-                  className="h-7 w-7 object-contain"
+                  className="h-7 w-7 object-contain yc-emblem"
                   loading="lazy"
                 />
               </div>
