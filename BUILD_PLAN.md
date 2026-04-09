@@ -1,6 +1,6 @@
-# YancoScore — build plan (v4)
+# YancoCup — build plan (v4)
 
-> Formerly YancoCup. Expanding from World Cup 2026 to a multi-competition soccer prediction platform.
+> Expanding from World Cup 2026 to a multi-competition soccer prediction platform.
 > Phases 0-4 (Sessions 1-17) are COMPLETE. This plan covers Phase 5+ (expansion).
 
 Phased execution plan. One task per Claude Code session. Commit after each.
@@ -316,22 +316,9 @@ All available on football-data.org free tier (TIER_ONE):
 
 ---
 
-## Phase 10: Rebrand + Polish (Sessions 34-35)
+## Phase 10: Final Polish (Session 34)
 
-**Goal:** Ship as YancoScore.
-
-### Session 34 — Rebrand YancoCup → YancoScore
-
-- Logo: `Yanco<span class="text-yc-green">Score</span>`
-- Update all branding text in code, translations, meta tags
-- Update OG tags, Twitter Cards
-- Update Worker name: `yancocup-api` → `yancoscore-api`
-- Update CORS origins if domain changes
-- GitHub repo: rename or redirect
-- Update CLAUDE.md and all docs
-- **Verify:** all references updated, no "YancoCup" remains in UI
-
-### Session 35 — Final polish
+### Session 34 — Final polish
 
 - Cross-competition "today's matches" on homepage (all active competitions)
 - Competition-specific subtle theming (accent color per league, optional)

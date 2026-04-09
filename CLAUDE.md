@@ -1,4 +1,4 @@
-# YancoScore (formerly YancoCup)
+# YancoCup
 
 Multi-competition soccer prediction platform. World Cup 2026 + Champions League + top European leagues. 3D interactive globe, live scores, predictions game with pools, broadcast links, gamification, multilingual.
 

@@ -1,15 +1,6 @@
-# YancoScore — Multi-Competition Expansion Plan
+# YancoCup — Multi-Competition Expansion Plan
 
 > Audited against best practices from FotMob, Superbru, Kicktipp, FPL, and industry research (2024-2026).
-
-## Rebrand: YancoCup → YancoScore
-
-- "Cup" implies one tournament. "Score" covers leagues + cups
-- Keep "Yanco" prefix for YancoVerse continuity
-- `yc_` table prefix still works (YancoScore)
-- Logo: `Yanco<span class="text-yc-green">Score</span>`
-
----
 
 ## Target Competitions (all free on football-data.org TIER_ONE)
 
@@ -249,9 +240,9 @@ interface CompetitionContext {
 8. AI bot on leaderboards
 
 ### Phase 5 — Polish & Rebrand
-**Goal**: Ship as YancoScore.
+**Goal**: Ship as YancoCup.
 
-1. Rename YancoCup → YancoScore throughout
+1. Rename YancoCup → YancoCup throughout
 2. Update OG tags, PWA manifest
 3. Cross-competition "today's matches" on homepage
 4. Weekly recap notifications
