@@ -108,9 +108,13 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
   const away = match.awayTeam ? teamMap.get(match.awayTeam) : undefined;
   const venue = venueMap.get(match.venueId);
 
-  const isLive = liveScore?.status === "IN_PLAY" || liveScore?.status === "PAUSED";
-  const isFinished = liveScore?.status === "FINISHED";
-  const hasScore = liveScore && liveScore.homeScore !== null && liveScore.awayScore !== null;
+  // Determine status + scores: prefer liveScore (real-time), fall back to match data (from schedule)
+  const effectiveStatus = liveScore?.status ?? match.status;
+  const isLive = effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED";
+  const isFinished = effectiveStatus === "FINISHED";
+  const scoreHome = liveScore?.homeScore ?? match.homeScore ?? null;
+  const scoreAway = liveScore?.awayScore ?? match.awayScore ?? null;
+  const hasScore = scoreHome !== null && scoreAway !== null;
 
   const tbd = t("match.tbd");
 
@@ -138,8 +142,8 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
         <span className="text-yc-text-tertiary text-xs uppercase tracking-wider">
           {headerLabel}
         </span>
-        {liveScore ? (
-          <StatusBadge status={liveScore.status} />
+        {effectiveStatus && (effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED" || effectiveStatus === "FINISHED") ? (
+          <StatusBadge status={effectiveStatus} />
         ) : (
           <span className="text-yc-text-tertiary text-xs">
             {formatMatchDate(match.date)}
@@ -169,12 +173,10 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
                   isLive ? "text-yc-green" : isFinished ? "text-yc-text-primary" : "text-yc-text-secondary"
                 }`}
               >
-                {liveScore.homeScore} - {liveScore.awayScore}
+                {scoreHome} - {scoreAway}
               </span>
-              {liveScore.halfTimeHome !== null && liveScore.halfTimeAway !== null && isFinished && (
-                <span className="text-yc-text-tertiary text-[10px] font-mono">
-                  {t("match.ht")} {liveScore.halfTimeHome}-{liveScore.halfTimeAway}
-                </span>
+              {isFinished && (
+                <span className="text-yc-text-tertiary text-[10px] font-medium">FT</span>
               )}
             </>
           ) : (
