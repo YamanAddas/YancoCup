@@ -1,1 +1,0 @@
-function e(e,t){return e>t?`home`:e<t?`away`:`draw`}function t(t){let{predictedHome:n,predictedAway:r,actualHome:i,actualAway:a}=t;return n===i&&r===a?{tier:`exact`,points:10}:n-r===i-a?{tier:`goal_difference`,points:5}:e(n,r)===e(i,a)?{tier:`correct_result`,points:3}:{tier:`wrong`,points:0}}export{t};
