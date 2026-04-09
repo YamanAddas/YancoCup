@@ -78,8 +78,10 @@ export default function PredictionCard({
   };
 
   const handleShare = async () => {
-    if (!home || !away || !prediction) return;
-    const text = buildShareText(match, home, away, prediction.home_score, prediction.away_score);
+    if (!match.homeTeam || !match.awayTeam || !prediction) return;
+    const shareHome = home ?? { id: match.homeTeam, name: homeCode, fifaCode: homeCode, isoCode: "", confederation: "", group: "" };
+    const shareAway = away ?? { id: match.awayTeam, name: awayCode, fifaCode: awayCode, isoCode: "", confederation: "", group: "" };
+    const text = buildShareText(match, shareHome, shareAway, prediction.home_score, prediction.away_score);
     const result = await sharePrediction(text);
     if (result === "copied") {
       setShareStatus(t("predictions.copied"));
@@ -105,8 +107,8 @@ export default function PredictionCard({
     ? t("match.group", { id: match.group })
     : t(`round.${match.round === "round-of-32" ? "roundOf32" : match.round === "round-of-16" ? "roundOf16" : match.round === "third-place" ? "thirdPlace" : match.round}`);
 
-  // Can't predict knockout matches with TBD teams
-  if (!home || !away) {
+  // Can't predict matches with TBD teams (knockout placeholders)
+  if (!match.homeTeam || !match.awayTeam) {
     return (
       <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-4 opacity-50">
         <div className="flex items-center justify-between mb-2">
@@ -121,6 +123,10 @@ export default function PredictionCard({
       </div>
     );
   }
+
+  // Team display: use static map for WC, fall back to TLA for clubs
+  const homeCode = home?.fifaCode ?? match.homeTeam.toUpperCase();
+  const awayCode = away?.fifaCode ?? match.awayTeam.toUpperCase();
 
   return (
     <div
@@ -143,13 +149,19 @@ export default function PredictionCard({
       <div className="flex items-center gap-2">
         {/* Home team */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <img
-            src={`${FLAG_BASE}/${home.isoCode}.svg`}
-            alt={home.name}
-            className="w-8 h-8 rounded-full shrink-0"
-          />
+          {home ? (
+            <img
+              src={`${FLAG_BASE}/${home.isoCode}.svg`}
+              alt={home.name}
+              className="w-8 h-8 rounded-full shrink-0"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-yc-bg-elevated border border-yc-border flex items-center justify-center shrink-0">
+              <span className="text-yc-text-secondary text-[10px] font-bold font-mono">{homeCode.slice(0, 3)}</span>
+            </div>
+          )}
           <span className="text-yc-text-primary text-sm font-semibold truncate">
-            {home.fifaCode}
+            {homeCode}
           </span>
         </div>
 
@@ -181,13 +193,19 @@ export default function PredictionCard({
         {/* Away team */}
         <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
           <span className="text-yc-text-primary text-sm font-semibold truncate text-right">
-            {away.fifaCode}
+            {awayCode}
           </span>
-          <img
-            src={`${FLAG_BASE}/${away.isoCode}.svg`}
-            alt={away.name}
-            className="w-8 h-8 rounded-full shrink-0"
-          />
+          {away ? (
+            <img
+              src={`${FLAG_BASE}/${away.isoCode}.svg`}
+              alt={away.name}
+              className="w-8 h-8 rounded-full shrink-0"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-yc-bg-elevated border border-yc-border flex items-center justify-center shrink-0">
+              <span className="text-yc-text-secondary text-[10px] font-bold font-mono">{awayCode.slice(0, 3)}</span>
+            </div>
+          )}
         </div>
       </div>
 
