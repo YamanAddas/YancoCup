@@ -129,12 +129,12 @@ function GlobeInner({
         globeImageUrl={EARTH_NIGHT_URL}
         bumpImageUrl={device.isReduced ? undefined : EARTH_BUMP_URL}
         showAtmosphere={!device.isLowEnd}
-        atmosphereColor="#00ff88"
+        atmosphereColor="#00e5c1"
         atmosphereAltitude={0.2}
         pointsData={cities}
         pointLat="lat"
         pointLng="lng"
-        pointColor={() => "#00ff88"}
+        pointColor={() => "#00e5c1"}
         pointAltitude={0.02}
         pointRadius={device.isMobile ? 0.5 : 0.4}
         pointResolution={device.isReduced ? 6 : 12}

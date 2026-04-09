@@ -41,7 +41,6 @@ export default function PredictionCard({
   const [isJoker, setIsJoker] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Sync local state when prediction data loads from Supabase
   useEffect(() => {
     if (prediction) {
       setHomeScore(String(prediction.home_score));
@@ -85,7 +84,6 @@ export default function PredictionCard({
     const homeName = match.homeTeamName ?? home?.name ?? homeCode;
     const awayName = match.awayTeamName ?? away?.name ?? awayCode;
 
-    // Try shareable image card first
     const cardResult = await sharePredictionCard({
       homeTeam: homeName,
       awayTeam: awayName,
@@ -104,7 +102,6 @@ export default function PredictionCard({
       return;
     }
 
-    // Fallback to text share
     const shareHome = home ?? { id: match.homeTeam, name: homeCode, fifaCode: homeCode, isoCode: "", confederation: "", group: "" };
     const shareAway = away ?? { id: match.awayTeam, name: awayCode, fifaCode: awayCode, isoCode: "", confederation: "", group: "" };
     const text = buildShareText(match, shareHome, shareAway, prediction.home_score, prediction.away_score);
@@ -133,10 +130,9 @@ export default function PredictionCard({
     ? t("match.group", { id: match.group })
     : t(`round.${match.round === "round-of-32" ? "roundOf32" : match.round === "round-of-16" ? "roundOf16" : match.round === "third-place" ? "thirdPlace" : match.round}`);
 
-  // Can't predict matches with TBD teams (knockout placeholders)
   if (!match.homeTeam || !match.awayTeam) {
     return (
-      <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-4 opacity-50">
+      <div className="yc-card p-4 opacity-50">
         <div className="flex items-center justify-between mb-2">
           <span className="text-yc-text-tertiary text-xs uppercase tracking-wider">
             {roundLabel}
@@ -150,14 +146,17 @@ export default function PredictionCard({
     );
   }
 
-  // Team display: use static map for WC, fall back to TLA for clubs
   const homeCode = home?.fifaCode ?? match.homeTeam.toUpperCase();
   const awayCode = away?.fifaCode ?? match.awayTeam.toUpperCase();
 
   return (
     <div
-      className={`bg-yc-bg-surface border rounded-xl p-4 transition-colors ${
-        locked ? "border-yc-border opacity-75" : hasPrediction ? "border-yc-green-muted/30" : "border-yc-border hover:border-yc-border-hover"
+      className={`yc-card p-4 transition-all duration-300 ${
+        locked
+          ? "opacity-70"
+          : hasPrediction
+            ? "border-[var(--yc-border-accent)]"
+            : ""
       }`}
     >
       {/* Header */}
@@ -173,7 +172,6 @@ export default function PredictionCard({
 
       {/* Teams + score inputs */}
       <div className="flex items-center gap-2">
-        {/* Home team */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <TeamCrest
             tla={homeCode}
@@ -186,7 +184,6 @@ export default function PredictionCard({
           </span>
         </div>
 
-        {/* Score inputs */}
         <div className="flex items-center gap-1.5 shrink-0">
           <input
             type="number"
@@ -196,7 +193,7 @@ export default function PredictionCard({
             onChange={(e) => setHomeScore(e.target.value)}
             disabled={locked}
             placeholder="-"
-            className="w-12 h-12 sm:w-10 sm:h-10 bg-yc-bg-elevated border border-yc-border rounded-lg text-center text-yc-text-primary font-mono text-lg font-bold focus:outline-none focus:border-yc-green-muted disabled:opacity-40 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className="w-12 h-12 sm:w-10 sm:h-10 bg-yc-bg-elevated border border-yc-border rounded-lg text-center text-yc-text-primary font-mono text-lg font-bold focus:outline-none focus:border-yc-green-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
           <span className="text-yc-text-tertiary font-mono text-sm">:</span>
           <input
@@ -207,11 +204,10 @@ export default function PredictionCard({
             onChange={(e) => setAwayScore(e.target.value)}
             disabled={locked}
             placeholder="-"
-            className="w-12 h-12 sm:w-10 sm:h-10 bg-yc-bg-elevated border border-yc-border rounded-lg text-center text-yc-text-primary font-mono text-lg font-bold focus:outline-none focus:border-yc-green-muted disabled:opacity-40 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className="w-12 h-12 sm:w-10 sm:h-10 bg-yc-bg-elevated border border-yc-border rounded-lg text-center text-yc-text-primary font-mono text-lg font-bold focus:outline-none focus:border-yc-green-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>
 
-        {/* Away team */}
         <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
           <span className="text-yc-text-primary text-sm font-semibold truncate text-right">
             {awayCode}
@@ -225,20 +221,20 @@ export default function PredictionCard({
         </div>
       </div>
 
-      {/* Community consensus — only shown after user has predicted */}
+      {/* Community consensus */}
       {consensus && (
         <div className="mt-2 flex items-center gap-1 text-[10px] text-yc-text-tertiary">
           <span>{consensus.home}%</span>
           <div className="flex-1 h-1.5 bg-yc-bg-elevated rounded-full overflow-hidden flex">
-            <div className="bg-yc-green/60 h-full" style={{ width: `${consensus.home}%` }} />
-            <div className="bg-yc-text-tertiary/30 h-full" style={{ width: `${consensus.draw}%` }} />
-            <div className="bg-yc-warning/50 h-full" style={{ width: `${consensus.away}%` }} />
+            <div className="bg-yc-green/60 h-full transition-all" style={{ width: `${consensus.home}%` }} />
+            <div className="bg-yc-text-tertiary/30 h-full transition-all" style={{ width: `${consensus.draw}%` }} />
+            <div className="bg-yc-warning/50 h-full transition-all" style={{ width: `${consensus.away}%` }} />
           </div>
           <span>{consensus.away}%</span>
         </div>
       )}
 
-      {/* Footer: venue + save button + count */}
+      {/* Footer */}
       <div className="mt-3 pt-3 border-t border-yc-border flex items-center justify-between">
         <div className="flex items-center gap-3 text-xs text-yc-text-tertiary">
           {venue && <span className="truncate max-w-[120px]">{venue.city}</span>}
@@ -255,7 +251,7 @@ export default function PredictionCard({
             onClick={() => setIsJoker(!isJoker)}
             className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
               isJoker
-                ? "bg-yc-warning/20 text-yc-warning border border-yc-warning/30"
+                ? "bg-yc-warning/15 text-yc-warning border border-yc-warning/30"
                 : "text-yc-text-tertiary hover:text-yc-warning"
             }`}
             title={t("predictions.jokerTip")}
@@ -269,7 +265,7 @@ export default function PredictionCard({
           <button
             onClick={handleSave}
             disabled={saving || (!hasChanged && hasPrediction && isJoker === (prediction?.is_joker ?? false)) || !homeScore || !awayScore}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none bg-yc-green text-yc-bg-deep hover:brightness-110 active:scale-[0.97]"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none bg-yc-green text-yc-bg-deep hover:brightness-110 active:scale-[0.97] shadow-[0_0_12px_rgba(0,229,193,0.15)]"
           >
             {saving ? (
               <Loader2 size={12} className="animate-spin" />
@@ -301,7 +297,7 @@ export default function PredictionCard({
               <span
                 className={`font-mono text-xs font-bold px-1.5 py-0.5 rounded ${
                   prediction.points >= 10
-                    ? "text-yc-green bg-yc-green-dark/30"
+                    ? "text-yc-green bg-yc-green/10"
                     : prediction.points > 0
                       ? "text-yc-warning bg-yc-warning/10"
                       : "text-yc-text-tertiary bg-yc-bg-elevated"

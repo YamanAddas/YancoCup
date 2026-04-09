@@ -22,7 +22,7 @@ export default function MobileNav() {
   ] as const;
 
   return (
-    <nav className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-[var(--yc-bg-glass)] backdrop-blur-xl border-t border-yc-border safe-bottom">
+    <nav className="sm:hidden fixed bottom-0 inset-x-0 z-50 yc-glass border-t border-yc-border safe-bottom">
       <div className="flex items-center justify-around h-14 px-1">
         {links.map(({ to, labelKey, icon: Icon }) => (
           <NavLink
@@ -30,9 +30,9 @@ export default function MobileNav() {
             to={to}
             end={to === "/"}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors min-w-[48px] ${
+              `flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] font-medium transition-all min-w-[48px] ${
                 isActive
-                  ? "text-yc-green"
+                  ? "text-yc-green drop-shadow-[0_0_6px_rgba(0,229,193,0.3)]"
                   : "text-yc-text-tertiary"
               }`
             }

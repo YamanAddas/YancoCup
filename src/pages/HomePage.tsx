@@ -29,8 +29,8 @@ function CompetitionCards() {
   const { t } = useI18n();
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 border-t border-yc-border">
-      <div className="flex items-center gap-2 mb-4">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex items-center gap-2 mb-5">
         <Trophy size={18} className="text-yc-green" />
         <h3 className="font-heading text-xl font-bold">
           {t("home.competitions")}
@@ -42,21 +42,23 @@ function CompetitionCards() {
           <NavLink
             key={comp.id}
             to={`/${comp.id}/matches`}
-            className="group bg-yc-bg-surface border border-yc-border rounded-xl p-4 hover:border-yc-green-muted/40 transition-all"
+            className="group yc-card p-4 rounded-xl transition-all duration-300 hover:border-[var(--yc-border-accent)] hover:shadow-[0_0_20px_rgba(0,229,193,0.06)]"
           >
-            <div className="flex items-center justify-between mb-2">
-              <img
-                src={comp.emblem}
-                alt={comp.shortName}
-                className="h-6 w-6 object-contain"
-                loading="lazy"
-              />
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-8 h-8 rounded-lg bg-yc-bg-elevated/80 flex items-center justify-center p-1">
+                <img
+                  src={comp.emblem}
+                  alt={comp.shortName}
+                  className="h-5 w-5 object-contain"
+                  loading="lazy"
+                />
+              </div>
               <ChevronRight
                 size={14}
                 className="text-yc-text-tertiary group-hover:text-yc-green transition-colors"
               />
             </div>
-            <p className="text-yc-text-primary text-sm font-medium leading-tight">
+            <p className="text-yc-text-primary text-sm font-semibold leading-tight">
               {comp.shortName}
             </p>
             <p className="text-yc-text-tertiary text-xs mt-0.5">
@@ -69,7 +71,6 @@ function CompetitionCards() {
   );
 }
 
-/** Cross-competition today's matches — fetches from Worker /api/live + WC static fallback */
 function TodaysMatches() {
   const wcMatches = useSchedule();
   const teamMap = useTeamMap();
@@ -114,7 +115,6 @@ function TodaysMatches() {
     };
   }
 
-  // Fetch cross-competition live matches + upcoming league matches
   useEffect(() => {
     async function fetchLive() {
       try {
@@ -127,7 +127,6 @@ function TodaysMatches() {
         }
       } catch { /* */ }
 
-      // Also fetch upcoming PL matches for when no live/WC data exists
       try {
         const res = await fetch(`${WORKER_URL}/api/PL/scores`);
         if (res.ok) {
@@ -145,7 +144,6 @@ function TodaysMatches() {
     fetchLive();
   }, []);
 
-  // Use live → today's WC → upcoming league → upcoming WC as fallback chain
   const displayMatches = useMemo(() => {
     if (liveMatches.length > 0) {
       return { matches: liveMatches, label: t("home.liveNow"), comp: "" };
@@ -157,7 +155,6 @@ function TodaysMatches() {
       return { matches: todaysWc, label: t("home.todaysMatches"), comp: "WC" };
     }
 
-    // Show upcoming league matches if available
     if (upcomingLeague.length > 0) {
       const firstDate = upcomingLeague[0]!.date;
       const dateLabel = new Date(`${firstDate}T00:00:00Z`).toLocaleDateString(
@@ -171,8 +168,7 @@ function TodaysMatches() {
       };
     }
 
-    // Fall back to WC upcoming
-    const upcoming = wcMatches.filter((m) => m.date > today);
+    const upcoming = wcMatches.filter((m) => m.date > new Date().toISOString().slice(0, 10));
     const first = upcoming[0];
     if (first) {
       const nextDate = first.date;
@@ -192,8 +188,8 @@ function TodaysMatches() {
   }, [liveMatches, upcomingLeague, wcMatches, t]);
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8 border-t border-yc-border">
-      <div className="flex items-center justify-between mb-4">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <Calendar size={18} className="text-yc-green" />
           <h3 className="font-heading text-xl font-bold">
@@ -236,12 +232,23 @@ function LeaderboardSnippetInner() {
   const { t } = useI18n();
 
   if (loading) {
-    return <div className="h-40 bg-yc-bg-elevated rounded-xl animate-pulse" />;
+    return (
+      <div className="yc-card rounded-xl overflow-hidden">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-yc-border/30 last:border-0">
+            <div className="w-5 h-4 bg-yc-bg-elevated rounded animate-pulse" />
+            <div className="w-7 h-7 bg-yc-bg-elevated rounded-full animate-pulse" />
+            <div className="flex-1 h-4 bg-yc-bg-elevated rounded animate-pulse max-w-[100px]" />
+            <div className="w-12 h-4 bg-yc-bg-elevated rounded animate-pulse" />
+          </div>
+        ))}
+      </div>
+    );
   }
 
   if (entries.length === 0) {
     return (
-      <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-6 text-center">
+      <div className="yc-card rounded-xl p-6 text-center">
         <p className="text-yc-text-tertiary text-sm">{t("home.noPlayers")}</p>
       </div>
     );
@@ -250,20 +257,20 @@ function LeaderboardSnippetInner() {
   const top5 = entries.slice(0, 5);
 
   return (
-    <div className="bg-yc-bg-surface border border-yc-border rounded-xl overflow-hidden">
+    <div className="yc-card rounded-xl overflow-hidden">
       {top5.map((entry, i) => (
         <div
           key={entry.userId}
-          className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-yc-border/50" : ""}`}
+          className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-yc-border/50" : ""} ${i === 0 ? "bg-yc-green/[0.03]" : ""}`}
         >
-          <span className="font-mono text-yc-text-tertiary text-sm w-5 text-right">
+          <span className={`font-mono text-sm w-5 text-right ${i === 0 ? "text-yc-green font-bold" : "text-yc-text-tertiary"}`}>
             {i + 1}
           </span>
           {entry.avatarUrl ? (
             <img
               src={entry.avatarUrl}
               alt=""
-              className="w-7 h-7 rounded-full"
+              className="w-7 h-7 rounded-full border border-yc-border"
             />
           ) : (
             <div className="w-7 h-7 rounded-full bg-yc-bg-elevated flex items-center justify-center text-xs font-bold text-yc-text-secondary">
@@ -287,7 +294,7 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* Hero: globe + countdown side by side on desktop */}
+      {/* Hero: globe + countdown */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 items-center">
         <GlobeView />
 
@@ -295,14 +302,14 @@ export default function HomePage() {
           <div>
             <h2 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight mb-2">
               {t("home.title")}{" "}
-              <span className="text-yc-green">{t("home.year")}</span>
+              <span className="text-yc-green drop-shadow-[0_0_12px_rgba(0,229,193,0.3)]">{t("home.year")}</span>
             </h2>
             <p className="text-yc-text-secondary text-sm">
               {t("home.subtitle")}
             </p>
           </div>
 
-          <div>
+          <div className="yc-card p-4 rounded-xl w-full">
             <p className="text-yc-text-tertiary text-xs uppercase tracking-widest mb-3">
               {t("home.kickoffIn")}
             </p>
@@ -311,7 +318,7 @@ export default function HomePage() {
 
           <a
             href="#/WC/predictions"
-            className="inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all"
+            className="inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(0,229,193,0.2)]"
           >
             <Trophy size={18} />
             {t("home.cta")}
@@ -322,12 +329,22 @@ export default function HomePage() {
       {/* Competition cards */}
       <CompetitionCards />
 
+      {/* Divider with glow */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="h-px bg-gradient-to-r from-transparent via-yc-green/20 to-transparent" />
+      </div>
+
       <TodaysMatches />
 
+      {/* Divider */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="h-px bg-gradient-to-r from-transparent via-yc-green/20 to-transparent" />
+      </div>
+
       {/* Leaderboard + Activity side by side */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8 border-t border-yc-border grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <BarChart3 size={18} className="text-yc-green" />
               <h3 className="font-heading text-xl font-bold">
@@ -345,13 +362,13 @@ export default function HomePage() {
         </div>
 
         <div>
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-5">
             <Activity size={18} className="text-yc-green" />
             <h3 className="font-heading text-xl font-bold">
               {t("home.recentActivity")}
             </h3>
           </div>
-          <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-2">
+          <div className="yc-card rounded-xl p-3">
             <ActivityFeed />
           </div>
         </div>

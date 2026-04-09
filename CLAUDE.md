@@ -75,16 +75,17 @@ docs/               # Architecture decisions, expansion plan, premium upgrade pl
 
 IMPORTANT: This is not a generic sports site. It follows the YancoVerse design language.
 
-- **Background**: Deep black (#0a0a0a) with subtle gradient to #111
-- **Primary accent**: #00ff88 (signature green) — used for highlights, hover states, active elements
-- **Secondary accent**: #00cc6a (muted green) — borders, subtle indicators
-- **Text**: #ffffff primary, #a0a0a0 secondary, #666666 tertiary
-- **Cards/surfaces**: #1a1a1a with 1px #222 borders, subtle glow on hover
-- **Typography**: "Space Grotesk" for headings, "Inter" for body (these are the YancoVerse fonts)
-- **Effects**: Subtle particle backgrounds, green glow on interactive elements, smooth transitions (300ms ease)
-- **NO**: Bright backgrounds, generic sports-site blue/red schemes, stock photo vibes, flat corporate look
+- **Background**: Deep navy (#060b14) with cosmic gradient — matches YancoHub
+- **Primary accent**: #00e5c1 (cyan-teal) — interactive elements, glow effects, active states
+- **Secondary accent**: #00b89a (muted teal) — borders, subtle indicators
+- **Text**: #dde5f0 primary, #8a9bb0 secondary, #3d4f63 tertiary
+- **Cards/surfaces**: Glass panels with `backdrop-filter: blur(16px)`, crystal gradient borders (`yc-card` class)
+- **Typography**: "Space Grotesk" for headings, "Inter" for body, "JetBrains Mono" for scores/data
+- **Effects**: Glassmorphism panels, ambient orb glows, breathing animations on live elements, shimmer overlays, crystal borders, cosmic background gradient
+- **Layout utilities**: `.yc-glass` (glass panel), `.yc-card` (crystal card), `.yc-card-glow` (active glow), `.yc-hex` (hex clip-path), `.animate-breathe` (breathing glow)
+- **NO**: Bright backgrounds, generic sports-site blue/red schemes, stock photo vibes, flat corporate look, pure black backgrounds
 
-When in doubt about visual direction, think: "dark, atmospheric, premium gaming lounge" not "ESPN clone."
+When in doubt about visual direction, think: "cinematic immersion with depth, glow, and smooth motion" — matching YancoHub's hexagonal-glass aesthetic.
 
 ## Club crests — copyright strategy
 

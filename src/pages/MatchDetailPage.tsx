@@ -650,7 +650,7 @@ export default function MatchDetailPage() {
       {/* Score header */}
       <div
         className={`bg-yc-bg-surface border rounded-xl p-6 mb-6 ${
-          isLive ? "border-yc-green-muted/50 shadow-[0_0_16px_rgba(0,255,136,0.1)]" : "border-yc-border"
+          isLive ? "border-yc-green-muted/50 shadow-[0_0_16px_rgba(0,229,193,0.1)]" : "border-yc-border"
         }`}
       >
         {/* Status + meta */}

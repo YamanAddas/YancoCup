@@ -28,22 +28,22 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
 
     // Background gradient
     const bg = ctx.createLinearGradient(0, 0, 0, CARD_HEIGHT);
-    bg.addColorStop(0, "#0a0a0a");
-    bg.addColorStop(1, "#111111");
+    bg.addColorStop(0, "#060b14");
+    bg.addColorStop(1, "#0c1620");
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
     // Border
-    ctx.strokeStyle = "#222222";
+    ctx.strokeStyle = "#142035";
     ctx.lineWidth = 2;
     ctx.strokeRect(1, 1, CARD_WIDTH - 2, CARD_HEIGHT - 2);
 
     // Green accent line at top
-    ctx.fillStyle = "#00ff88";
+    ctx.fillStyle = "#00e5c1";
     ctx.fillRect(0, 0, CARD_WIDTH, 3);
 
     // YancoCup branding
-    ctx.fillStyle = "#00ff88";
+    ctx.fillStyle = "#00e5c1";
     ctx.font = "bold 14px 'Space Grotesk', sans-serif";
     ctx.textAlign = "left";
     ctx.fillText("YANCOCUP", 24, 36);
@@ -69,7 +69,7 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
     ctx.fillText(data.awayTeam, CARD_WIDTH / 2 + 50, 120);
 
     // Predicted score (large)
-    ctx.fillStyle = "#00ff88";
+    ctx.fillStyle = "#00e5c1";
     ctx.font = "bold 48px 'Space Grotesk', monospace";
     ctx.textAlign = "center";
     ctx.fillText(`${data.homeScore} - ${data.awayScore}`, CARD_WIDTH / 2, 185);
@@ -87,7 +87,7 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
       // Points badge
       if (data.points !== null && data.points !== undefined) {
         const pointsText = `+${data.points} pts`;
-        const badgeColor = data.points >= 10 ? "#00ff88" : data.points > 0 ? "#f59e0b" : "#666666";
+        const badgeColor = data.points >= 10 ? "#00e5c1" : data.points > 0 ? "#f59e0b" : "#666666";
 
         ctx.fillStyle = badgeColor + "20";
         const badgeWidth = ctx.measureText(pointsText).width + 24;

@@ -36,7 +36,7 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     staticSchedule: true,
     seasonLabel: "2026",
     emoji: "WC",
-    accentColor: "#00ff88",
+    accentColor: "#00e5c1",
     emblem: "https://crests.football-data.org/FIFA.svg",
   },
   CL: {

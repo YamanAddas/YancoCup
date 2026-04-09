@@ -21,7 +21,6 @@ function TeamBadge({
 }) {
   const align = side === "home" ? "items-end text-right" : "items-start text-left";
   const code = team?.fifaCode ?? tla?.toUpperCase() ?? "?";
-  // Show full name for clubs, FIFA code for national teams
   const label = displayName ?? team?.name ?? code;
 
   return (
@@ -98,7 +97,6 @@ interface MatchCardProps {
   venueMap: Map<string, Venue>;
   liveScore?: LocalLiveScore;
   compact?: boolean;
-  /** Competition ID for linking to match detail. If provided, card is clickable. */
   competitionId?: string;
 }
 
@@ -108,7 +106,6 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
   const away = match.awayTeam ? teamMap.get(match.awayTeam) : undefined;
   const venue = venueMap.get(match.venueId);
 
-  // Determine status + scores: prefer liveScore (real-time), fall back to match data (from schedule)
   const effectiveStatus = liveScore?.status ?? match.status;
   const isLive = effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED";
   const isFinished = effectiveStatus === "FINISHED";
@@ -118,7 +115,6 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
 
   const tbd = t("match.tbd");
 
-  // For league matches, show "Matchday X" instead of round name
   const headerLabel = match.group
     ? t("match.group", { id: match.group })
     : match.matchday && match.round === "group"
@@ -129,14 +125,17 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
 
   const card = (
     <div
-      className={`bg-yc-bg-surface border rounded-xl p-4 transition-colors ${
+      className={`yc-card p-4 transition-all duration-300 ${
         detailUrl ? "cursor-pointer" : ""
       } ${
         isLive
-          ? "border-yc-green-muted/50 shadow-[0_0_12px_rgba(0,255,136,0.08)]"
-          : "border-yc-border hover:border-yc-border-hover"
+          ? "yc-card-glow animate-breathe"
+          : ""
       }`}
     >
+      {/* Shimmer overlay on live */}
+      {isLive && <div className="absolute inset-0 rounded-xl animate-shimmer pointer-events-none" />}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-yc-text-tertiary text-xs uppercase tracking-wider">
@@ -169,8 +168,8 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
           {hasScore ? (
             <>
               <span
-                className={`font-mono text-xl font-bold ${
-                  isLive ? "text-yc-green" : isFinished ? "text-yc-text-primary" : "text-yc-text-secondary"
+                className={`font-mono text-xl font-bold tracking-wider ${
+                  isLive ? "text-yc-green drop-shadow-[0_0_8px_rgba(0,229,193,0.4)]" : isFinished ? "text-yc-text-primary" : "text-yc-text-secondary"
                 }`}
               >
                 {scoreHome} - {scoreAway}

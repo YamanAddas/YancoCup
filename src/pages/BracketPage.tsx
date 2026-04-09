@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, GitBranch } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useCompetitionSchedule } from "../hooks/useCompetitionSchedule";
 import { useTeamMap } from "../hooks/useTeams";
+import { useScores } from "../hooks/useScores";
 import { useI18n } from "../lib/i18n";
 import TeamCrest from "../components/match/TeamCrest";
 import type { Match, Team } from "../types";
@@ -31,21 +32,27 @@ const ROUND_LABELS: Record<RoundId, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Match node component
+// Match node — glass-styled
 // ---------------------------------------------------------------------------
 
 function BracketNode({
   bm,
   teamMap,
   competitionId,
+  liveScore,
 }: {
   bm: BracketMatch;
   teamMap: Map<string, Team>;
   competitionId: string;
+  liveScore?: { status: string; homeScore: number | null; awayScore: number | null };
 }) {
   const m = bm.match;
-  const hasScore = m.homeScore !== null && m.awayScore !== null;
-  const isFinished = m.status === "FINISHED";
+  const effectiveStatus = liveScore?.status ?? m.status;
+  const isLive = effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED";
+  const isFinished = effectiveStatus === "FINISHED";
+  const homeScore = liveScore?.homeScore ?? m.homeScore;
+  const awayScore = liveScore?.awayScore ?? m.awayScore;
+  const hasScore = homeScore !== null && awayScore !== null;
 
   const homeTeam = m.homeTeam ? teamMap.get(m.homeTeam) : undefined;
   const awayTeam = m.awayTeam ? teamMap.get(m.awayTeam) : undefined;
@@ -57,43 +64,77 @@ function BracketNode({
   const homeTla = m.homeTeam?.toUpperCase() ?? "TBD";
   const awayTla = m.awayTeam?.toUpperCase() ?? "TBD";
 
-  // Determine winner for highlighting
-  const homeWin = hasScore && (m.homeScore ?? 0) > (m.awayScore ?? 0);
-  const awayWin = hasScore && (m.awayScore ?? 0) > (m.homeScore ?? 0);
+  const homeWin = hasScore && (homeScore ?? 0) > (awayScore ?? 0);
+  const awayWin = hasScore && (awayScore ?? 0) > (homeScore ?? 0);
 
   return (
     <Link
       to={`/${competitionId}/match/${m.id}`}
-      className="block bg-yc-bg-surface border border-yc-border rounded-lg overflow-hidden hover:border-yc-border-hover transition-colors w-full"
+      className={`block rounded-lg overflow-hidden transition-all duration-300 w-full ${
+        isLive
+          ? "yc-card-glow animate-breathe"
+          : "yc-card"
+      }`}
     >
       {/* Home team row */}
-      <div className={`flex items-center gap-1.5 px-2 py-1.5 ${homeWin && isFinished ? "bg-yc-green-dark/10" : ""}`}>
+      <div className={`flex items-center gap-1.5 px-2.5 py-2 ${homeWin && isFinished ? "bg-yc-green/5" : ""}`}>
         <TeamCrest tla={homeTla} isoCode={homeTeam?.isoCode} crest={homeCrest} size="xs" />
-        <span className={`text-xs flex-1 truncate ${m.homeTeam ? "text-yc-text-primary" : "text-yc-text-tertiary"}`}>
+        <span className={`text-xs flex-1 truncate ${m.homeTeam ? "text-yc-text-primary" : "text-yc-text-tertiary"} ${homeWin && isFinished ? "font-semibold" : ""}`}>
           {homeName}
         </span>
         {hasScore && (
-          <span className={`text-xs font-mono font-bold ${homeWin ? "text-yc-green" : "text-yc-text-secondary"}`}>
-            {m.homeScore}
+          <span className={`text-xs font-mono font-bold min-w-[14px] text-right ${
+            isLive ? "text-yc-green" : homeWin ? "text-yc-green" : "text-yc-text-secondary"
+          }`}>
+            {homeScore}
           </span>
         )}
       </div>
       {/* Divider */}
       <div className="h-px bg-yc-border" />
       {/* Away team row */}
-      <div className={`flex items-center gap-1.5 px-2 py-1.5 ${awayWin && isFinished ? "bg-yc-green-dark/10" : ""}`}>
+      <div className={`flex items-center gap-1.5 px-2.5 py-2 ${awayWin && isFinished ? "bg-yc-green/5" : ""}`}>
         <TeamCrest tla={awayTla} isoCode={awayTeam?.isoCode} crest={awayCrest} size="xs" />
-        <span className={`text-xs flex-1 truncate ${m.awayTeam ? "text-yc-text-primary" : "text-yc-text-tertiary"}`}>
+        <span className={`text-xs flex-1 truncate ${m.awayTeam ? "text-yc-text-primary" : "text-yc-text-tertiary"} ${awayWin && isFinished ? "font-semibold" : ""}`}>
           {awayName}
         </span>
         {hasScore && (
-          <span className={`text-xs font-mono font-bold ${awayWin ? "text-yc-green" : "text-yc-text-secondary"}`}>
-            {m.awayScore}
+          <span className={`text-xs font-mono font-bold min-w-[14px] text-right ${
+            isLive ? "text-yc-green" : awayWin ? "text-yc-green" : "text-yc-text-secondary"
+          }`}>
+            {awayScore}
           </span>
         )}
       </div>
+      {/* Live indicator */}
+      {isLive && (
+        <div className="h-0.5 bg-gradient-to-r from-transparent via-yc-green to-transparent" />
+      )}
     </Link>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Bracket connector lines between rounds
+// ---------------------------------------------------------------------------
+
+function BracketConnectors({ matchCount }: { matchCount: number }) {
+  const pairs = Math.ceil(matchCount / 2);
+  return (
+    <div className="flex flex-col justify-around w-8 shrink-0">
+      {Array.from({ length: pairs }).map((_, i) => (
+        <div key={i} className="flex-1 flex flex-col">
+          <div className="flex-1 bracket-connector-top" />
+          <div className="flex-1 bracket-connector-bottom" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Entry connector (horizontal line into each match in rounds 2+)
+function EntryConnector() {
+  return <div className="w-4 shrink-0 bracket-connector-entry self-center" />;
 }
 
 // ---------------------------------------------------------------------------
@@ -106,29 +147,38 @@ function BracketColumn({
   teamMap,
   competitionId,
   roundIndex,
+  scoreMap,
 }: {
   roundId: RoundId;
   matches: BracketMatch[];
   teamMap: Map<string, Team>;
   competitionId: string;
   roundIndex: number;
+  scoreMap: Map<number, { status: string; homeScore: number | null; awayScore: number | null }>;
 }) {
-  // Spacing increases per round to align with the bracket tree structure
-  const gap = roundIndex === 0 ? "gap-2" : roundIndex === 1 ? "gap-6" : roundIndex === 2 ? "gap-14" : "gap-24";
+  // Gap increases per round to align with bracket tree
+  const gapPx = roundIndex === 0 ? 8 : roundIndex === 1 ? 24 : roundIndex === 2 ? 56 : roundIndex === 3 ? 120 : 180;
 
   return (
-    <div className="flex flex-col shrink-0" style={{ minWidth: 160 }}>
-      <h4 className="text-[10px] text-yc-text-tertiary uppercase tracking-wider text-center mb-3 font-medium">
+    <div className="flex flex-col shrink-0" style={{ minWidth: 170 }}>
+      <h4 className="text-[10px] text-yc-text-tertiary uppercase tracking-wider text-center mb-4 font-medium flex items-center justify-center gap-1.5">
+        <span className="w-3 h-px bg-yc-text-tertiary/30" />
         {ROUND_LABELS[roundId]}
+        <span className="w-3 h-px bg-yc-text-tertiary/30" />
       </h4>
-      <div className={`flex flex-col ${gap} justify-center flex-1`}>
+      <div className="flex flex-col justify-center flex-1" style={{ gap: gapPx }}>
         {matches.map((bm) => (
-          <BracketNode
-            key={bm.match.id}
-            bm={bm}
-            teamMap={teamMap}
-            competitionId={competitionId}
-          />
+          <div key={bm.match.id} className="flex items-center">
+            {roundIndex > 0 && <EntryConnector />}
+            <div className="flex-1">
+              <BracketNode
+                bm={bm}
+                teamMap={teamMap}
+                competitionId={competitionId}
+                liveScore={scoreMap.get(bm.match.id)}
+              />
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -143,9 +193,9 @@ export default function BracketPage() {
   const comp = useCompetition();
   const { matches } = useCompetitionSchedule();
   const teamMap = useTeamMap();
+  const { scoreMap } = useScores();
   const { t } = useI18n();
 
-  // Determine which rounds exist in this competition's knockout
   const roundOrder: RoundId[] = ["round-of-32", "round-of-16", "quarterfinal", "semifinal", "final"];
 
   const bracketRounds = useMemo(() => {
@@ -155,7 +205,6 @@ export default function BracketPage() {
       const roundMatches = matches
         .filter((m) => m.round === roundId)
         .sort((a, b) => {
-          // Sort by date first, then by ID for same-date matches
           const dateCompare = a.date.localeCompare(b.date);
           return dateCompare !== 0 ? dateCompare : a.id - b.id;
         })
@@ -175,7 +224,6 @@ export default function BracketPage() {
     return rounds;
   }, [matches]);
 
-  // Also check for third-place match
   const thirdPlace = matches.find((m) => m.round === "third-place");
 
   if (bracketRounds.length === 0) {
@@ -188,9 +236,12 @@ export default function BracketPage() {
           <ArrowLeft size={16} />
           {comp.shortName} — {t("nav.matches")}
         </Link>
-        <p className="text-yc-text-tertiary text-sm text-center py-16">
-          No knockout matches available yet.
-        </p>
+        <div className="yc-card p-12 text-center">
+          <GitBranch size={48} className="text-yc-text-tertiary mx-auto mb-4 opacity-40" />
+          <p className="text-yc-text-tertiary text-sm">
+            No knockout matches available yet.
+          </p>
+        </div>
       </div>
     );
   }
@@ -205,43 +256,59 @@ export default function BracketPage() {
         {comp.shortName} — {t("nav.matches")}
       </Link>
 
-      <h2 className="font-heading text-2xl font-bold mb-6">
-        {comp.shortName} — Knockout Bracket
-      </h2>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-yc-green/10 flex items-center justify-center">
+          <GitBranch size={20} className="text-yc-green" />
+        </div>
+        <h2 className="font-heading text-2xl font-bold">
+          Knockout Bracket
+        </h2>
+      </div>
 
-      {/* Horizontally scrollable bracket */}
-      <div className="overflow-x-auto pb-4">
-        <div className="flex gap-4 items-stretch min-w-max">
+      {/* Horizontally scrollable bracket with connector lines */}
+      <div className="yc-card p-6 overflow-x-auto">
+        <div className="flex items-stretch min-w-max">
           {bracketRounds.map((round, i) => (
-            <BracketColumn
-              key={round.id}
-              roundId={round.id}
-              matches={round.matches}
-              teamMap={teamMap}
-              competitionId={comp.id}
-              roundIndex={i}
-            />
+            <Fragment key={round.id}>
+              <BracketColumn
+                roundId={round.id}
+                matches={round.matches}
+                teamMap={teamMap}
+                competitionId={comp.id}
+                roundIndex={i}
+                scoreMap={scoreMap}
+              />
+              {/* Connector lines between rounds */}
+              {i < bracketRounds.length - 1 && (
+                <BracketConnectors matchCount={round.matches.length} />
+              )}
+            </Fragment>
           ))}
         </div>
       </div>
 
       {/* Third place match */}
       {thirdPlace && (
-        <div className="mt-8 max-w-[200px]">
-          <h4 className="text-[10px] text-yc-text-tertiary uppercase tracking-wider mb-2 font-medium">
+        <div className="mt-6">
+          <h4 className="text-[10px] text-yc-text-tertiary uppercase tracking-wider mb-2 font-medium flex items-center gap-1.5">
+            <span className="w-3 h-px bg-yc-text-tertiary/30" />
             Third Place
+            <span className="w-3 h-px bg-yc-text-tertiary/30" />
           </h4>
-          <BracketNode
-            bm={{
-              match: thirdPlace,
-              homeLabel: thirdPlace.homePlaceholder ?? thirdPlace.homeTeamName ?? "TBD",
-              awayLabel: thirdPlace.awayPlaceholder ?? thirdPlace.awayTeamName ?? "TBD",
-              homeCrest: thirdPlace.homeCrest,
-              awayCrest: thirdPlace.awayCrest,
-            }}
-            teamMap={teamMap}
-            competitionId={comp.id}
-          />
+          <div className="max-w-[200px]">
+            <BracketNode
+              bm={{
+                match: thirdPlace,
+                homeLabel: thirdPlace.homePlaceholder ?? thirdPlace.homeTeamName ?? "TBD",
+                awayLabel: thirdPlace.awayPlaceholder ?? thirdPlace.awayTeamName ?? "TBD",
+                homeCrest: thirdPlace.homeCrest,
+                awayCrest: thirdPlace.awayCrest,
+              }}
+              teamMap={teamMap}
+              competitionId={comp.id}
+              liveScore={scoreMap.get(thirdPlace.id)}
+            />
+          </div>
         </div>
       )}
     </div>

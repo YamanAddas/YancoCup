@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useCompetitionSchedule } from "../hooks/useCompetitionSchedule";
 import { useSchedule } from "../hooks/useSchedule";
@@ -9,17 +9,133 @@ import { useScores } from "../hooks/useScores";
 import { useI18n } from "../lib/i18n";
 import MatchCard from "../components/match/MatchCard";
 import type { Match } from "../types";
+import { CalendarDays, ChevronLeft, ChevronRight, Filter, X } from "lucide-react";
 
-const ROUND_KEYS: { value: Match["round"] | ""; labelKey: string }[] = [
-  { value: "", labelKey: "matches.allRounds" },
-  { value: "group", labelKey: "round.group" },
-  { value: "round-of-32", labelKey: "round.roundOf32" },
-  { value: "round-of-16", labelKey: "round.roundOf16" },
-  { value: "quarterfinal", labelKey: "round.quarterfinal" },
-  { value: "semifinal", labelKey: "round.semifinal" },
-  { value: "third-place", labelKey: "round.thirdPlace" },
-  { value: "final", labelKey: "round.final" },
-];
+// ---------------------------------------------------------------------------
+// Date navigation pill
+// ---------------------------------------------------------------------------
+
+function DatePill({
+  date,
+  isActive,
+  isToday,
+  hasLive,
+  matchCount,
+  onClick,
+  pillRef,
+}: {
+  date: string;
+  isActive: boolean;
+  isToday: boolean;
+  hasLive: boolean;
+  matchCount: number;
+  onClick: () => void;
+  pillRef?: React.Ref<HTMLButtonElement>;
+}) {
+  const dt = new Date(`${date}T00:00:00Z`);
+  const day = dt.toLocaleDateString(undefined, { day: "numeric" });
+  const weekday = dt.toLocaleDateString(undefined, { weekday: "short" });
+  const month = dt.toLocaleDateString(undefined, { month: "short" });
+
+  return (
+    <button
+      ref={pillRef}
+      onClick={onClick}
+      className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl text-center transition-all duration-200 shrink-0 min-w-[56px] relative ${
+        isActive
+          ? "bg-yc-green/15 text-yc-green border border-[var(--yc-border-accent-bright)] shadow-[0_0_16px_rgba(0,229,193,0.1)]"
+          : isToday
+            ? "bg-yc-bg-elevated text-yc-text-primary border border-yc-green/20"
+            : "bg-yc-bg-surface text-yc-text-secondary border border-yc-border hover:border-yc-border-hover hover:text-yc-text-primary"
+      }`}
+    >
+      <span className="text-[9px] uppercase tracking-wider font-medium opacity-60">{weekday}</span>
+      <span className="text-lg font-bold font-mono leading-none">{day}</span>
+      <span className="text-[9px] uppercase tracking-wider opacity-50">{month}</span>
+      {hasLive && (
+        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-yc-green animate-pulse" />
+      )}
+      {matchCount > 0 && !isActive && (
+        <span className="text-[8px] text-yc-text-tertiary mt-0.5">{matchCount}</span>
+      )}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Horizontal date strip
+// ---------------------------------------------------------------------------
+
+function DateStrip({
+  dates,
+  activeDate,
+  onDateSelect,
+  todayDate,
+  liveSet,
+  matchCountByDate,
+}: {
+  dates: string[];
+  activeDate: string;
+  onDateSelect: (d: string) => void;
+  todayDate: string;
+  liveSet: Set<string>;
+  matchCountByDate: Map<string, number>;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const activePillRef = useRef<HTMLButtonElement>(null);
+
+  // Scroll the active pill into view on mount and when active changes
+  useEffect(() => {
+    if (activePillRef.current) {
+      activePillRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    }
+  }, [activeDate]);
+
+  const scroll = (dir: "left" | "right") => {
+    scrollRef.current?.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
+  };
+
+  return (
+    <div className="relative flex items-center gap-1 mb-6">
+      <button
+        onClick={() => scroll("left")}
+        className="shrink-0 p-1.5 rounded-lg text-yc-text-tertiary hover:text-yc-text-primary hover:bg-yc-bg-elevated transition-colors"
+      >
+        <ChevronLeft size={18} />
+      </button>
+
+      <div ref={scrollRef} className="flex gap-1.5 overflow-x-auto scrollbar-none flex-1 py-1">
+        {dates.map((date) => (
+          <DatePill
+            key={date}
+            date={date}
+            isActive={date === activeDate}
+            isToday={date === todayDate}
+            hasLive={liveSet.has(date)}
+            matchCount={matchCountByDate.get(date) ?? 0}
+            onClick={() => onDateSelect(date)}
+            pillRef={date === activeDate ? activePillRef : undefined}
+          />
+        ))}
+      </div>
+
+      <button
+        onClick={() => scroll("right")}
+        className="shrink-0 p-1.5 rounded-lg text-yc-text-tertiary hover:text-yc-text-primary hover:bg-yc-bg-elevated transition-colors"
+      >
+        <ChevronRight size={18} />
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Filter dropdown (for tournaments)
+// ---------------------------------------------------------------------------
 
 function SelectFilter({
   label,
@@ -48,14 +164,29 @@ function SelectFilter({
   );
 }
 
-/** Tournament matches page (WC, CL, EC) — filters by round, group, team, venue */
+const ROUND_KEYS: { value: Match["round"] | ""; labelKey: string }[] = [
+  { value: "", labelKey: "matches.allRounds" },
+  { value: "group", labelKey: "round.group" },
+  { value: "round-of-32", labelKey: "round.roundOf32" },
+  { value: "round-of-16", labelKey: "round.roundOf16" },
+  { value: "quarterfinal", labelKey: "round.quarterfinal" },
+  { value: "semifinal", labelKey: "round.semifinal" },
+  { value: "third-place", labelKey: "round.thirdPlace" },
+  { value: "final", labelKey: "round.final" },
+];
+
+// ---------------------------------------------------------------------------
+// Tournament matches with date navigation
+// ---------------------------------------------------------------------------
+
 function TournamentMatches() {
   const comp = useCompetition();
+  const { t } = useI18n();
+  const [showFilters, setShowFilters] = useState(false);
   const [round, setRound] = useState("");
   const [group, setGroup] = useState("");
   const [team, setTeam] = useState("");
   const [venueId, setVenueId] = useState("");
-  const { t } = useI18n();
 
   const groups = useGroups();
   const teams = useTeams();
@@ -75,6 +206,7 @@ function TournamentMatches() {
 
   const matches = useSchedule(filters);
 
+  // Group by date
   const matchesByDate = useMemo(() => {
     const map = new Map<string, Match[]>();
     for (const m of matches) {
@@ -84,6 +216,41 @@ function TournamentMatches() {
     }
     return map;
   }, [matches]);
+
+  const dates = useMemo(() => [...matchesByDate.keys()].sort(), [matchesByDate]);
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Find nearest date to today
+  const defaultDate = useMemo(() => {
+    const future = dates.find((d) => d >= today);
+    return future ?? dates[dates.length - 1] ?? today;
+  }, [dates, today]);
+
+  const [activeDate, setActiveDate] = useState<string | null>(null);
+  const effectiveDate = activeDate ?? defaultDate;
+
+  // Live dates (dates with live matches)
+  const liveSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const [date, dms] of matchesByDate) {
+      const score = dms.find((m) => {
+        const ls = scoreMap.get(m.id);
+        return ls?.status === "IN_PLAY" || ls?.status === "PAUSED";
+      });
+      if (score) s.add(date);
+    }
+    return s;
+  }, [matchesByDate, scoreMap]);
+
+  const matchCountByDate = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const [date, dms] of matchesByDate) map.set(date, dms.length);
+    return map;
+  }, [matchesByDate]);
+
+  // Get matches for the selected date
+  const displayMatches = matchesByDate.get(effectiveDate) ?? [];
 
   const clearFilters = () => {
     setRound("");
@@ -93,91 +260,127 @@ function TournamentMatches() {
   };
 
   const hasFilters = round || group || team || venueId;
-  const countStr =
-    matches.length !== 1
-      ? t("matches.countPlural", { count: matches.length })
-      : t("matches.count", { count: matches.length });
 
   return (
     <>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="font-heading text-2xl font-bold">{t("matches.title")}</h2>
-          <p className="text-yc-text-tertiary text-sm mt-1">{countStr}</p>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-yc-green/10 flex items-center justify-center">
+            <CalendarDays size={20} className="text-yc-green" />
+          </div>
+          <div>
+            <h2 className="font-heading text-2xl font-bold">{t("matches.title")}</h2>
+            <p className="text-yc-text-tertiary text-sm mt-0.5">
+              {matches.length} {matches.length === 1 ? "match" : "matches"}
+            </p>
+          </div>
         </div>
-        {hasFilters && (
-          <button onClick={clearFilters} className="text-yc-green text-sm hover:underline">
-            {t("matches.clearFilters")}
-          </button>
-        )}
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all ${
+            showFilters || hasFilters
+              ? "bg-yc-green/10 text-yc-green border border-[var(--yc-border-accent)]"
+              : "text-yc-text-secondary hover:text-yc-text-primary bg-yc-bg-surface border border-yc-border"
+          }`}
+        >
+          <Filter size={14} />
+          {t("matches.filterRound")}
+          {hasFilters && (
+            <button
+              onClick={(e) => { e.stopPropagation(); clearFilters(); }}
+              className="ml-1 hover:text-white"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <SelectFilter label={t("matches.filterRound")} value={round} onChange={setRound}>
-          {ROUND_KEYS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {t(o.labelKey)}
-            </option>
-          ))}
-        </SelectFilter>
+      {/* Collapsible filters */}
+      {showFilters && (
+        <div className="yc-card p-4 mb-6 animate-fade-in">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <SelectFilter label={t("matches.filterRound")} value={round} onChange={setRound}>
+              {ROUND_KEYS.map((o) => (
+                <option key={o.value} value={o.value}>{t(o.labelKey)}</option>
+              ))}
+            </SelectFilter>
+            <SelectFilter label={t("matches.filterGroup")} value={group} onChange={setGroup}>
+              <option value="">{t("matches.allGroups")}</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>{t("match.group", { id: g.id })}</option>
+              ))}
+            </SelectFilter>
+            <SelectFilter label={t("matches.filterTeam")} value={team} onChange={setTeam}>
+              <option value="">{t("matches.allTeams")}</option>
+              {teams.map((t_) => (
+                <option key={t_.id} value={t_.id}>{t_.name}</option>
+              ))}
+            </SelectFilter>
+            <SelectFilter label={t("matches.filterVenue")} value={venueId} onChange={setVenueId}>
+              <option value="">{t("matches.allVenues")}</option>
+              {venues.map((v) => (
+                <option key={v.id} value={v.id}>{v.name}</option>
+              ))}
+            </SelectFilter>
+          </div>
+        </div>
+      )}
 
-        <SelectFilter label={t("matches.filterGroup")} value={group} onChange={setGroup}>
-          <option value="">{t("matches.allGroups")}</option>
-          {groups.map((g) => (
-            <option key={g.id} value={g.id}>
-              {t("match.group", { id: g.id })}
-            </option>
-          ))}
-        </SelectFilter>
+      {/* Date strip navigation */}
+      {dates.length > 0 && (
+        <DateStrip
+          dates={dates}
+          activeDate={effectiveDate}
+          onDateSelect={setActiveDate}
+          todayDate={today}
+          liveSet={liveSet}
+          matchCountByDate={matchCountByDate}
+        />
+      )}
 
-        <SelectFilter label={t("matches.filterTeam")} value={team} onChange={setTeam}>
-          <option value="">{t("matches.allTeams")}</option>
-          {teams.map((t_) => (
-            <option key={t_.id} value={t_.id}>
-              {t_.name}
-            </option>
-          ))}
-        </SelectFilter>
+      {/* Date header */}
+      {effectiveDate && (
+        <div className="flex items-center gap-3 mb-4">
+          <h3 className="font-heading text-lg font-semibold text-yc-text-primary">
+            {new Date(`${effectiveDate}T00:00:00Z`).toLocaleDateString(undefined, {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </h3>
+          {effectiveDate === today && (
+            <span className="text-[10px] uppercase tracking-widest text-yc-green font-bold bg-yc-green/10 px-2 py-0.5 rounded-full">
+              Today
+            </span>
+          )}
+          {liveSet.has(effectiveDate) && (
+            <span className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-yc-green font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-yc-green animate-pulse" />
+              Live
+            </span>
+          )}
+        </div>
+      )}
 
-        <SelectFilter label={t("matches.filterVenue")} value={venueId} onChange={setVenueId}>
-          <option value="">{t("matches.allVenues")}</option>
-          {venues.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.name}
-            </option>
-          ))}
-        </SelectFilter>
-      </div>
-
-      {matches.length === 0 ? (
-        <p className="text-yc-text-tertiary text-sm text-center py-12">
-          {t("matches.noResults")}
-        </p>
+      {/* Match cards */}
+      {displayMatches.length === 0 ? (
+        <div className="yc-card p-8 text-center">
+          <p className="text-yc-text-tertiary text-sm">{t("matches.noResults")}</p>
+        </div>
       ) : (
-        <div className="space-y-8">
-          {[...matchesByDate.entries()].map(([date, dateMatches]) => (
-            <div key={date}>
-              <h3 className="text-yc-text-secondary text-sm font-medium mb-3 sticky top-14 bg-yc-bg-deep py-2 z-10">
-                {new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {dateMatches.map((m) => (
-                  <MatchCard
-                    key={m.id}
-                    match={m}
-                    teamMap={teamMap}
-                    venueMap={venueMap}
-                    liveScore={scoreMap.get(m.id)}
-                    competitionId={comp.id}
-                  />
-                ))}
-              </div>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-fade-in">
+          {displayMatches.map((m) => (
+            <MatchCard
+              key={m.id}
+              match={m}
+              teamMap={teamMap}
+              venueMap={venueMap}
+              liveScore={scoreMap.get(m.id)}
+              competitionId={comp.id}
+            />
           ))}
         </div>
       )}
@@ -185,7 +388,10 @@ function TournamentMatches() {
   );
 }
 
-/** League matches page (PL, PD, BL1, SA, FL1) — matchday-based navigation */
+// ---------------------------------------------------------------------------
+// League matches with matchday navigation
+// ---------------------------------------------------------------------------
+
 function LeagueMatches() {
   const comp = useCompetition();
   const { t } = useI18n();
@@ -194,14 +400,48 @@ function LeagueMatches() {
   const { matches, matchdays, loading } = useCompetitionSchedule(selectedMatchday);
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const activeMdRef = useRef<HTMLButtonElement>(null);
 
-  // Auto-select current/nearest matchday on first load
-  useMemo(() => {
-    if (selectedMatchday !== undefined || matchdays.length === 0) return;
-    // Find the first matchday with upcoming/live matches, or the latest played
-    setSelectedMatchday(matchdays[0]);
-  }, [matchdays, selectedMatchday]);
+  // All matches (unfiltered) for finding the right default matchday
+  const { matches: allMatches } = useCompetitionSchedule();
 
+  // Auto-select nearest matchday on first load
+  const findNearestMatchday = useCallback(() => {
+    if (matchdays.length === 0 || allMatches.length === 0) return undefined;
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Find the first matchday with upcoming/live matches
+    for (const md of matchdays) {
+      const mdMatches = allMatches.filter((m) => m.matchday === md);
+      const hasUpcoming = mdMatches.some(
+        (m) => m.date >= today || m.status === "IN_PLAY" || m.status === "PAUSED"
+      );
+      if (hasUpcoming) return md;
+    }
+
+    // All matchdays played — return the latest one
+    return matchdays[matchdays.length - 1];
+  }, [matchdays, allMatches]);
+
+  useEffect(() => {
+    if (selectedMatchday !== undefined) return;
+    const nearest = findNearestMatchday();
+    if (nearest !== undefined) setSelectedMatchday(nearest);
+  }, [findNearestMatchday, selectedMatchday]);
+
+  // Scroll active matchday pill into view
+  useEffect(() => {
+    if (activeMdRef.current) {
+      activeMdRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    }
+  }, [selectedMatchday]);
+
+  // Group matches by date for display
   const matchesByDate = useMemo(() => {
     const map = new Map<string, Match[]>();
     for (const m of matches) {
@@ -212,12 +452,36 @@ function LeagueMatches() {
     return map;
   }, [matches]);
 
+  // Matchday status for styling
+  const mdStatus = useCallback(
+    (md: number) => {
+      const mdMatches = allMatches.filter((m) => m.matchday === md);
+      if (mdMatches.length === 0) return "future";
+      const hasLive = mdMatches.some((m) => m.status === "IN_PLAY" || m.status === "PAUSED");
+      if (hasLive) return "live";
+      const allFinished = mdMatches.every((m) => m.status === "FINISHED");
+      if (allFinished) return "finished";
+      const today = new Date().toISOString().slice(0, 10);
+      const hasUpcoming = mdMatches.some((m) => m.date >= today);
+      if (hasUpcoming) return "upcoming";
+      return "finished";
+    },
+    [allMatches],
+  );
+
   return (
     <>
-      <div className="mb-6">
-        <h2 className="font-heading text-2xl font-bold">
-          {comp.shortName} — {t("matches.title")}
-        </h2>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-yc-green/10 flex items-center justify-center">
+          <CalendarDays size={20} className="text-yc-green" />
+        </div>
+        <div>
+          <h2 className="font-heading text-2xl font-bold">
+            {comp.shortName}
+          </h2>
+          <p className="text-yc-text-tertiary text-sm mt-0.5">{t("matches.title")}</p>
+        </div>
       </div>
 
       {loading ? (
@@ -226,34 +490,63 @@ function LeagueMatches() {
         </div>
       ) : (
         <>
-          {/* Matchday selector */}
+          {/* Matchday navigation strip */}
           {matchdays.length > 0 && (
-            <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
-              {matchdays.map((md) => (
-                <button
-                  key={md}
-                  onClick={() => setSelectedMatchday(md)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                    selectedMatchday === md
-                      ? "bg-yc-green text-yc-bg-deep"
-                      : "bg-yc-bg-elevated text-yc-text-secondary hover:text-yc-text-primary"
-                  }`}
-                >
-                  MD {md}
-                </button>
-              ))}
+            <div className="relative flex items-center gap-1 mb-6">
+              <button
+                onClick={() => scrollRef.current?.scrollBy({ left: -200, behavior: "smooth" })}
+                className="shrink-0 p-1.5 rounded-lg text-yc-text-tertiary hover:text-yc-text-primary hover:bg-yc-bg-elevated transition-colors"
+              >
+                <ChevronLeft size={18} />
+              </button>
+
+              <div ref={scrollRef} className="flex gap-1 overflow-x-auto scrollbar-none flex-1 py-1">
+                {matchdays.map((md) => {
+                  const status = mdStatus(md);
+                  return (
+                    <button
+                      key={md}
+                      ref={selectedMatchday === md ? activeMdRef : undefined}
+                      onClick={() => setSelectedMatchday(md)}
+                      className={`relative flex flex-col items-center px-3 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap shrink-0 min-w-[52px] border ${
+                        selectedMatchday === md
+                          ? "bg-yc-green/15 text-yc-green border-[var(--yc-border-accent-bright)] shadow-[0_0_16px_rgba(0,229,193,0.1)]"
+                          : status === "live"
+                            ? "bg-yc-bg-surface text-yc-green border-yc-green/20"
+                            : status === "finished"
+                              ? "bg-yc-bg-surface text-yc-text-tertiary border-yc-border hover:text-yc-text-secondary"
+                              : "bg-yc-bg-surface text-yc-text-secondary border-yc-border hover:text-yc-text-primary hover:border-yc-border-hover"
+                      }`}
+                    >
+                      <span className="text-[9px] uppercase tracking-wider opacity-60">MD</span>
+                      <span className="font-bold font-mono">{md}</span>
+                      {status === "live" && (
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-yc-green animate-pulse" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => scrollRef.current?.scrollBy({ left: 200, behavior: "smooth" })}
+                className="shrink-0 p-1.5 rounded-lg text-yc-text-tertiary hover:text-yc-text-primary hover:bg-yc-bg-elevated transition-colors"
+              >
+                <ChevronRight size={18} />
+              </button>
             </div>
           )}
 
+          {/* Matches grouped by date */}
           {matches.length === 0 ? (
-            <p className="text-yc-text-tertiary text-sm text-center py-12">
-              {t("matches.noResults")}
-            </p>
+            <div className="yc-card p-8 text-center">
+              <p className="text-yc-text-tertiary text-sm">{t("matches.noResults")}</p>
+            </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-6 animate-fade-in">
               {[...matchesByDate.entries()].map(([date, dateMatches]) => (
                 <div key={date}>
-                  <h3 className="text-yc-text-secondary text-sm font-medium mb-3 sticky top-14 bg-yc-bg-deep py-2 z-10">
+                  <h3 className="text-yc-text-secondary text-sm font-medium mb-3 sticky top-14 bg-yc-bg-deep/80 backdrop-blur-sm py-2 z-10 border-b border-yc-border/30">
                     {new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, {
                       weekday: "long",
                       year: "numeric",
@@ -282,6 +575,10 @@ function LeagueMatches() {
     </>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Main export
+// ---------------------------------------------------------------------------
 
 export default function MatchesPage() {
   const comp = useCompetition();

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import TeamCrest from "../components/match/TeamCrest";
+import { Table } from "lucide-react";
 import type { StandingsZones } from "../lib/competitions";
 
 const WORKER_URL =
@@ -23,7 +24,6 @@ interface StandingRow {
   form: string | null;
 }
 
-/** Colored dot for a single W/D/L result */
 function FormDot({ result }: { result: string }) {
   const colors: Record<string, string> = {
     W: "bg-yc-green",
@@ -38,7 +38,6 @@ function FormDot({ result }: { result: string }) {
   );
 }
 
-/** Form guide: last 5 results as colored dots */
 function FormGuide({ form }: { form: string | null }) {
   if (!form) return <span className="text-yc-text-tertiary text-xs">—</span>;
   const results = form.split(",").slice(-5);
@@ -51,11 +50,10 @@ function FormGuide({ form }: { form: string | null }) {
   );
 }
 
-/** Returns the zone color class for a position */
 function getZoneStyle(position: number, zones?: StandingsZones) {
   if (!zones) return {};
   if (zones.cl.includes(position))
-    return { borderLeft: "3px solid #00ff88", background: "rgba(0,255,136,0.04)" };
+    return { borderLeft: "3px solid #00e5c1", background: "rgba(0,229,193,0.04)" };
   if (zones.el.includes(position))
     return { borderLeft: "3px solid #f59e0b", background: "rgba(245,158,11,0.04)" };
   if (zones.ecl.includes(position))
@@ -84,7 +82,6 @@ export default function StandingsPage() {
         const data = (await res.json()) as {
           standings: Array<{ table: StandingRow[] }>;
         };
-        // League standings: first entry is TOTAL table
         const first = data.standings?.[0];
         if (first) {
           setStandings(first.table ?? []);
@@ -102,17 +99,22 @@ export default function StandingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-      <h2 className="font-heading text-2xl font-bold mb-6">
-        {comp.shortName} — {t("nav.standings")}
-      </h2>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-yc-green/10 flex items-center justify-center">
+          <Table size={20} className="text-yc-green" />
+        </div>
+        <div>
+          <h2 className="font-heading text-2xl font-bold">{comp.shortName}</h2>
+          <p className="text-yc-text-tertiary text-sm mt-0.5">{t("nav.standings")}</p>
+        </div>
+      </div>
 
       {loading ? (
-        /* Skeleton loading matching table layout */
-        <div className="space-y-0">
+        <div className="yc-card rounded-xl overflow-hidden">
           {Array.from({ length: 10 }).map((_, i) => (
             <div
               key={i}
-              className="flex items-center gap-3 px-3 py-3 border-b border-yc-border/30"
+              className="flex items-center gap-3 px-4 py-3 border-b border-yc-border/30"
             >
               <div className="w-5 h-4 bg-yc-bg-elevated rounded animate-pulse" />
               <div className="w-6 h-6 bg-yc-bg-elevated rounded-full animate-pulse" />
@@ -123,16 +125,16 @@ export default function StandingsPage() {
           ))}
         </div>
       ) : standings.length === 0 ? (
-        <p className="text-yc-text-tertiary text-center py-16">
-          {t("standings.noData")}
-        </p>
+        <div className="yc-card p-12 rounded-xl text-center">
+          <p className="text-yc-text-tertiary">{t("standings.noData")}</p>
+        </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          <div className="yc-card rounded-xl overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-yc-text-tertiary text-xs uppercase tracking-wider border-b border-yc-border">
-                  <th className="text-left py-3 px-2 w-8">#</th>
+                  <th className="text-left py-3 px-3 w-8">#</th>
                   <th className="text-left py-3 px-2">{t("groupTable.team")}</th>
                   <th className="text-center py-3 px-2 w-8">{t("groupTable.played")}</th>
                   <th className="text-center py-3 px-2 w-8">{t("groupTable.won")}</th>
@@ -149,10 +151,10 @@ export default function StandingsPage() {
                 {standings.map((row) => (
                   <tr
                     key={row.position}
-                    className="border-b border-yc-border/50 hover:bg-yc-bg-elevated/30 transition-colors"
+                    className="border-b border-yc-border/30 hover:bg-white/[0.02] transition-colors"
                     style={getZoneStyle(row.position, zones)}
                   >
-                    <td className="py-2.5 px-2 text-yc-text-tertiary font-mono text-xs">
+                    <td className="py-2.5 px-3 text-yc-text-tertiary font-mono text-xs">
                       {row.position}
                     </td>
                     <td className="py-2.5 px-2">

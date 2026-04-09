@@ -11,10 +11,13 @@ export default function GroupTable({ groupId, teams }: GroupTableProps) {
   const { t } = useI18n();
 
   return (
-    <div className="bg-yc-bg-surface border border-yc-border rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-yc-border">
+    <div className="yc-card rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-yc-border flex items-center gap-2">
+        <div className="w-6 h-6 rounded bg-yc-green/10 flex items-center justify-center">
+          <span className="text-yc-green text-xs font-bold font-mono">{groupId}</span>
+        </div>
         <h3 className="font-heading text-base font-bold">
-          {t("match.group", { id: "" })} <span className="text-yc-green">{groupId}</span>
+          {t("match.group", { id: "" })} {groupId}
         </h3>
       </div>
 
@@ -34,7 +37,8 @@ export default function GroupTable({ groupId, teams }: GroupTableProps) {
           {teams.map((team, i) => (
             <tr
               key={team.id}
-              className={`border-t border-yc-border/50 ${i < 2 ? "bg-yc-green-dark/10" : ""}`}
+              className={`border-t border-yc-border/30 transition-colors hover:bg-white/[0.02] ${i < 2 ? "bg-yc-green/[0.03]" : ""}`}
+              style={i < 2 ? { borderLeft: "3px solid rgba(0, 229, 193, 0.3)" } : undefined}
             >
               <td className="pl-4 pr-2 py-2.5">
                 <div className="flex items-center gap-2">
@@ -53,13 +57,13 @@ export default function GroupTable({ groupId, teams }: GroupTableProps) {
               <td className="text-center text-yc-text-secondary">0</td>
               <td className="text-center text-yc-text-secondary">0</td>
               <td className="text-center text-yc-text-secondary">0</td>
-              <td className="text-center pr-4 text-yc-text-primary font-bold">0</td>
+              <td className="text-center pr-4 text-yc-green font-bold">0</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <div className="px-4 py-2 border-t border-yc-border/50">
+      <div className="px-4 py-2 border-t border-yc-border/30">
         <p className="text-yc-text-tertiary text-[10px]">
           {t("groups.advanceNote")}
         </p>

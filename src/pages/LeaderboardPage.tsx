@@ -7,7 +7,6 @@ import { useI18n } from "../lib/i18n";
 import { getRank, getRankStars } from "../lib/ranks";
 import { Trophy, TrendingUp, Target, Award, Star } from "lucide-react";
 
-/** Compact rank badge for leaderboard rows */
 function RankPill({ points }: { points: number }) {
   const rank = getRank(points);
   const stars = getRankStars(points);
@@ -32,7 +31,6 @@ export default function LeaderboardPage() {
   const { entries, loading } = useLeaderboard(comp.id);
   const { user } = useAuth();
   const { t } = useI18n();
-  // Auto-score any unscored predictions when user views leaderboard
   useAutoScore();
 
   const playerCount = entries.length !== 1
@@ -42,7 +40,9 @@ export default function LeaderboardPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center gap-3 mb-6">
-        <Trophy size={24} className="text-yc-green" />
+        <div className="w-10 h-10 rounded-xl bg-yc-green/10 flex items-center justify-center">
+          <Trophy size={20} className="text-yc-green" />
+        </div>
         <div>
           <h2 className="font-heading text-2xl font-bold">{t("leaderboard.title")}</h2>
           <p className="text-yc-text-tertiary text-sm mt-0.5">{playerCount}</p>
@@ -50,7 +50,7 @@ export default function LeaderboardPage() {
       </div>
 
       {loading ? (
-        <div className="space-y-0">
+        <div className="yc-card rounded-xl overflow-hidden">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-yc-border/30">
               <div className="w-6 h-4 bg-yc-bg-elevated rounded animate-pulse" />
@@ -61,22 +61,26 @@ export default function LeaderboardPage() {
           ))}
         </div>
       ) : entries.length === 0 ? (
-        <div className="text-center py-16">
-          <Award size={48} className="text-yc-text-tertiary mx-auto mb-4" />
+        <div className="yc-card p-12 rounded-xl text-center">
+          <Award size={48} className="text-yc-text-tertiary mx-auto mb-4 opacity-40" />
           <p className="text-yc-text-secondary text-sm">
             {t("leaderboard.noPredictions")}
           </p>
         </div>
       ) : (
         <>
-          {/* Top 3 podium */}
+          {/* Podium — top 3 with glass cards */}
           {entries.length >= 3 && (
             <div className="grid grid-cols-3 gap-3 mb-8">
               {[entries[1], entries[0], entries[2]].map((entry, i) => {
                 if (!entry) return null;
                 const rank = i === 0 ? 2 : i === 1 ? 1 : 3;
                 const heights = ["h-24", "h-32", "h-20"];
-                const medals = ["text-gray-400", "text-yc-green", "text-amber-600"];
+                const glows = [
+                  "",
+                  "shadow-[0_0_24px_rgba(0,229,193,0.12)]",
+                  "",
+                ];
                 return (
                   <div key={entry.userId} className="flex flex-col items-center">
                     <Link to="/profile" className="flex flex-col items-center">
@@ -84,12 +88,14 @@ export default function LeaderboardPage() {
                         <img
                           src={entry.avatarUrl}
                           alt={entry.displayName ?? entry.handle}
-                          className={`w-12 h-12 rounded-full border-2 ${rank === 1 ? "border-yc-green" : "border-yc-border"} mb-2`}
+                          className={`w-12 h-12 rounded-full border-2 mb-2 ${rank === 1 ? "border-yc-green shadow-[0_0_12px_rgba(0,229,193,0.3)]" : "border-yc-border"}`}
                         />
                       ) : (
                         <div
                           className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold mb-2 ${
-                            rank === 1 ? "bg-yc-green-dark text-yc-green border-2 border-yc-green" : "bg-yc-bg-elevated text-yc-text-secondary border-2 border-yc-border"
+                            rank === 1
+                              ? "bg-yc-green-dark text-yc-green border-2 border-yc-green shadow-[0_0_12px_rgba(0,229,193,0.3)]"
+                              : "bg-yc-bg-elevated text-yc-text-secondary border-2 border-yc-border"
                           }`}
                         >
                           {entry.handle.charAt(0).toUpperCase()}
@@ -104,9 +110,11 @@ export default function LeaderboardPage() {
                       {entry.totalPoints} pts
                     </span>
                     <div
-                      className={`${heights[i]} w-full mt-2 rounded-t-lg bg-yc-bg-surface border border-yc-border flex items-start justify-center pt-3`}
+                      className={`${heights[i]} w-full mt-2 rounded-t-lg yc-card flex items-start justify-center pt-3 ${glows[i]}`}
                     >
-                      <span className={`font-heading text-2xl font-bold ${medals[i]}`}>
+                      <span className={`font-heading text-2xl font-bold ${
+                        rank === 1 ? "text-yc-green" : rank === 2 ? "text-gray-400" : "text-amber-600"
+                      }`}>
                         #{rank}
                       </span>
                     </div>
@@ -117,7 +125,7 @@ export default function LeaderboardPage() {
           )}
 
           {/* Full table */}
-          <div className="bg-yc-bg-surface border border-yc-border rounded-xl overflow-x-auto">
+          <div className="yc-card rounded-xl overflow-x-auto">
             <table className="w-full text-sm min-w-[400px]">
               <thead>
                 <tr className="text-yc-text-tertiary text-xs uppercase tracking-wider border-b border-yc-border">
@@ -140,9 +148,9 @@ export default function LeaderboardPage() {
                   return (
                     <tr
                       key={entry.userId}
-                      className={`border-t border-yc-border/50 transition-colors ${
-                        isMe ? "bg-yc-green-dark/15" : i < 3 ? "bg-yc-bg-elevated/30" : ""
-                      }`}
+                      className={`border-t border-yc-border/30 transition-colors ${
+                        isMe ? "bg-yc-green/[0.05]" : i < 3 ? "bg-white/[0.01]" : ""
+                      } hover:bg-white/[0.02]`}
                     >
                       <td className="pl-4 py-3 font-mono text-yc-text-tertiary">
                         {i + 1}
@@ -153,7 +161,7 @@ export default function LeaderboardPage() {
                             <img
                               src={entry.avatarUrl}
                               alt={entry.displayName ?? entry.handle}
-                              className="w-7 h-7 rounded-full"
+                              className="w-7 h-7 rounded-full border border-yc-border"
                             />
                           ) : (
                             <div className="w-7 h-7 rounded-full bg-yc-bg-elevated flex items-center justify-center text-xs font-bold text-yc-text-secondary">

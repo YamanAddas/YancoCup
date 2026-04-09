@@ -45,27 +45,27 @@ export default function NavBar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-[var(--yc-bg-glass)] backdrop-blur-xl border-b border-yc-border">
+    <header className="sticky top-0 z-50 yc-glass border-b border-yc-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
         <NavLink to="/" className="flex items-center">
           <img
             src={`${import.meta.env.BASE_URL}logo-nav.png`}
             alt="YancoCup"
-            className="h-10 sm:h-11 w-auto"
+            className="h-10 sm:h-11 w-auto drop-shadow-[0_0_8px_rgba(0,229,193,0.15)]"
           />
         </NavLink>
 
-        <nav className="hidden sm:flex items-center gap-1">
+        <nav className="hidden sm:flex items-center gap-0.5">
           {links.map(({ to, labelKey, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
               className={({ isActive }) =>
-                `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? "text-yc-green bg-yc-green-dark/30"
-                    : "text-yc-text-secondary hover:text-yc-text-primary"
+                    ? "text-yc-green bg-yc-green/10 shadow-[0_0_12px_rgba(0,229,193,0.1)]"
+                    : "text-yc-text-secondary hover:text-yc-text-primary hover:bg-white/[0.03]"
                 }`
               }
             >
@@ -88,10 +88,10 @@ export default function NavBar() {
                   <img
                     src={profile.avatar_url}
                     alt={profile.display_name ?? profile.handle}
-                    className="w-8 h-8 rounded-full border border-yc-border"
+                    className="w-8 h-8 rounded-full border border-[var(--yc-border-accent)]"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-yc-green-dark flex items-center justify-center text-yc-green text-xs font-bold">
+                  <div className="w-8 h-8 rounded-full bg-yc-green-dark flex items-center justify-center text-yc-green text-xs font-bold border border-[var(--yc-border-accent)]">
                     {(profile?.handle ?? user.email ?? "?").charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -110,7 +110,7 @@ export default function NavBar() {
           ) : (
             <NavLink
               to="/sign-in"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-yc-green hover:bg-yc-green-dark/30 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-yc-green hover:bg-yc-green/10 transition-all"
             >
               <LogIn size={16} />
               <span className="hidden sm:inline">{t("nav.signIn")}</span>
