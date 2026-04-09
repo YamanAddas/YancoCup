@@ -1,7 +1,9 @@
-# YancoCup — build plan (revised v3)
+# YancoScore — build plan (v4)
+
+> Formerly YancoCup. Expanding from World Cup 2026 to a multi-competition soccer prediction platform.
+> Phases 0-4 (Sessions 1-17) are COMPLETE. This plan covers Phase 5+ (expansion).
 
 Phased execution plan. One task per Claude Code session. Commit after each.
-Priority: wow factor first, social hooks second, utilities last.
 Total cost: $0/month. Entire stack is free.
 
 ## Free stack
@@ -11,343 +13,418 @@ Total cost: $0/month. Entire stack is free.
 | Hosting | GitHub Pages | $0 |
 | API proxy | Cloudflare Workers (100K req/day free) + Cron Triggers | $0 |
 | Database + Auth + Realtime | Supabase free (unlimited realtime, 500MB DB) | $0 |
-| Live scores (primary) | football-data.org (10 req/min, WC free forever) — **verify before Phase 3** | $0 |
-| Live scores (fallback) | API-Football (100 req/day + Cron Trigger + KV cache) or WC2026 API | $0 |
-| Static WC data | openfootball/worldcup.json (public domain, no key) | $0 |
+| Live scores | football-data.org (10 req/min, all major competitions) | $0 |
+| Live scores fallback | API-Football (100 req/day + Cron Trigger + KV cache) | $0 |
+| Static WC data | openfootball/worldcup.json (public domain) | $0 |
 | Globe visualization | r3f-globe by Vasturiano (open source) | $0 |
-| Earth textures | three-globe bundled assets via jsDelivr CDN (MIT) | $0 |
 | Country flags | circle-flags (400+ circular SVGs, open source) | $0 |
 | Icons | Lucide React (open source, dark-theme friendly) | $0 |
 | Error monitoring | Sentry free (5K errors/month) | $0 |
 | Analytics | Cloudflare Web Analytics (unlimited, no cookies) | $0 |
 | Fonts | Google Fonts (Space Grotesk, Inter, JetBrains Mono) | $0 |
 
-### CRITICAL: Verify football-data.org before Phase 3
+---
 
-Register at football-data.org, then run:
-```bash
-curl -H "X-Auth-Token: YOUR_KEY" https://api.football-data.org/v4/competitions/WC
-```
-If 200 → proceed with football-data.org as primary.
-If 403 → use API-Football (100 req/day) with Cron Trigger + KV cache pattern. 100 req/day works fine when the Worker caches aggressively and user requests never hit upstream.
+## Completed phases (Sessions 1-17)
+
+| Phase | Sessions | Status |
+|-------|----------|--------|
+| Phase 0: Scaffold + Globe | 1-2 | DONE |
+| Phase 1: Static Data + Pages | 3-5 | DONE |
+| Phase 2: Predictions Game | 6-10 | DONE |
+| Phase 3: Live Data Layer | 11-13 | DONE |
+| Phase 4: Polish + i18n | 14-17 | DONE |
+
+Live at: https://yamanaddas.github.io/YancoCup/
+Worker at: https://yancocup-api.catbyte1985.workers.dev/
+Sentry + Cloudflare Analytics active.
 
 ---
 
-## Phase 0: Scaffold + First Impression (Sessions 1-2)
+## Target competitions for expansion
 
-### Session 1 — Project init + globe
+All available on football-data.org free tier (TIER_ONE):
 
-**Goal:** Spinning 3D globe on a black page. The "whoa" moment.
+| Code | Competition | Type | Matches/season | Priority |
+|------|-------------|------|----------------|----------|
+| WC | FIFA World Cup 2026 | Tournament | 104 | DONE |
+| CL | UEFA Champions League | Tournament | ~125 | High |
+| PL | Premier League | League | 380 | High |
+| PD | La Liga | League | 380 | High |
+| BL1 | Bundesliga | League | 306 | Medium |
+| SA | Serie A | League | 380 | Medium |
+| FL1 | Ligue 1 | League | 306 | Medium |
+| EC | European Championship | Tournament | ~51 | Future |
 
-- `npm create vite@latest . -- --template react-ts`
-- Install core: `tailwindcss`, `@tailwindcss/vite`, `react-router-dom`, `zustand`
-- Install globe: `@react-three/fiber`, `@react-three/drei`, `three`, `r3f-globe`
-- Install flags: `circle-flags` (circular SVG country flags)
-- Install icons: `lucide-react`
-- Create `.gitignore`:
+---
+
+## Phase 5: Database + Hook Migration (Sessions 18-19)
+
+**Goal:** Add competition_id to everything. Zero visual change. WC works identically.
+
+### Session 18 — Database schema migration
+
+- Add `yc_competitions` table:
+  ```sql
+  CREATE TABLE yc_competitions (
+    id text PRIMARY KEY,           -- 'WC', 'PL', 'CL'
+    name text NOT NULL,
+    type text NOT NULL,            -- 'tournament' | 'league'
+    season text,                   -- '2026', '2025/26'
+    status text DEFAULT 'active',
+    fd_code text NOT NULL,         -- football-data.org code
+    fd_competition_id integer,     -- football-data.org numeric ID
+    config jsonb DEFAULT '{}'
+  );
   ```
-  node_modules/
-  dist/
-  .env
-  .env.local
-  .env.*.local
-  *.log
-  .DS_Store
+- Add `competition_id` column to `yc_predictions` with default `'WC'`
+- Migrate existing `match_id` values from local IDs (1-104) to football-data.org API IDs using `match-id-map.json`
+- Update unique constraint: `UNIQUE(user_id, competition_id, match_id)`
+- Add index on `competition_id`
+- Add `is_joker` boolean column to `yc_predictions` (default false)
+- Add `yc_streaks` table for streak tracking
+- Update RLS policies to include `competition_id`
+- **Verify:** existing WC predictions untouched, new schema works
+
+### Session 19 — Hook + API migration
+
+- Update `usePredictions.ts`: add `competitionId` param to all queries, change `onConflict` to `"user_id,competition_id,match_id"`, use API match IDs directly
+- Update `useLeaderboard.ts`: filter by `competition_id`
+- Update `useActivityFeed.ts`: add optional `competition_id` filter
+- Update `useScoring.ts`: use API match IDs directly (no local-to-API mapping)
+- Update `useAutoScore.ts`: match predictions to results using API IDs
+- Update `useScores.ts`: remove `toLocalId` mapping
+- Update `src/lib/api.ts`: remove `toApiId`/`toLocalId`, add `competitionId` param to all fetch functions
+- Remove `match-id-map.json` from runtime imports (keep file for reference)
+- **Verify:** all WC features work exactly as before
+
+---
+
+## Phase 6: Worker Multi-Competition (Sessions 20-21)
+
+**Goal:** Worker serves data for all competitions using efficient single-call polling.
+
+### Session 20 — Worker refactor
+
+**Key insight:** `/v4/matches` (no competition filter) returns ALL competitions in one API call.
+
+- Refactor cron handler:
   ```
-- Configure Tailwind with YancoVerse tokens (colors, fonts, spacing)
-- Set up folder structure per CLAUDE.md
-- Configure `vite.config.ts` for GitHub Pages (base path)
-- Create `index.html` with Google Fonts (Space Grotesk, Inter, JetBrains Mono), meta tags
-- Build `GlobeScene.tsx` using `r3f-globe`:
-  - Earth night texture from three-globe CDN: `cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg` (MIT)
-  - Earth bump map: `cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png` (MIT)
-  - Atmosphere halo effect (built into r3f-globe)
-  - Auto-rotate, OrbitControls with zoom limits
-  - `frameloop="demand"` for performance
-- Code-split Three.js bundle with `React.lazy` so the page shell loads instantly
-- **Verify:** `npm run dev` starts, `npm run build` succeeds, globe spins on black background, page shell loads before globe JS
+  Every 60s:
+    1. GET /v4/matches (all live/today matches) → 1 API call
+    2. Parse by competition, write per-competition KV entries
+    3. Every 5th tick: GET /v4/matches?dateFrom=today&dateTo=tomorrow
+    4. Every 15th tick: rotate standings call through active competitions
+  Budget: 2-3 req/min (well within 10 req/min)
+  ```
+- KV keys namespaced: `{comp}:scores`, `{comp}:standings`, `{comp}:match:{id}`
+- Config KV key `config:active_competitions` (list of codes to poll)
+- Remove hardcoded WC-only tournament window check
+- **Verify:** WC data still in KV, PL/CL data populates
 
-### Session 2 — City markers + countdown + layout shell
+### Session 21 — Worker endpoints + deploy
 
-**Goal:** 16 glowing cities on the globe, countdown to kickoff, navigation.
-
-- Download WC2026 venue data from `openfootball/worldcup.json` as base for `src/data/cities.json`
-- Check for "Path winner" entries in openfootball data — show "TBD" in UI with tooltip if playoffs haven't resolved
-- Configure r3f-globe's labels/points layer for 16 host cities:
-  - Green (#00ff88) glowing markers
-  - City name labels on hover
-  - Click interaction to select city
-- Build `CityPopup.tsx` — HTML overlay showing venue name, capacity, city
-- Build `Countdown.tsx` — days/hours/min/sec until June 11, 2026
-- Build `HomePage.tsx` layout:
-  - Hero section: globe (left/background) + countdown + CTA "Predict matches with friends" (right/foreground)
-  - "Today's Matches" section below (placeholder for now)
-  - Globe is NOT full-screen — content is visible without scrolling
-- Build `AppLayout.tsx`: nav bar, main content area, footer
-- Build `NavBar.tsx`: logo, nav links (Home, Matches, Predictions, Leaderboard, Watch)
-- Set up React Router (HashRouter for GitHub Pages)
-- Placeholder pages for each route
-- **Verify:** Globe with 16 glowing cities, countdown, nav works, content visible on first load without scrolling
+- Add parameterized routes:
+  - `GET /api/:comp/scores` — match scores for a competition
+  - `GET /api/:comp/standings` — standings
+  - `GET /api/:comp/match/:id` — single match
+  - `GET /api/:comp/matches` — full schedule (for league schedule fetching)
+  - `GET /api/competitions` — list active competitions with metadata
+  - `GET /api/live` — all live matches across all competitions
+- Backward-compatible: `/api/scores` aliases to `/api/WC/scores`
+- Update CORS for any new domains
+- Deploy updated Worker
+- **Verify:** all endpoints return data, WC endpoints unchanged
 
 ---
 
-## Phase 1: Static Data + Core Pages (Sessions 3-5)
+## Phase 7: Frontend Multi-Competition (Sessions 22-26)
 
-### Session 3 — City detail + camera animation
+**Goal:** Users can switch between competitions and predict.
 
-- Smooth camera orbit to selected city on click (r3f-globe's `pointOfView` API)
-- Expand `CityPopup.tsx`: venue photo (Wikimedia Commons, CC-BY-SA), capacity, upcoming matches
-- Mobile touch support (rotate, pinch zoom)
-- **Verify:** click city -> camera moves -> popup shows venue info
+### Session 22 — Competition registry + context
 
-### Session 4 — Static schedule data
+- Create `src/lib/competitions.ts` — CompetitionConfig registry:
+  ```typescript
+  interface CompetitionConfig {
+    id: string;           // 'WC', 'PL'
+    fdCode: string;       // football-data.org code
+    name: string;         // 'FIFA World Cup 2026'
+    shortName: string;    // 'World Cup'
+    type: 'tournament' | 'league';
+    hasGroups: boolean;
+    staticSchedule: boolean; // true for WC only
+    seasonLabel: string;
+  }
+  ```
+- Create `CompetitionProvider` context (reads `:competition` from route params)
+- Create `useCompetitionSchedule` hook:
+  - WC: reads static `schedule.json`
+  - Leagues: fetches from Worker `GET /api/:comp/matches`
+- **Verify:** context provides correct config, schedule hook loads data
 
-**Goal:** All 104 matches, 48 teams, 12 groups in structured JSON.
+### Session 23 — Routing + competition switcher
 
-- Import and transform data from `openfootball/worldcup.json` (public domain):
-  - `src/data/teams.json` — 48 teams: name, FIFA 3-letter code, isoCode, confederation, group
-  - `src/data/groups.json` — 12 groups with team assignments
-  - `src/data/schedule.json` — 104 matches: date, time (UTC), venue, group/round, teams
-  - `src/data/venues.json` — 16 venues: name, city, country, capacity, lat, lng
-- Handle unresolved playoff teams: if openfootball has "Path winner" entries, store as `null` with a `placeholder` field ("UEFA Path A winner"). Show "TBD" in UI with tooltip.
-- Use football-data.org match IDs as canonical IDs if available (verify API access first). If not, use openfootball's match ordering.
-- Build data hooks: `useTeams()`, `useGroups()`, `useSchedule()`, `useVenues()`
-- Use `circle-flags` SVGs for team flag display (not emoji)
-- **Verify:** data loads, flags render, TBD teams show correctly, no TypeScript errors
+- Restructure `App.tsx` routes:
+  ```
+  /                           → HomePage (competition cards)
+  /:competition/matches       → MatchesPage
+  /:competition/groups        → GroupsPage (tournaments only)
+  /:competition/standings     → StandingsPage (leagues only)
+  /:competition/predictions   → PredictionsPage
+  /:competition/leaderboard   → LeaderboardPage
+  /watch                      → WatchPage (global)
+  /sign-in                    → SignInPage
+  /admin                      → AdminPage
+  /*                          → 404
+  ```
+- Build `CompetitionSelector` component (dropdown in NavBar)
+- Build competition cards on HomePage (logo, name, next deadline, your rank)
+- Update `MobileNav` to be competition-aware
+- Add backward-compatible redirect: `/matches` → `/WC/matches`
+- **Verify:** switching competitions works, URLs are correct
 
-### Session 5 — Schedule + groups pages
+### Session 24 — League pages (Matches + Standings)
 
-- Build `MatchesPage.tsx` with filterable match list (by group, team, date, venue)
-- Build `MatchCard.tsx` component (team circular flags, score/time, venue, match status)
-- Build `GroupsPage.tsx` with 12 group tables
-- Build `GroupTable.tsx` (FIFA-style: P, W, D, L, GF, GA, GD, Pts)
-- "Today's Matches" widget on homepage — shows today's fixtures with prediction status
-- **Verify:** all 104 matches displayed, groups correct, filters work, today's matches visible on home
+- Build `StandingsPage.tsx` — league table (P, W, D, L, GF, GA, GD, Pts)
+  - Fetches from Worker `GET /api/:comp/standings`
+  - Different from group tables: single table, 20 teams, relegation zones
+- Update `MatchesPage.tsx` for leagues:
+  - Matchday-based grouping (not date-based)
+  - Matchday selector/pagination
+  - Remove "Groups" filter for leagues
+- Teams for leagues: use TLA codes from API (no static teams.json)
+- Flags for league teams: TLA → ISO code mapping for circle-flags
+- **Verify:** PL standings load, matches grouped by matchday
 
----
+### Session 25 — League predictions
 
-## Phase 2: Predictions Game (Sessions 6-10)
+- Update `PredictionsPage.tsx` for leagues:
+  - Show one matchday at a time
+  - Per-match deadline (each match locks at its own kickoff)
+  - Quick-predict mode: simplified 1X2 (home/draw/away) for 2 pts max
+  - Exact score prediction for full points (10/5/3)
+- Update `PredictionCard.tsx`:
+  - Work with API match IDs directly
+  - Show quick-predict toggle
+  - Handle league teams (no static team data, use API TLA)
+- Auto-fill: missed predictions score 0 (no penalty, just no reward)
+- **Verify:** can predict PL matches, per-match deadlines work
 
-### Session 6 — Supabase setup + auth
+### Session 26 — Per-competition leaderboards + activity
 
-- Init Supabase project, get anon key + URL
-- Create tables: profiles, predictions (per schema in predictions-system skill)
-- Enable RLS policies
-- Install `@supabase/supabase-js`
-- Build `AuthProvider.tsx` context
-- Google OAuth + email sign-in
-- **HashRouter auth redirect fix:**
-  1. In `index.html` or app entry point, before React mounts, check if URL hash contains `access_token`
-  2. If yes: extract tokens, call `supabase.auth.setSession()`, strip the hash
-  3. Then mount React with HashRouter
-  4. This prevents HashRouter from interpreting auth tokens as routes
-- Build `SignInPage.tsx` (YancoVerse styled)
-- Profile creation on first sign-in
-- Add Supabase health check cron (prevents free tier auto-pause during dev)
-- **Verify:** full auth flow works end-to-end including OAuth redirect on GitHub Pages
-
-### Session 7 — Prediction UI
-
-- Build `PredictionCard.tsx` (score input for upcoming matches)
-- Lock logic: client-side `canPredict()` checks kickoff time. Server-side: RLS policy with kickoff time check if possible, otherwise accept the small risk for a friends-only app.
-- Submit to Supabase
-- Show prediction count per match (without revealing scores)
-- "Matches you haven't predicted" section (engagement nudge)
-- Build "How to Play" section — scoring rules visible before first prediction:
-  - Exact score: 10 pts
-  - Correct result + goal difference: 5 pts
-  - Correct result only: 3 pts
-  - Wrong: 0 pts
-  - Upset bonus: +3
-  - Perfect group stage: +15
-- **Verify:** can submit and retrieve predictions, scoring rules visible
-
-### Session 8 — Scoring engine (client-side)
-
-**Scoring is client-side. No Edge Functions. No server triggers.**
-
-- When a user opens the leaderboard or predictions page:
-  1. Check for any finished matches that have unscored predictions
-  2. Calculate points client-side using the scoring rules
-  3. Write results to Supabase via RLS-protected upsert
-  4. Add `scored_at` timestamp to prevent duplicate scoring
-  5. First user to load after full-time does the scoring work
-- Build scoring logic:
-  - Exact score: 10 pts
-  - Correct result + goal difference: 5 pts
-  - Correct result only: 3 pts
-  - Wrong: 0 pts
-  - Upset bonus (lower-ranked team wins): +3
-  - Perfect group stage (all 3 exact): +15
-- Update user totals in profiles table
-- **Verify:** scores calculate correctly for test fixtures, no duplicate scoring
-
-### Session 9 — Leaderboard
-
-- Build `LeaderboardPage.tsx`
-- Real-time updates via Supabase Realtime (unlimited connections on free tier)
-- Columns: Rank, Name, Points, Correct/Total, Accuracy %, Points Per Prediction
-- "Points Per Prediction" metric — fair ranking for late joiners
-- Current user highlighted with green accent
-- Top 3 highlighted
-- Leaderboard snippet on homepage
-- **Verify:** leaderboard updates when predictions are scored, late joiners aren't permanently disadvantaged
-
-### Session 10 — Prediction sharing + friend activity
-
-- Build shareable prediction cards (screenshot-friendly component):
-  - Team circular flags, predicted score, YancoCup branding, dark background
-  - "Share your prediction" button per match
-  - Copy as image or share via Web Share API
-- Build `ActivityFeed.tsx` — recent predictions by friends, leaderboard moves
-- Show on homepage section
-- **Verify:** shareable cards look premium, activity feed updates in real time
+- Leaderboard scoped by `competition_id`
+- Activity feed shows competition filter tabs
+- Homepage: cross-competition "today's matches" widget (all active competitions)
+- Update all 6 translation files with new keys (competition names, matchday, standings, etc.)
+- **Verify:** separate leaderboards per competition, activity filterable
 
 ---
 
-## Phase 3: Live Data Layer (Sessions 11-13)
+## Phase 8: Pools — Private Leagues (Sessions 27-29)
 
-### BEFORE STARTING: Verify football-data.org access
+**Goal:** Friend group competitions with join codes.
 
-```bash
-curl -H "X-Auth-Token: YOUR_KEY" https://api.football-data.org/v4/competitions/WC
-```
+### Session 27 — Pool backend
 
-**If 200 (WC is covered):** Proceed as planned with football-data.org as primary.
-**If 403 (WC not on free tier):** Switch to API-Football with Cron Trigger + KV cache pattern:
-- API-Football free tier: 100 req/day
-- Cron Trigger polls every 60s during match windows only (~90 req per match day)
-- All results cached in KV, user requests never hit upstream
-- 100 req/day is enough: max ~4 matches/day, Cron only active during match hours
+- Supabase tables:
+  ```sql
+  yc_pools (id, competition_id, name, join_code, created_by, scoring_config jsonb, created_at)
+  yc_pool_members (pool_id, user_id, joined_at, PRIMARY KEY(pool_id, user_id))
+  ```
+- RLS: members can read their pool's predictions; anyone can join via code
+- Pool join code generation (6 chars, alphanumeric, unique)
+- Add `pool_id` column to `yc_predictions` (nullable — global predictions have no pool)
+- **Verify:** tables created, RLS works
 
-### Session 11 — Cloudflare Worker setup
+### Session 28 — Pool UI (create + join)
 
-**Goal:** Worker that polls live scores via Cron Trigger and serves from KV cache.
+- Create pool: name, select competition, get join code + shareable link
+- Join pool: enter code or visit `/pool/:joinCode` deeplink
+- Pool management page: member list, leave pool
+- Pool selector within competition context
+- **Verify:** create pool, share code, friend joins, both see same pool
 
-- Init worker project with Hono
-- Register free API key for the chosen primary source, store as Workers secret
-- Register free WC2026 API key (fallback), store as Workers secret
-- **Cron Trigger architecture** (key improvement over user-triggered polling):
-  - Cron Trigger fires every 60s during match windows (configurable via Wrangler)
-  - Cron handler fetches live scores from upstream API
-  - Writes results to KV with TTL
-  - All `/api/*` GET endpoints read from KV only — zero upstream calls on user requests
-  - This decouples user traffic from API rate limits entirely
-- Build `/api/scores` endpoint (reads from KV)
-- Build `/api/standings` endpoint (reads from KV)
-- Build `/api/match/:id` endpoint (reads from KV, single match detail with events)
-- CORS config for GitHub Pages + localhost
-- Fallback: if primary API fails during Cron, try fallback source
-- Rate limiting for clients: 60 req/min/IP
-- **Verify:** Cron Trigger writes to KV, endpoints return cached data, fallback works
+### Session 29 — Pool leaderboard + activity
 
-### Session 12 — Live scores integration
-
-- Build `useScores()` hook:
-  - Polls Worker every 60s during live matches, every 5 min otherwise
-  - Match IDs map to schedule.json (same canonical IDs)
-- Connect MatchCard to live data
-- Live indicator (pulsing green dot)
-- Match minute display
-- **Match events on card expand**: click/tap a live match card to see goals, cards, substitutions
-- Knockout team auto-resolution: Worker returns resolved team names from API
-- Graceful degradation: show static schedule if Worker is unreachable
-- **Verify:** match cards update with live data, events visible on expand
-
-### Session 13 — Broadcast finder
-
-- Build broadcast finder as a searchable modal/dropdown (not a full page)
-- Static data: `src/data/broadcasters.json` — curate for ~15 countries friends are in:
-  US, UK, Canada, Mexico, Germany, France, Spain, Saudi Arabia, Jordan, UAE, Brazil, Australia
-- Source: Wikipedia "2026 FIFA World Cup broadcasting rights"
-- Accessible from nav "Watch" link and from individual match cards
-- YouTube oEmbed for available highlights
-- **Verify:** country selector -> shows broadcaster links
+- Pool-scoped leaderboard (separate from global competition leaderboard)
+- Pool activity feed (predictions by pool members only)
+- Pool card on homepage showing your rank in each pool
+- Pool admin: custom scoring config (JSONB — point values for exact/GD/result)
+- **Verify:** pool leaderboard shows only members, custom scoring works
 
 ---
 
-## Phase 4: Polish + i18n (Sessions 14-17)
+## Phase 9: Gamification (Sessions 30-33)
 
-### Session 14 — i18n implementation
+**Goal:** Features that drive daily returns.
 
-- Build i18n context + hook per i18n-auto skill
-- Translate ~100 UI strings for 6 languages: English, Arabic, Spanish, French, German, Portuguese
-- Language switcher with circle-flags for language country indicators
-- RTL support for Arabic (Tailwind `rtl:` modifiers)
-- **Verify:** switching languages works, Arabic renders RTL
+### Session 30 — Joker picks + knockout multipliers
 
-### Session 15 — Mobile optimization
+- Joker: 1 per matchday, doubles points for that match
+  - `is_joker` boolean on `yc_predictions`
+  - UI: star/joker icon toggle on PredictionCard
+  - Constraint: max 1 joker per user per matchday per competition
+- Knockout multipliers for tournaments:
+  - Group stage: 1x
+  - Round of 32: 1.5x
+  - Round of 16: 2x
+  - Quarterfinal: 2.5x
+  - Semifinal: 3x
+  - Final: 3x
+- Update `scoring.ts` to apply multipliers
+- **Verify:** joker doubles points, knockout multiplier applies
 
-- Responsive pass on all pages
-- Globe: reduce detail on mobile via r3f-globe's `globeResolution` prop
-- Disable auto-rotate on mobile (battery)
-- Touch-friendly prediction inputs (larger tap targets)
-- Bottom navigation bar on mobile
-- Globe fallback: if `navigator.hardwareConcurrency < 4`, use r3f-globe with minimal config (no atmosphere, low resolution, no auto-rotate)
-- **Verify:** full flow works on iPhone and Android viewport sizes
+### Session 31 — Streaks + badges
 
-### Session 16 — Performance + monitoring + engagement
+- Streak tracking in `yc_streaks` table:
+  - Consecutive correct results (any points > 0)
+  - Milestone bonuses: 3 in a row → +2, 5 → +5, 10 → +10
+  - Streak counter visible on leaderboard
+- Badges (stored in `yc_badges` or user metadata):
+  - "Oracle" — 5 exact scores in a row
+  - "Upset Whisperer" — 3 upsets correctly predicted
+  - "Perfect Matchday" — all results correct on one matchday
+  - "Ironman" — predicted every match in a competition
+- Badge display on profile / leaderboard
+- **Verify:** streaks track correctly, badges awarded
 
-- **Sentry** free tier: `npm i @sentry/react`, init with DSN, 3 lines of code. Source maps for readable stack traces.
-- **Cloudflare Web Analytics**: one `<script>` tag in index.html. Unlimited, free.
-- Lighthouse audit, fix issues
-- Lazy load routes with `React.lazy` (Three.js already lazy from Session 1)
-- Image optimization (WebP, responsive sizes)
-- Meta tags, Open Graph for social sharing
-- Browser notification opt-in: "match starting soon, you haven't predicted"
-- Homepage "Today's Matches" widget with prediction status per match
-- **Verify:** Lighthouse performance > 85, Sentry captures test error, analytics shows page views
+### Session 32 — Community consensus + prediction reveal
 
-### Session 17 — Final polish
+- Community consensus: aggregate predictions per match
+  - Show "65% predict Home | 20% Draw | 15% Away" before user picks
+  - Simple Supabase query: count predictions grouped by result type
+  - Only show after user has submitted their own prediction (prevent copying)
+- Post-deadline prediction reveal:
+  - Hide friends' exact scores until match kicks off
+  - After kickoff: reveal all predictions in the pool/global feed
+  - "Prediction reveal" animation moment
+- **Verify:** consensus percentages display, predictions hidden before kickoff
 
-- Loading states and skeletons everywhere
-- Error boundaries with friendly messages (Sentry captures these)
-- 404 page (YancoVerse themed)
-- Simple admin route (`/admin`, protected by Supabase role check):
-  - Re-trigger scoring for a match (manual client-side re-calc)
-  - Manual knockout team override (emergency fallback if API doesn't resolve)
-- Final build test + deploy to GitHub Pages
-- **Verify:** everything works in production
+### Session 33 — AI bot + weekly recaps
+
+- AI bot on leaderboards:
+  - Simple Elo-based predictions (home advantage + team rating)
+  - Bot "user" in profiles table, makes predictions via edge function or client-side on cron
+  - Named "YancoBot" — users try to beat it
+- Weekly recaps (client-side generated):
+  - "Best predictor this week"
+  - "Worst call of the week"
+  - "Biggest upset correctly called"
+  - Displayed as a card on homepage or pool page
+- **Verify:** bot predictions appear on leaderboard, recap card shows
 
 ---
 
-## Phase 5: Bonus (if time allows)
+## Phase 10: Rebrand + Polish (Sessions 34-35)
 
-- Reactions on predictions (fire, laugh, etc.) — social layer within the app
-- Team detail pages with squad info
-- Match detail page with minute-by-minute timeline (full page, beyond card expand)
-- Animated page transitions with Framer Motion
+**Goal:** Ship as YancoScore.
+
+### Session 34 — Rebrand YancoCup → YancoScore
+
+- Logo: `Yanco<span class="text-yc-green">Score</span>`
+- Update all branding text in code, translations, meta tags
+- Update OG tags, Twitter Cards
+- Update Worker name: `yancocup-api` → `yancoscore-api`
+- Update CORS origins if domain changes
+- GitHub repo: rename or redirect
+- Update CLAUDE.md and all docs
+- **Verify:** all references updated, no "YancoCup" remains in UI
+
+### Session 35 — Final polish
+
+- Cross-competition "today's matches" on homepage (all active competitions)
+- Competition-specific subtle theming (accent color per league, optional)
 - PWA manifest for "add to home screen"
-- Sound FX on score animation (freesound.org, CC0 licensed)
+- Performance audit: Lighthouse > 85
+- Final build test + deploy
+- **Verify:** everything works in production across all competitions
 
 ---
 
-## What was cut and why
+## Key architecture decisions
 
-| Cut | Reason |
-|-----|--------|
-| News feed page | Low engagement. Replaced with friend activity feed. |
-| Session 3 design system | Premature abstraction. Components built inline when needed. |
-| 9 languages | Reduced to 6 (EN, AR, ES, FR, DE, PT). |
-| Broadcast as full page | Overkill. Now a searchable modal. |
-| Custom globe from scratch | r3f-globe does 80% of the work. |
-| Emoji flags | Inconsistent across OS. circle-flags SVGs are premium. |
-| BALLDONTLIE as fallback | NBA API, does not cover football. |
-| Supabase Edge Functions for scoring | Over-engineered. Client-side scoring is simpler, zero infra. |
+### Rate limit budget (10 req/min)
 
-## Key risks and mitigations
+Using `/v4/matches` (no competition filter) — one call returns ALL competitions:
+
+| Scenario | Calls/min | Notes |
+|----------|-----------|-------|
+| No live matches | 0.2 | Check every 5 min |
+| Matches live (any competition) | 1-2 | Every 60s, all comps in one call |
+| + Standings rotation | +0.2 | One competition's standings per 5 min |
+| **Total max** | **~2.5** | **Well within 10 req/min** |
+
+### Schedule handling
+
+| Competition | Source | Why |
+|-------------|--------|-----|
+| WC | Static JSON (schedule.json) | Fixed 104 matches, venues, known in advance |
+| CL, EC | Worker API | Groups drawn late, knockout TBD |
+| PL, PD, BL1, SA, FL1 | Worker API | 300-380 matches, rescheduled frequently |
+
+### Prediction fatigue (leagues with 380 matches)
+
+- Matchday-based UI: show one matchday at a time (8-10 matches)
+- Per-match deadlines: predict Saturday games Saturday, Sunday games Sunday
+- Quick-predict mode: simplified 1X2 (home/draw/away) for 2 pts max
+- Auto-fill: missed predictions score 0 (no penalty, just no reward)
+- Joker pick: 1 per matchday, strategic depth
+
+### Scoring system
+
+**Base scoring** (all competitions):
+| Outcome | Points |
+|---------|--------|
+| Exact score | 10 |
+| Correct goal difference | 5 |
+| Correct winner/draw | 3 |
+| Wrong | 0 |
+
+**Modifiers:**
+| Feature | Effect | Scope |
+|---------|--------|-------|
+| Upset bonus | +3 | Tournaments only |
+| Perfect group stage | +15 | Tournaments with groups |
+| Knockout multiplier | 1.5x-3x by round | Tournaments only |
+| Joker pick | 2x on chosen match | All competitions |
+| Streak bonus | +2/+5/+10 at milestones | All competitions |
+| Quick predict (1X2) | Max 2 pts | Leagues only |
+
+### Database size (500MB Supabase free tier)
+
+~2,000 matches/season across all competitions. Even with 1,000 users predicting everything: ~300MB. Realistic usage (users predict 1-2 competitions): well under 500MB.
+
+---
+
+## Risks and mitigations
 
 | Risk | Mitigation |
-|------|-----------|
-| football-data.org free tier doesn't cover WC | Verify with curl before Phase 3. Fallback: API-Football + Cron Trigger + KV cache. |
-| API goes down during a live match | Automatic fallback to secondary source in Cron handler |
-| Supabase free tier auto-pauses during dev | Cron health check ping |
-| Auth redirect breaks with HashRouter | Extract auth tokens before HashRouter mounts (Session 6) |
-| Scoring calculates wrong | Admin re-score in `/admin` route |
-| Bundle too large for mobile first load | Three.js lazy loaded, page shell renders instantly |
-| Late joiner feels hopeless on leaderboard | "Points Per Prediction" metric as secondary ranking |
-| Unresolved playoff teams in data | Show "TBD" with tooltip, resolve via API or manual update |
-| Something breaks during tournament | Sentry captures errors, Cloudflare Analytics shows traffic |
+|------|------------|
+| Migration breaks WC predictions | `DEFAULT 'WC'` on competition_id. Test in Supabase branch first. |
+| 10 req/min rate limit | `/v4/matches` (all comps, 1 call) + KV caching. Users never hit upstream. |
+| League schedules too large for static JSON | Fetch from Worker. Frontend caches in React state. |
+| Prediction fatigue (380 matches) | Matchday UI + quick-predict + auto-fill + joker. |
+| Supabase 500MB limit | Realistic usage well under limit. Monitor with dashboard. |
+| Bundle size growth | Lazy-load competition pages. Only registry (~1KB) in main bundle. |
+| Breaking existing URLs | `/matches` redirects to `/WC/matches`. |
+| Pool abuse (spam pools) | Rate limit pool creation. Require auth. |
+
+---
+
+## What NOT to build
+
+| Feature | Why cut |
+|---------|---------|
+| Full fantasy football | Different product entirely |
+| Live chat per match | Activity feed + reactions is enough for v1 |
+| Paid premium tier | Premature. Keep free until product-market fit. |
+| Player predictions (goalscorer) | Phase 10+ bonus. Not core. |
+| Custom competition creation | Admin adds competitions. Not self-serve. |
+| Push notifications | Browser notifications later. App is the loop for now. |
+| NFT/card trading (Sorare model) | Not aligned with friend-group prediction focus |
+
+---
 
 ## Copyright / licensing notes
 

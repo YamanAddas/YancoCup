@@ -1,23 +1,30 @@
-# YancoCup
+# YancoScore (formerly YancoCup)
 
-FIFA World Cup 2026 companion portal. 3D interactive globe, live scores, predictions game, broadcast links, multilingual.
+Multi-competition soccer prediction platform. World Cup 2026 + Champions League + top European leagues. 3D interactive globe, live scores, predictions game with pools, broadcast links, gamification, multilingual.
 
 ## Stack
 
 - **Frontend**: Vite + React 18 + Tailwind CSS 4
 - **Globe**: r3f-globe (by Vasturiano) + React Three Fiber + Three.js — NOT custom globe from scratch
 - **Backend proxy**: Cloudflare Workers with Hono (API key vault + caching)
-- **Database**: Supabase free tier (auth, predictions, leaderboard, unlimited realtime)
-- **Live scores**: football-data.org free tier (10 req/min) — primary, **verify WC coverage before Phase 3**
-- **Live scores fallback**: API-Football (100 req/day + Cron Trigger + KV cache) or WC2026 API
+- **Database**: Supabase free tier (auth, predictions, pools, leaderboard, unlimited realtime)
+- **Live scores**: football-data.org free tier (10 req/min) — covers WC, CL, PL, PD, BL1, SA, FL1, EC
+- **Live scores fallback**: API-Football (100 req/day + Cron Trigger + KV cache)
 - **Live score delivery**: Cloudflare Cron Triggers poll upstream, write to KV. User requests read KV only.
-- **Static data**: openfootball/worldcup.json (public domain, no API key)
+- **Key API optimization**: `/v4/matches` (no competition filter) returns ALL competitions in one call — 2-3 req/min for all competitions combined
+- **Static data**: WC schedule/teams/groups/venues in `src/data/`. League schedules fetched from Worker.
 - **Flags**: circle-flags (circular SVG country flags, open source)
 - **Icons**: Lucide React (open source, dark-theme friendly)
-- **Error monitoring**: Sentry free tier (5K errors/month)
-- **Analytics**: Cloudflare Web Analytics (free, unlimited, no cookies)
+- **Error monitoring**: Sentry free tier (5K errors/month) — active
+- **Analytics**: Cloudflare Web Analytics (free, unlimited, no cookies) — active
 - **Deploy**: GitHub Pages via `gh-pages` branch
-- **i18n**: Client-side auto-translate (no build-time i18n framework), 6 languages
+- **i18n**: Client-side runtime translation, 6 languages (EN, AR, ES, FR, DE, PT)
+
+## Live deployments
+
+- **Frontend**: https://yamanaddas.github.io/YancoCup/
+- **Worker**: https://yancocup-api.catbyte1985.workers.dev/
+- **Supabase**: vxmopqjpqqdlkfceufru (shared YancoVerse project)
 
 ## Project structure
 
@@ -25,18 +32,18 @@ FIFA World Cup 2026 companion portal. 3D interactive globe, live scores, predict
 src/
   components/       # React components
     globe/          # Three.js globe and city markers
-    match/          # Match center, live scores, schedule
-    predictions/    # Betting game, leaderboard
-    broadcast/      # Broadcaster links and embeds
+    match/          # Match center, live scores, schedule, standings
+    predictions/    # Prediction cards, how-to-play, pools
+    broadcast/      # Broadcaster links
     activity/       # Friend activity feed
-    layout/         # Nav, footer, language switcher
-  hooks/            # Custom React hooks
-  lib/              # Utilities, API clients, i18n engine
-  data/             # Static JSON: teams, groups, venues, schedule
+    layout/         # Nav, footer, language switcher, mobile nav, skeletons
+  hooks/            # Custom React hooks (competition-aware)
+  lib/              # Utilities, API clients, i18n, auth, scoring, competitions
+  data/             # Static JSON: teams, groups, venues, schedule, translations, broadcasters
   styles/           # Global CSS, Tailwind config
   pages/            # Route-level components
 worker/             # Cloudflare Worker source (separate deploy)
-docs/               # Architecture decisions, API notes
+docs/               # Architecture decisions, expansion plan
 ```
 
 ## Commands
@@ -48,6 +55,8 @@ docs/               # Architecture decisions, API notes
 - `npm run lint` — ESLint
 - `npm run format` — Prettier
 - `npm run typecheck` — TypeScript check
+- `cd worker && npm run dev` — Worker local dev
+- `cd worker && npm run deploy` — deploy Worker to Cloudflare
 
 ## Code style
 
@@ -74,6 +83,60 @@ IMPORTANT: This is not a generic sports site. It follows the YancoVerse design l
 
 When in doubt about visual direction, think: "dark, atmospheric, premium gaming lounge" not "ESPN clone."
 
+## Multi-competition architecture
+
+### Competitions
+
+Competitions are defined in `src/lib/competitions.ts` with a `CompetitionConfig` registry. Each has:
+- `id` (e.g., `'WC'`), `fdCode`, `name`, `type` ('tournament' | 'league')
+- `hasGroups`, `staticSchedule`, `seasonLabel`
+
+### Routing
+
+Routes are competition-scoped:
+```
+/                           → Home (competition cards, cross-competition matches)
+/:competition/matches       → Match schedule
+/:competition/groups        → Group tables (tournaments only)
+/:competition/standings     → League table (leagues only)
+/:competition/predictions   → Predict matches
+/:competition/leaderboard   → Per-competition leaderboard
+/:competition/pools         → Pool management
+/watch                      → Broadcast finder (global)
+/sign-in                    → Auth
+/admin                      → Admin panel
+/pool/:joinCode             → Pool join deeplink
+```
+
+### Data flow
+
+- **WC schedule**: Static JSON in `src/data/schedule.json` (104 matches, known in advance)
+- **League schedules**: Fetched from Worker `GET /api/:comp/matches` (300-380 matches, rescheduled often)
+- **Live scores**: Worker cron polls `/v4/matches` (all competitions, 1 call) every 60s, writes per-competition KV entries
+- **Predictions**: Stored in `yc_predictions` with `competition_id` column, using football-data.org API match IDs
+- **Leaderboards**: Per-competition aggregation from `yc_predictions`
+
+### Pools (private leagues)
+
+- `yc_pools` table scoped by `competition_id`
+- Join via code or shareable deeplink
+- Pool-specific leaderboard
+- Custom scoring config (JSONB)
+
+### Scoring
+
+Base: 10 (exact) / 5 (GD) / 3 (result) / 0 (wrong)
+Modifiers: upset bonus (+3, tournaments), knockout multipliers (1.5x-3x), joker (2x, one per matchday), streak bonuses (+2/+5/+10)
+Leagues also support quick-predict (1X2 only, max 2 pts)
+
+### League prediction fatigue mitigation
+
+- Matchday-based UI (one matchday at a time)
+- Per-match deadlines (not per-round)
+- Quick-predict mode (home/draw/away, faster input)
+- Missed predictions = 0 pts (no penalty)
+- Joker pick adds strategic depth
+
 ## Workflow rules
 
 IMPORTANT: These rules are non-negotiable.
@@ -89,16 +152,23 @@ IMPORTANT: These rules are non-negotiable.
 ## API architecture
 
 - Frontend NEVER calls external APIs directly (keys would leak in client JS).
-- All external API calls go through the Cloudflare Worker at `https://yancocup-api.<domain>.workers.dev/`
-- Worker endpoints: `/api/scores`, `/api/standings`, `/api/match/:id`
-- Primary data source: football-data.org (10 req/min free tier) — **verify WC coverage first**
-- Fallback data source: API-Football (100 req/day) or WC2026 API
-- **Cron Trigger architecture**: Worker polls upstream on a Cron schedule (every 60s during match windows), writes to KV. All user-facing endpoints read from KV only. This decouples user traffic from API rate limits entirely.
-- Static data (schedule, groups, teams): sourced from openfootball/worldcup.json, stored in src/data/
-- Match IDs: use the chosen API's match IDs as canonical — no mapping table needed
-- Knockout team resolution: API returns resolved team names automatically
+- All external API calls go through the Cloudflare Worker.
+- Worker endpoint pattern: `/api/:competition/scores`, `/api/:competition/standings`, `/api/:competition/match/:id`
+- **Cron Trigger architecture**: Worker polls `/v4/matches` (ALL competitions, one call) every 60s, writes per-competition KV entries. User requests read from KV only. This decouples user traffic from API rate limits entirely.
+- Static data (WC schedule, groups, teams): in `src/data/`. League data: from Worker.
+- Match IDs: use football-data.org API IDs as canonical across all competitions.
 - Supabase is the exception — the Supabase JS client uses the public anon key (safe for client-side).
 - **Scoring is client-side.** No Edge Functions. When user loads leaderboard, client checks for unscored finished matches and calculates points.
+
+## Environment variables (.env, gitignored)
+
+```
+VITE_SUPABASE_URL=https://vxmopqjpqqdlkfceufru.supabase.co
+VITE_SUPABASE_ANON_KEY=...
+VITE_ADMIN_USER_ID=<comma-separated Supabase user IDs>
+VITE_SENTRY_DSN=<Sentry DSN>
+VITE_WORKER_URL=https://yancocup-api.catbyte1985.workers.dev (optional, has default)
+```
 
 ## What Claude gets wrong on this project (fix these)
 
@@ -107,13 +177,15 @@ IMPORTANT: These rules are non-negotiable.
 - Putting API keys in `.env` files that get bundled by Vite. Use `VITE_` prefix only for public values.
 - Over-engineering i18n with heavy frameworks. We use a simple runtime translation layer, 6 languages only.
 - Making the globe a performance hog. Use `frameloop="demand"` in R3F. Render only when interacting.
-- Building custom globe components from scratch. Use r3f-globe by Vasturiano — it handles sphere, atmosphere, markers, labels, and camera out of the box.
+- Building custom globe components from scratch. Use r3f-globe by Vasturiano.
 - Using emoji flags. They look different on every OS. Use circle-flags SVGs.
 - Using BALLDONTLIE as a football API. It's an NBA API — does not cover soccer.
 - Using API-Football without Cron Trigger + KV caching. 100 req/day works only with aggressive caching.
 - Triggering upstream API calls on user requests. Use Cron Triggers to poll, KV to serve.
 - Over-engineering scoring with Edge Functions. Scoring is client-side, no server triggers.
-- Forgetting match ID mapping. Use the chosen API's match IDs as canonical IDs in schedule.json.
-- Hardcoding knockout match teams. The API resolves them automatically.
-- Making the globe full-screen on homepage. Content (countdown, today's matches, CTA) must be visible without scrolling.
+- Making the globe full-screen on homepage. Content must be visible without scrolling.
 - Forgetting auth redirect issues with HashRouter. Handle Supabase auth token before HashRouter processes the URL.
+- Polling per-competition endpoints separately. Use `/v4/matches` (no filter) — one call gets ALL competitions.
+- Creating separate static schedule files per competition. Only WC has static data. Leagues fetch from Worker.
+- Making pools global. Pools are competition-scoped — your PL pool ≠ your WC pool.
+- Showing friends' predictions before match kickoff. Predictions are hidden until deadline to prevent copying.
