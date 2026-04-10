@@ -100,14 +100,14 @@ These enhance the experience but won't break anything if delayed.
 
 These can ship incrementally during the World Cup without disrupting users.
 
-27. Prediction history on profile page
-28. Accuracy breakdown visualization
-29. Competition-specific stats on profile
-30. Loyalty badges (Opening Day, All-In, Marathon, Night Owl, Globe Trotter, Social Butterfly)
-31. Rivals system (pick 1-3 rivals, side-by-side comparison)
-32. Shareable profile card
-33. Points-to-safety / points-to-title calculator
-34. "Path to the final" bracket highlight
+27. ~~Prediction history on profile page~~ DONE
+28. ~~Accuracy breakdown visualization~~ DONE
+29. ~~Competition-specific stats on profile~~ DONE
+30. ~~Loyalty badges (Opening Day, All-In, Marathon, Night Owl, Globe Trotter, Social Butterfly)~~ DONE
+31. ~~Rivals system (pick 1-3 rivals, side-by-side comparison)~~ DONE
+32. ~~Shareable profile card~~ DONE
+33. ~~Points-to-safety / points-to-title calculator~~ DONE
+34. ~~"Path to the final" bracket highlight~~ DONE
 
 ### DEFER TO POST-WC (Phase 6: AI News)
 

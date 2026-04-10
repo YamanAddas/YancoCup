@@ -1,6 +1,6 @@
-import { useMemo, Fragment } from "react";
+import { useMemo, useState, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { GitBranch } from "lucide-react";
+import { GitBranch, Search } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useCompetitionSchedule } from "../hooks/useCompetitionSchedule";
 import { useTeamMap } from "../hooks/useTeams";
@@ -42,12 +42,14 @@ function BracketNode({
   competitionId,
   liveScore,
   prediction,
+  highlighted,
 }: {
   bm: BracketMatch;
   teamMap: Map<string, Team>;
   competitionId: string;
   liveScore?: { status: string; homeScore: number | null; awayScore: number | null };
   prediction?: Prediction;
+  highlighted?: boolean;
 }) {
   const m = bm.match;
   const effectiveStatus = liveScore?.status ?? m.status;
@@ -71,7 +73,7 @@ function BracketNode({
   return (
     <Link
       to={`/${competitionId}/match/${m.id}`}
-      className={`hex-sm-wrap block relative ${isLive ? "is-live" : ""}`}
+      className={`hex-sm-wrap block relative ${isLive ? "is-live" : ""} ${highlighted ? "ring-2 ring-yc-green/50 rounded-lg" : ""}`}
     >
       <div className="hex-sm-border" />
       <div className="yc-hex-card hex-sm overflow-hidden w-full">
@@ -196,6 +198,7 @@ function RoundColumn({
   competitionId,
   scoreMap,
   predMap,
+  highlightTeam,
 }: {
   roundId: RoundId;
   matches: BracketMatch[];
@@ -203,6 +206,7 @@ function RoundColumn({
   competitionId: string;
   scoreMap: Map<number, { status: string; homeScore: number | null; awayScore: number | null }>;
   predMap: Map<number, Prediction>;
+  highlightTeam: string | null;
 }) {
   const pairs = groupIntoPairs(matches);
 
@@ -227,6 +231,7 @@ function RoundColumn({
                 competitionId={competitionId}
                 liveScore={scoreMap.get(bm.match.id)}
                 prediction={predMap.get(bm.match.id)}
+                highlighted={!!highlightTeam && (bm.match.homeTeam === highlightTeam || bm.match.awayTeam === highlightTeam)}
               />
             ))}
           </div>
@@ -251,6 +256,18 @@ export default function BracketPage() {
     () => new Map(predictions.map((p) => [p.match_id, p])),
     [predictions],
   );
+
+  const [highlightTeam, setHighlightTeam] = useState<string | null>(null);
+
+  // Collect all teams that appear in knockout matches
+  const bracketTeams = useMemo(() => {
+    const tlas = new Set<string>();
+    for (const m of matches) {
+      if (m.round !== "group" && m.homeTeam) tlas.add(m.homeTeam);
+      if (m.round !== "group" && m.awayTeam) tlas.add(m.awayTeam);
+    }
+    return [...tlas].sort();
+  }, [matches]);
 
   const roundOrder: RoundId[] = ["playoff", "round-of-32", "round-of-16", "quarterfinal", "semifinal", "final"];
 
@@ -301,6 +318,36 @@ export default function BracketPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      {/* Path to the final selector */}
+      {bracketTeams.length > 0 && (
+        <div className="flex items-center gap-2 mb-4">
+          <Search size={14} className="text-yc-text-tertiary" />
+          <select
+            value={highlightTeam ?? ""}
+            onChange={(e) => setHighlightTeam(e.target.value || null)}
+            className="bg-yc-bg-elevated border border-yc-border rounded-lg px-3 py-1.5 text-xs text-yc-text-secondary"
+          >
+            <option value="">Path to the final...</option>
+            {bracketTeams.map((tla) => {
+              const team = teamMap.get(tla);
+              return (
+                <option key={tla} value={tla}>
+                  {team?.name ?? tla}
+                </option>
+              );
+            })}
+          </select>
+          {highlightTeam && (
+            <button
+              onClick={() => setHighlightTeam(null)}
+              className="text-xs text-yc-text-tertiary hover:text-yc-text-primary"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Bracket tree — horizontally scrollable */}
       <div className="yc-card p-6 overflow-x-auto overflow-y-hidden">
         <div className="flex items-stretch min-w-max" style={{ minHeight }}>
@@ -324,6 +371,7 @@ export default function BracketPage() {
                   competitionId={comp.id}
                   scoreMap={scoreMap}
                   predMap={predMap}
+                  highlightTeam={highlightTeam}
                 />
 
                 {/* Connector lines to next round */}
