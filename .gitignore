@@ -10,3 +10,5 @@ dist/
 mnt/
 settings.json
 *.tar.gz
+worker/.wrangler/
+coverage/

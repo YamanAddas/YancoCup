@@ -116,7 +116,8 @@ export default function PredictionCard({
   };
 
   const handleShare = async () => {
-    if (!match.homeTeam || !match.awayTeam || !prediction || prediction.home_score == null) return;
+    if (!match.homeTeam || !match.awayTeam || !prediction) return;
+    if (!prediction.quick_pick && prediction.home_score == null) return;
 
     const hCode = home?.fifaCode ?? match.homeTeam.toUpperCase();
     const aCode = away?.fifaCode ?? match.awayTeam.toUpperCase();
