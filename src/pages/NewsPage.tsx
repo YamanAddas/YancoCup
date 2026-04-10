@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Newspaper, Star, Languages, Clock, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { useI18n } from "../lib/i18n";
-import { fetchNews, fetchCompetitionNews, translateArticleOnDemand, type NewsArticle } from "../lib/api";
+import { fetchNews, fetchCompetitionNews, type NewsArticle } from "../lib/api";
 import { COMPETITIONS } from "../lib/competitions";
 
 const PAGE_SIZE = 20;
@@ -13,30 +13,11 @@ const LANG_LABELS: Record<string, string> = {
 
 // timeAgo removed — use relTime from useI18n() instead
 
-function NewsCard({ article, userLang }: { article: NewsArticle; userLang: string }) {
-  const { t, relTime } = useI18n();
-  const needsTranslation = !article.translated && article.original_language !== userLang;
-  const [translating, setTranslating] = useState(false);
-  const [localTitle, setLocalTitle] = useState(article.title);
-  const [localSummary, setLocalSummary] = useState(article.summary);
-  const [isTranslated, setIsTranslated] = useState(article.translated);
-
-  // Auto-translate on mount when article language differs from user language
-  useEffect(() => {
-    if (!needsTranslation || isTranslated) return;
-    let cancelled = false;
-    setTranslating(true);
-    translateArticleOnDemand(article.slug, userLang).then((result) => {
-      if (cancelled) return;
-      if (result) {
-        setLocalTitle(result.title);
-        setLocalSummary(result.summary);
-        setIsTranslated(true);
-      }
-      setTranslating(false);
-    });
-    return () => { cancelled = true; };
-  }, [article.slug, userLang, needsTranslation, isTranslated]);
+function NewsCard({ article }: { article: NewsArticle }) {
+  const { relTime } = useI18n();
+  const localTitle = article.title;
+  const localSummary = article.summary;
+  const isTranslated = article.translated;
 
   return (
     <Link
@@ -93,14 +74,6 @@ function NewsCard({ article, userLang }: { article: NewsArticle; userLang: strin
           <p className="text-sm text-yc-text-secondary leading-relaxed line-clamp-3">
             {localSummary}
           </p>
-
-          {/* Auto-translating indicator */}
-          {translating && (
-            <span className="flex items-center gap-1.5 text-xs text-yc-info opacity-70">
-              <Languages size={12} className="animate-pulse" />
-              {t("news.translating")}
-            </span>
-          )}
 
           {/* Meta */}
           <div className="flex items-center justify-between text-xs text-yc-text-tertiary pt-1">
@@ -219,7 +192,7 @@ export default function NewsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {articles.map((article) => (
-            <NewsCard key={article.id} article={article} userLang={lang} />
+            <NewsCard key={article.id} article={article} />
           ))}
         </div>
       )}

@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, User, MapPin, Calendar, Shield, TrendingUp, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import { formatTimeWithTZ, getLocale } from "../lib/formatDate";
 import TeamCrest from "../components/match/TeamCrest";
-import { fetchTeamNews, translateArticleOnDemand, type NewsArticle } from "../lib/api";
+import { fetchTeamNews, type NewsArticle } from "../lib/api";
 
 const WORKER_URL =
   import.meta.env.VITE_WORKER_URL ??
@@ -188,12 +188,12 @@ function TeamNewspaper({ teamTla, teamName }: { teamTla: string; teamName: strin
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Hero article — left column */}
-        <TeamNewsHero article={heroArticle} userLang={lang} />
+        <TeamNewsHero article={heroArticle} />
 
         {/* Side articles — right column */}
         <div className="space-y-2">
           {sideArticles.map((article) => (
-            <TeamNewsCompact key={article.id} article={article} userLang={lang} />
+            <TeamNewsCompact key={article.id} article={article} />
           ))}
         </div>
       </div>
@@ -207,26 +207,11 @@ function TeamNewspaper({ teamTla, teamName }: { teamTla: string; teamName: strin
   );
 }
 
-function TeamNewsHero({ article, userLang }: { article: NewsArticle; userLang: string }) {
-  const { t, relTime } = useI18n();
-  const needsTranslation = !article.translated && article.original_language !== userLang;
-  const [translating, setTranslating] = useState(false);
-  const [localTitle, setLocalTitle] = useState(article.title);
-  const [localSummary, setLocalSummary] = useState(article.summary);
-  const [isTranslated, setIsTranslated] = useState(article.translated);
-
-  const handleTranslate = useCallback(async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setTranslating(true);
-    const result = await translateArticleOnDemand(article.slug, userLang);
-    if (result) {
-      setLocalTitle(result.title);
-      setLocalSummary(result.summary);
-      setIsTranslated(true);
-    }
-    setTranslating(false);
-  }, [article.slug, userLang]);
+function TeamNewsHero({ article }: { article: NewsArticle }) {
+  const { relTime } = useI18n();
+  const localTitle = article.title;
+  const localSummary = article.summary;
+  const isTranslated = article.translated;
 
   return (
     <Link to={`/news/${article.slug}`} className="block group">
@@ -263,16 +248,6 @@ function TeamNewsHero({ article, userLang }: { article: NewsArticle; userLang: s
             {localTitle}
           </h4>
           <p className="text-xs text-yc-text-secondary leading-relaxed line-clamp-3">{localSummary}</p>
-          {needsTranslation && !isTranslated && (
-            <button
-              onClick={handleTranslate}
-              disabled={translating}
-              className="flex items-center gap-1 text-[11px] text-yc-info hover:text-yc-green transition-colors disabled:opacity-50"
-            >
-              <Languages size={11} />
-              {translating ? t("news.translating") : t("news.translate")}
-            </button>
-          )}
           <div className="flex items-center justify-between text-[11px] text-yc-text-tertiary pt-0.5">
             <span>{article.source_name}</span>
             <span className="flex items-center gap-0.5"><Clock size={10} /> {relTime(article.published_at)}</span>
@@ -283,24 +258,10 @@ function TeamNewsHero({ article, userLang }: { article: NewsArticle; userLang: s
   );
 }
 
-function TeamNewsCompact({ article, userLang }: { article: NewsArticle; userLang: string }) {
+function TeamNewsCompact({ article }: { article: NewsArticle }) {
   const { relTime } = useI18n();
-  const needsTranslation = !article.translated && article.original_language !== userLang;
-  const [translating, setTranslating] = useState(false);
-  const [localTitle, setLocalTitle] = useState(article.title);
-  const [isTranslated, setIsTranslated] = useState(article.translated);
-
-  const handleTranslate = useCallback(async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setTranslating(true);
-    const result = await translateArticleOnDemand(article.slug, userLang);
-    if (result) {
-      setLocalTitle(result.title);
-      setIsTranslated(true);
-    }
-    setTranslating(false);
-  }, [article.slug, userLang]);
+  const localTitle = article.title;
+  const isTranslated = article.translated;
 
   return (
     <Link to={`/news/${article.slug}`} className="block group">
@@ -332,15 +293,6 @@ function TeamNewsCompact({ article, userLang }: { article: NewsArticle; userLang
           <div className="flex items-center gap-2 text-[10px] text-yc-text-tertiary">
             <span>{article.source_name}</span>
             <span className="flex items-center gap-0.5"><Clock size={9} /> {relTime(article.published_at)}</span>
-            {needsTranslation && !isTranslated && (
-              <button
-                onClick={handleTranslate}
-                disabled={translating}
-                className="text-yc-info hover:text-yc-green transition-colors disabled:opacity-50 ml-auto"
-              >
-                <Languages size={11} />
-              </button>
-            )}
           </div>
         </div>
       </div>

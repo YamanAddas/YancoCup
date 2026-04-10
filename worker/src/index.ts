@@ -326,26 +326,33 @@ interface RSSFeedConfig {
 }
 
 const RSS_FEEDS: RSSFeedConfig[] = [
-  // English — general
+  // ── English — general ──
   { url: "https://feeds.bbci.co.uk/sport/football/rss.xml", sourceName: "BBC Sport", language: "en" },
   { url: "https://www.theguardian.com/football/rss", sourceName: "The Guardian", language: "en" },
   { url: "https://www.espn.com/espn/rss/soccer/news", sourceName: "ESPN", language: "en" },
   { url: "https://www.skysports.com/rss/12040", sourceName: "Sky Sports", language: "en" },
-  // English — competition-specific
+  // ── English — competition-specific ──
+  { url: "https://www.theguardian.com/football/premierleague/rss", sourceName: "The Guardian PL", language: "en" },
   { url: "https://www.theguardian.com/football/championsleague/rss", sourceName: "The Guardian CL", language: "en" },
   { url: "https://www.theguardian.com/football/europaleague/rss", sourceName: "The Guardian EL", language: "en" },
-  // Arabic
-  { url: "https://www.aljazeera.net/rss", sourceName: "Al Jazeera", language: "ar" },
-  // Spanish
+  { url: "https://www.theguardian.com/football/laliga/rss", sourceName: "The Guardian PD", language: "en" },
+  { url: "https://www.theguardian.com/football/bundesligafootball/rss", sourceName: "The Guardian BL1", language: "en" },
+  { url: "https://www.theguardian.com/football/serieafootball/rss", sourceName: "The Guardian SA", language: "en" },
+  { url: "https://www.theguardian.com/football/ligue1football/rss", sourceName: "The Guardian FL1", language: "en" },
+  { url: "https://www.theguardian.com/football/world-cup-2026/rss", sourceName: "The Guardian WC", language: "en" },
+  // ── Arabic ──
+  { url: "https://www.aljazeera.net/sport/rss.xml", sourceName: "Al Jazeera Sport", language: "ar" },
+  { url: "https://www.bein.com/ar/rss/", sourceName: "beIN Sports AR", language: "ar" },
+  // ── Spanish ──
   { url: "https://e00-marca.uecdn.es/rss/portada.xml", sourceName: "Marca", language: "es" },
   { url: "https://feeds.as.com/mrss-s/pages/as/site/as.com/section/futbol/portada", sourceName: "AS", language: "es" },
-  // German
+  // ── German ──
   { url: "https://newsfeed.kicker.de/news/aktuell", sourceName: "Kicker", language: "de" },
-  // Italian
+  // ── Italian ──
   { url: "https://www.gazzetta.it/dynamic-feed/rss/section/Calcio.xml", sourceName: "Gazzetta dello Sport", language: "it" },
-  // French
+  // ── French ──
   { url: "https://dwh.lequipe.fr/api/edito/rss?path=/Football/", sourceName: "L'Equipe", language: "fr" },
-  // Portuguese
+  // ── Portuguese ──
   { url: "https://www.record.pt/rss", sourceName: "Record", language: "pt" },
 ];
 
@@ -375,21 +382,21 @@ function slugify(text: string): string {
 function detectCompetition(text: string): string | null {
   const lower = text.toLowerCase();
   // World Cup — many variations across languages
-  if (/world cup|copa del mundo|كأس العالم|coupe du monde|wm 2026|mondiale|mundial 2026|copa do mundo|fifa 2026|host cit(y|ies).*2026|2026 world/.test(lower)) return "WC";
+  if (/world cup|copa del mundo|كأس العالم|coupe du monde|wm 2026|mondiale 2026|mundial 2026|copa do mundo|fifa 2026|host cit(y|ies).*2026|2026 world|world cup 2026|mondial 2026|weltmeisterschaft/.test(lower)) return "WC";
   // Champions League
-  if (/champions league|uefa cl|ligue des champions|liga de campeones|دوري أبطال|champions-league|ucl/.test(lower)) return "CL";
-  // Premier League
-  if (/premier league|epl|الدوري الإنجليزي|プレミアリーグ/.test(lower)) return "PL";
+  if (/champions league|uefa cl|ligue des champions|liga de campeones|دوري أبطال|champions-league|ucl|\bchampions\b.*\bfinal\b/.test(lower)) return "CL";
+  // Premier League — expanded with team-context hints
+  if (/premier league|epl|\bprem\b|الدوري الإنجليزي|プレミアリーグ|english top.?flight|top.?four race/.test(lower)) return "PL";
   // La Liga
-  if (/la liga|liga española|الدوري الإسباني|laliga|primera división/.test(lower)) return "PD";
+  if (/la\s?liga|liga española|الدوري الإسباني|laliga|primera divisi[oó]n|liga santander|liga ea sports/.test(lower)) return "PD";
   // Bundesliga
-  if (/bundesliga|الدوري الألماني/.test(lower)) return "BL1";
+  if (/bundesliga|الدوري الألماني|german league/.test(lower)) return "BL1";
   // Serie A
-  if (/serie a|الدوري الإيطالي/.test(lower)) return "SA";
+  if (/\bserie a\b|الدوري الإيطالي|italian league|calcio serie/.test(lower)) return "SA";
   // Ligue 1
-  if (/ligue 1|الدوري الفرنسي/.test(lower)) return "FL1";
+  if (/ligue 1|الدوري الفرنسي|french league|ligue1/.test(lower)) return "FL1";
   // Europa League
-  if (/europa league|الدوري الأوروبي|ligue europa/.test(lower)) return "EL";
+  if (/europa league|الدوري الأوروبي|ligue europa|uel\b/.test(lower)) return "EL";
   return null;
 }
 
@@ -397,14 +404,21 @@ function detectCompetition(text: string): string | null {
  *  Only sources that are genuinely single-competition get a hint.
  *  General sources (BBC, Guardian, ESPN, Sky) cover all competitions equally. */
 const SOURCE_COMPETITION_HINT: Record<string, string> = {
+  // Competition-specific Guardian feeds
+  "The Guardian PL": "PL",
   "The Guardian CL": "CL",
   "The Guardian EL": "EL",
+  "The Guardian PD": "PD",
+  "The Guardian BL1": "BL1",
+  "The Guardian SA": "SA",
+  "The Guardian FL1": "FL1",
+  "The Guardian WC": "WC",
+  // Language-specific sources that cover a single league
   "Marca": "PD",
   "AS": "PD",
   "Kicker": "BL1",
   "Gazzetta dello Sport": "SA",
   "L'Equipe": "FL1",
-  "Record": "PL",            // Portuguese source, covers Liga Portugal + PL
 };
 
 /** Team name → TLA mapping for detection in article text */
@@ -661,8 +675,34 @@ const LANG_NAMES: Record<string, string> = {
   fr: "French", de: "German", pt: "Portuguese", it: "Italian",
 };
 
-/** AI translate title + summary into a target language */
-async function aiTranslate(
+// ── m2m100 language codes (differ from our 2-letter codes) ──
+const M2M100_LANG: Record<string, string> = {
+  en: "english", ar: "arabic", es: "spanish",
+  fr: "french", de: "german", pt: "portuguese", it: "italian",
+};
+
+/** Translate a single text using m2m100 (fast, purpose-built translator) */
+async function m2m100Translate(
+  ai: Ai,
+  text: string,
+  sourceLang: string,
+  targetLang: string,
+): Promise<string | null> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (ai as any).run("@cf/meta/m2m100-1.2b", {
+      text,
+      source_lang: M2M100_LANG[sourceLang] ?? "english",
+      target_lang: M2M100_LANG[targetLang] ?? "english",
+    });
+    return (result as { translated_text?: string }).translated_text ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Translate using Llama 3.1 8B (better quality for Arabic) */
+async function llamaTranslate(
   ai: Ai,
   title: string,
   summary: string,
@@ -670,21 +710,17 @@ async function aiTranslate(
 ): Promise<{ title: string; summary: string } | null> {
   try {
     const langName = LANG_NAMES[targetLang] ?? "English";
-    const prompt = `Translate this sports news article title and summary into ${langName}. Output ONLY a JSON object with "title" and "summary" fields. Do not add commentary.\n\nTitle: ${title}\n\nSummary: ${summary}`;
-
+    const prompt = `Translate this sports news into ${langName}. Output ONLY valid JSON: {"title":"...","summary":"..."}\n\nTitle: ${title}\n\nSummary: ${summary}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (ai as any).run("@cf/meta/llama-3.1-8b-instruct", {
       messages: [
-        { role: "system", content: `You are a professional translator. Translate sports news accurately into ${langName}. Output ONLY valid JSON: {"title":"...","summary":"..."}` },
+        { role: "system", content: `You are a professional sports translator. Translate accurately into ${langName}. Output ONLY valid JSON.` },
         { role: "user", content: prompt },
       ],
       max_tokens: 512,
     });
-
     const text = (result as { response?: string }).response?.trim();
     if (!text) return null;
-
-    // Parse JSON from response (handle potential markdown code blocks)
     const jsonStr = text.replace(/^```json?\s*/i, "").replace(/\s*```$/, "");
     const parsed = JSON.parse(jsonStr) as { title: string; summary: string };
     if (parsed.title && parsed.summary) return parsed;
@@ -692,6 +728,28 @@ async function aiTranslate(
   } catch {
     return null;
   }
+}
+
+/** Hybrid translate: m2m100 for EU languages (fast), Llama for Arabic (better quality) */
+async function aiTranslate(
+  ai: Ai,
+  title: string,
+  summary: string,
+  targetLang: string,
+  sourceLang: string = "en",
+): Promise<{ title: string; summary: string } | null> {
+  // Arabic gets Llama for higher quality
+  if (targetLang === "ar") {
+    return llamaTranslate(ai, title, summary, targetLang);
+  }
+  // European languages use m2m100 (faster, lower neuron cost)
+  const [tTitle, tSummary] = await Promise.all([
+    m2m100Translate(ai, title, sourceLang, targetLang),
+    m2m100Translate(ai, summary, sourceLang, targetLang),
+  ]);
+  if (tTitle && tSummary) return { title: tTitle, summary: tSummary };
+  // Fallback to Llama if m2m100 fails
+  return llamaTranslate(ai, title, summary, targetLang);
 }
 
 /** Translate an article into all supported languages and save translations to Supabase */
@@ -707,11 +765,17 @@ async function translateArticleAllLangs(
   // Original language doesn't need translation
   translations[originalLang] = { title, summary };
 
-  // Translate into each supported language except the original (parallel)
+  // Translate into each supported language except the original
+  // Process in batches of 3 to stay within neuron budget
   const targets = SUPPORTED_LANGS.filter((l) => l !== originalLang);
-  const results = await Promise.all(
-    targets.map((lang) => aiTranslate(env.AI, title, summary, lang).then((r) => ({ lang, r }))),
-  );
+  const results: Array<{ lang: string; r: { title: string; summary: string } | null }> = [];
+  for (let i = 0; i < targets.length; i += 3) {
+    const batch = targets.slice(i, i + 3);
+    const batchResults = await Promise.all(
+      batch.map((lang) => aiTranslate(env.AI, title, summary, lang, originalLang).then((r) => ({ lang, r }))),
+    );
+    results.push(...batchResults);
+  }
   for (const { lang, r } of results) {
     if (r) translations[lang] = r;
   }
@@ -822,53 +886,53 @@ async function handleNewsCron(env: Env): Promise<void> {
     }
     console.log(`News cron: inserted ${rawArticles.length} raw articles`);
 
-    // 5. Pick top 8 articles, mark as featured, translate into all 6 languages
-    // Find articles that don't have translations yet and translate them
-    const candidateUrls = unique
-      .filter((a) => a.description.length > 80)
-      .sort((a, b) => (new Date(b.pubDate).getTime() || 0) - (new Date(a.pubDate).getTime() || 0))
-      .slice(0, 8)
-      .map((a) => a.link);
-
-    // Fetch these articles from DB (they were just inserted above)
-    for (const url of candidateUrls) {
-      const lookupRes = await fetch(
-        `${env.SUPABASE_URL}/rest/v1/yc_articles?source_url=eq.${encodeURIComponent(url)}&select=id,title,summary,language,translations,is_featured`,
-        {
-          headers: {
-            apikey: env.SUPABASE_SERVICE_KEY,
-            Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
-          },
+    // 5. Translate ALL new articles into all 6 languages (pre-translate during cron)
+    // Fetch recently inserted articles that don't have translations yet
+    const untranslatedRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/yc_articles?translations=is.null&order=published_at.desc&limit=30&select=id,title,summary,language,is_featured`,
+      {
+        headers: {
+          apikey: env.SUPABASE_SERVICE_KEY,
+          Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
         },
-      );
-      if (!lookupRes.ok) continue;
-      const rows = (await lookupRes.json()) as Array<{
+      },
+    );
+
+    if (untranslatedRes.ok) {
+      const untranslated = (await untranslatedRes.json()) as Array<{
         id: string; title: string; summary: string;
-        language: string; translations: Record<string, unknown>;
-        is_featured: boolean;
+        language: string; is_featured: boolean;
       }>;
-      const row = rows[0];
-      if (!row) continue;
+      console.log(`News cron: ${untranslated.length} articles need translation`);
 
-      // Skip if already has translations
-      if (row.translations && Object.keys(row.translations).length > 1) continue;
+      // Mark top 8 (by recency with description) as featured
+      const featuredIds = new Set(
+        untranslated
+          .filter((a) => a.summary.length > 80)
+          .slice(0, 8)
+          .map((a) => a.id),
+      );
 
-      // Mark as featured
-      if (!row.is_featured) {
-        await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${row.id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: env.SUPABASE_SERVICE_KEY,
-            Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
-          },
-          body: JSON.stringify({ is_featured: true }),
-        });
+      // Translate sequentially to stay within neuron budget
+      let translated = 0;
+      for (const row of untranslated) {
+        // Mark as featured if in top 8
+        if (featuredIds.has(row.id) && !row.is_featured) {
+          await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${row.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: env.SUPABASE_SERVICE_KEY,
+              Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+            },
+            body: JSON.stringify({ is_featured: true }),
+          });
+        }
+
+        await translateArticleAllLangs(env, row.id, row.title, row.summary, row.language);
+        translated++;
+        console.log(`News cron: translated ${translated}/${untranslated.length} — "${row.title.slice(0, 50)}..."`);
       }
-
-      // Translate into all languages
-      await translateArticleAllLangs(env, row.id, row.title, row.summary, row.language);
-      console.log(`News cron: translated featured article "${row.title}" into all languages`);
     }
   } catch (err) {
     console.error("News cron failed:", err);
@@ -1777,8 +1841,8 @@ app.get("/api/news/:slug/translate", async (c) => {
     return c.json({ title: existing.title, summary: existing.summary, cached: true });
   }
 
-  // Translate on demand
-  const translated = await aiTranslate(c.env.AI, article.title, article.summary, lang);
+  // Translate on demand (hybrid: m2m100 for EU, Llama for Arabic)
+  const translated = await aiTranslate(c.env.AI, article.title, article.summary, lang, article.language);
   if (!translated) {
     return c.json({ error: "Translation failed" }, 500);
   }
