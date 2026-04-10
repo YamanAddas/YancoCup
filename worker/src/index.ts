@@ -371,27 +371,127 @@ function slugify(text: string): string {
 /** Detect competition from article title/description */
 function detectCompetition(text: string): string | null {
   const lower = text.toLowerCase();
-  if (/world cup|copa del mundo|كأس العالم|coupe du monde|wm 2026|mondiale/.test(lower)) return "WC";
-  if (/champions league|uefa cl|ligue des champions|liga de campeones/.test(lower)) return "CL";
-  if (/premier league|epl/.test(lower)) return "PL";
-  if (/la liga|liga española/.test(lower)) return "PD";
-  if (/bundesliga/.test(lower)) return "BL1";
-  if (/serie a|calcio/.test(lower)) return "SA";
-  if (/ligue 1/.test(lower)) return "FL1";
-  if (/europa league/.test(lower)) return "EL";
+  // World Cup — many variations across languages
+  if (/world cup|copa del mundo|كأس العالم|coupe du monde|wm 2026|mondiale|mundial 2026|copa do mundo|fifa 2026|host cit(y|ies).*2026|2026 world/.test(lower)) return "WC";
+  // Champions League
+  if (/champions league|uefa cl|ligue des champions|liga de campeones|دوري أبطال|champions-league|ucl/.test(lower)) return "CL";
+  // Premier League
+  if (/premier league|epl|الدوري الإنجليزي|プレミアリーグ/.test(lower)) return "PL";
+  // La Liga
+  if (/la liga|liga española|الدوري الإسباني|laliga|primera división/.test(lower)) return "PD";
+  // Bundesliga
+  if (/bundesliga|الدوري الألماني/.test(lower)) return "BL1";
+  // Serie A
+  if (/serie a|الدوري الإيطالي/.test(lower)) return "SA";
+  // Ligue 1
+  if (/ligue 1|الدوري الفرنسي/.test(lower)) return "FL1";
+  // Europa League
+  if (/europa league|الدوري الأوروبي|ligue europa/.test(lower)) return "EL";
   return null;
 }
 
-/** Detect team tags from article text (using known team TLAs) */
-const KNOWN_TEAMS = [
-  "BAR", "RMA", "ATM", "LIV", "MCI", "MUN", "CHE", "ARS",
-  "BAY", "BVB", "JUV", "INT", "MIL", "NAP", "PSG", "BEN",
-  "POR", "AJA", "FCB", "TOT", "NEW", "AVL", "BHA", "WHU",
+/** Team name → TLA mapping for detection in article text */
+const TEAM_NAMES: Array<{ tla: string; patterns: RegExp }> = [
+  // === SPAIN ===
+  { tla: "RMA", patterns: /real madrid|ريال مدريد|los blancos|madridista|الملكي|مدريد/ },
+  { tla: "BAR", patterns: /barcelona|برشلونة|barça|barca|blaugrana|البرسا|cules/ },
+  { tla: "ATM", patterns: /atlético|atletico madrid|أتلتيكو|atleti|colchoneros/ },
+  { tla: "RSO", patterns: /real sociedad|سوسيداد/ },
+  { tla: "VIL", patterns: /villarreal|فياريال|yellow submarine/ },
+  { tla: "BET", patterns: /real betis|بيتيس/ },
+  { tla: "SEV", patterns: /sevilla fc|إشبيلية|سيفيا/ },
+  { tla: "ATB", patterns: /athletic bilbao|بيلباو|athletic club/ },
+
+  // === ENGLAND ===
+  { tla: "LIV", patterns: /liverpool|ليفربول|the reds|أنفيلد|anfield/ },
+  { tla: "MCI", patterns: /man(chester)? city|مان(شستر)? سيتي|citizens|السيتيزنز|etihad/ },
+  { tla: "MUN", patterns: /man(chester)? united|مان(شستر)? يونايتد|red devils|الشياطين الحمر|old trafford/ },
+  { tla: "CHE", patterns: /chelsea|تشيلسي|the blues|stamford bridge/ },
+  { tla: "ARS", patterns: /arsenal|آرسنال|أرسنال|gunners|المدفعجية|emirates stadium/ },
+  { tla: "TOT", patterns: /tottenham|توتنهام|spurs|سبيرز/ },
+  { tla: "NEW", patterns: /newcastle|نيوكاسل|magpies|st james/ },
+  { tla: "AVL", patterns: /aston villa|أستون فيلا|villa park/ },
+  { tla: "WHU", patterns: /west ham|وست هام|hammers/ },
+  { tla: "BHA", patterns: /brighton|برايتون/ },
+  { tla: "NFO", patterns: /nott(ingham|\.)? forest|نوتنغهام|فوريست/ },
+  { tla: "FUL", patterns: /fulham|فولهام/ },
+  { tla: "WOL", patterns: /wolves|wolverhampton|وولفرهامبتون/ },
+  { tla: "EVE", patterns: /everton|إيفرتون/ },
+  { tla: "CRY", patterns: /crystal palace|كريستال بالاس/ },
+
+  // === GERMANY ===
+  { tla: "BAY", patterns: /bayern|بايرن|die roten|fc bayern/ },
+  { tla: "BVB", patterns: /dortmund|دورتموند|borussia dortmund|bvb/ },
+  { tla: "RBL", patterns: /rb leipzig|لايبزيغ|leipzig/ },
+  { tla: "LEV", patterns: /leverkusen|ليفركوزن|bayer 04|werkself/ },
+  { tla: "SGE", patterns: /eintracht frankfurt|فرانكفورت|eintracht/ },
+  { tla: "FRE", patterns: /sc freiburg|فرايبورغ/ },
+  { tla: "STU", patterns: /stuttgart|شتوتغارت|vfb/ },
+
+  // === ITALY ===
+  { tla: "JUV", patterns: /juventus|يوفنتوس|juve|bianconeri|la vecchia signora/ },
+  { tla: "INT", patterns: /inter milan|إنتر ميلان|internazionale|nerazzurri|الإنتر/ },
+  { tla: "MIL", patterns: /ac milan|ميلان|rossoneri|إي سي ميلان/ },
+  { tla: "NAP", patterns: /napoli|نابولي|partenopei/ },
+  { tla: "ROM", patterns: /as roma|روما|giallorossi/ },
+  { tla: "LAZ", patterns: /lazio|لاتسيو/ },
+  { tla: "ATA", patterns: /atalanta|أتالانتا/ },
+  { tla: "FIO", patterns: /fiorentina|فيورنتينا/ },
+
+  // === FRANCE ===
+  { tla: "PSG", patterns: /paris saint.germain|باريس سان جيرمان|psg|باريس/ },
+  { tla: "OLY", patterns: /olympique lyonnais|\blyon\b|ليون/ },
+  { tla: "OM",  patterns: /olympique de marseille|marseille|مارسيليا/ },
+  { tla: "MON", patterns: /as monaco|monaco|موناكو/ },
+  { tla: "LIL", patterns: /lille|ليل/ },
+
+  // === PORTUGAL ===
+  { tla: "BEN", patterns: /benfica|بنفيكا/ },
+  { tla: "POR", patterns: /fc porto|بورتو|porto/ },
+  { tla: "SPO", patterns: /sporting cp|سبورتينغ|sporting lisbon/ },
+
+  // === NETHERLANDS ===
+  { tla: "AJA", patterns: /ajax|أياكس/ },
+  { tla: "PSV", patterns: /psv eindhoven|آيندهوفن/ },
+  { tla: "FEY", patterns: /feyenoord|فاينورد/ },
+
+  // === WORLD CUP NATIONS (selection of major teams) ===
+  { tla: "BRA", patterns: /brazil|البرازيل|seleção|brasilien|brésil/ },
+  { tla: "ARG", patterns: /argentina|الأرجنتين|albiceleste|argentinien/ },
+  { tla: "FRA", patterns: /\bfrance\b|فرنسا|les bleus|frankreich|équipe de france/ },
+  { tla: "GER", patterns: /\bgermany\b|ألمانيا|die mannschaft|deutschland/ },
+  { tla: "ENG", patterns: /\bengland\b|إنجلترا|three lions|angleterr/ },
+  { tla: "ESP", patterns: /\bspain\b|إسبانيا|la roja|spanien|espagne/ },
+  { tla: "ITA", patterns: /\bitaly\b|إيطاليا|gli azzurri|italien|italie/ },
+  { tla: "POR", patterns: /\bportugal\b|البرتغال/ },
+  { tla: "NED", patterns: /netherlands|هولندا|oranje|niederlande|pays.bas/ },
+  { tla: "BEL", patterns: /belgium|بلجيكا|belgien|belgique|rode duivels/ },
+  { tla: "CRO", patterns: /croatia|كرواتيا|kroatien|croatie|vatreni/ },
+  { tla: "URU", patterns: /uruguay|أوروغواي|la celeste/ },
+  { tla: "MEX", patterns: /\bmexico\b|المكسيك|el tri|mexiko|mexique/ },
+  { tla: "USA", patterns: /\busa\b|أمريكا|usmnt|united states|états.unis/ },
+  { tla: "CAN", patterns: /\bcanada\b|كندا|canucks/ },
+  { tla: "JPN", patterns: /\bjapan\b|اليابان|samurai blue/ },
+  { tla: "KOR", patterns: /south korea|كوريا|taegeuk/ },
+  { tla: "AUS", patterns: /\baustralia\b|أستراليا|socceroos/ },
+  { tla: "MAR", patterns: /morocco|المغرب|atlas lions|marokko|maroc/ },
+  { tla: "SEN", patterns: /senegal|السنغال|sénégal/ },
+  { tla: "NGA", patterns: /nigeria|نيجيريا|super eagles/ },
+  { tla: "GHA", patterns: /\bghana\b|غانا|black stars/ },
+  { tla: "CMR", patterns: /cameroon|الكاميرون|cameroun|kamerun/ },
+  { tla: "EGY", patterns: /\begypt\b|مصر|pharaohs|الفراعنة/ },
+  { tla: "KSA", patterns: /saudi arabia|السعودية|الأخضر/ },
+  { tla: "QAT", patterns: /\bqatar\b|قطر/ },
+  { tla: "COL", patterns: /colombia|كولومبيا|colombie|kolumbien/ },
 ];
 
 function detectTeamTags(text: string): string[] {
-  const upper = text.toUpperCase();
-  return KNOWN_TEAMS.filter((tla) => upper.includes(tla));
+  const lower = text.toLowerCase();
+  const found = new Set<string>();
+  for (const { tla, patterns } of TEAM_NAMES) {
+    if (patterns.test(lower)) found.add(tla);
+  }
+  return [...found];
 }
 
 /** Fetch and parse a single RSS feed */

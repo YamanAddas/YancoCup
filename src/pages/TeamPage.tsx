@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, User, MapPin, Calendar, Shield, TrendingUp, Home, Plane } from "lucide-react";
+import { ArrowLeft, User, MapPin, Calendar, Shield, TrendingUp, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import { formatTimeWithTZ } from "../lib/formatDate";
 import TeamCrest from "../components/match/TeamCrest";
+import { fetchTeamNews, translateArticleOnDemand, type NewsArticle } from "../lib/api";
 
 const WORKER_URL =
   import.meta.env.VITE_WORKER_URL ??
@@ -125,6 +126,237 @@ interface StandingEntry {
   lost: number;
   points: number;
 }
+
+// ---------------------------------------------------------------------------
+// Team Newspaper — AI-curated news for this team
+// ---------------------------------------------------------------------------
+
+const LANG_LABELS: Record<string, string> = {
+  en: "EN", ar: "AR", es: "ES", de: "DE", it: "IT", fr: "FR", pt: "PT",
+};
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
+
+function TeamNewspaper({ teamTla, teamName }: { teamTla: string; teamName: string; teamCrest: string }) {
+  const { t, lang } = useI18n();
+  const [articles, setArticles] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const result = await fetchTeamNews(teamTla, lang, { limit: 6 });
+        setArticles(result.articles);
+      } catch { /* */ }
+      setLoading(false);
+    }
+    load();
+  }, [teamTla, lang]);
+
+  if (loading) {
+    return (
+      <div className="mb-8">
+        <div className="h-5 w-40 bg-yc-bg-elevated rounded animate-pulse mb-3" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 bg-yc-bg-elevated rounded-xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (articles.length === 0) return null;
+
+  const heroArticle = articles[0]!;
+  const sideArticles = articles.slice(1, 6);
+
+  return (
+    <div className="mb-8">
+      {/* Newspaper header */}
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-7 h-7 rounded-lg bg-[var(--yc-accent-dim)] flex items-center justify-center">
+          <Newspaper size={14} className="text-yc-green" />
+        </div>
+        <div>
+          <h3 className="text-sm font-medium text-yc-text-primary font-heading">
+            {teamName} — {t("news.title")}
+          </h3>
+          <p className="text-[10px] text-yc-text-tertiary">{t("news.subtitle")}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Hero article — left column */}
+        <TeamNewsHero article={heroArticle} userLang={lang} />
+
+        {/* Side articles — right column */}
+        <div className="space-y-2">
+          {sideArticles.map((article) => (
+            <TeamNewsCompact key={article.id} article={article} userLang={lang} />
+          ))}
+        </div>
+      </div>
+
+      {/* Attribution */}
+      <div className="flex items-center gap-1 text-[10px] text-yc-text-tertiary mt-3">
+        <ExternalLink size={10} />
+        {t("news.attribution")}
+      </div>
+    </div>
+  );
+}
+
+function TeamNewsHero({ article, userLang }: { article: NewsArticle; userLang: string }) {
+  const { t } = useI18n();
+  const needsTranslation = !article.translated && article.original_language !== userLang;
+  const [translating, setTranslating] = useState(false);
+  const [localTitle, setLocalTitle] = useState(article.title);
+  const [localSummary, setLocalSummary] = useState(article.summary);
+  const [isTranslated, setIsTranslated] = useState(article.translated);
+
+  const handleTranslate = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setTranslating(true);
+    const result = await translateArticleOnDemand(article.slug, userLang);
+    if (result) {
+      setLocalTitle(result.title);
+      setLocalSummary(result.summary);
+      setIsTranslated(true);
+    }
+    setTranslating(false);
+  }, [article.slug, userLang]);
+
+  return (
+    <Link to={`/news/${article.slug}`} className="block group">
+      <div className="yc-card p-0 overflow-hidden h-full transition-all hover:border-[var(--yc-border-accent-bright)]">
+        {article.image_url ? (
+          <div className="h-36 overflow-hidden">
+            <img
+              src={article.image_url}
+              alt=""
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
+          </div>
+        ) : (
+          <div className="h-36 bg-gradient-to-br from-yc-bg-elevated to-yc-bg-surface flex items-center justify-center">
+            <Newspaper size={28} className="text-yc-text-tertiary" />
+          </div>
+        )}
+        <div className="p-3 space-y-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {isTranslated && (
+              <span className="flex items-center gap-0.5 text-[9px] uppercase tracking-wider text-yc-info bg-yc-bg-elevated px-1.5 py-0.5 rounded-full">
+                <Languages size={9} /> {LANG_LABELS[article.original_language] ?? article.original_language}
+              </span>
+            )}
+            {article.is_featured && (
+              <span className="flex items-center gap-0.5 text-[9px] uppercase tracking-wider font-semibold text-yc-green bg-[var(--yc-accent-dim)] px-1.5 py-0.5 rounded-full">
+                <Star size={9} /> AI
+              </span>
+            )}
+          </div>
+          <h4 className="font-semibold text-sm text-yc-text-primary leading-snug line-clamp-2 group-hover:text-yc-green transition-colors">
+            {localTitle}
+          </h4>
+          <p className="text-xs text-yc-text-secondary leading-relaxed line-clamp-3">{localSummary}</p>
+          {needsTranslation && !isTranslated && (
+            <button
+              onClick={handleTranslate}
+              disabled={translating}
+              className="flex items-center gap-1 text-[11px] text-yc-info hover:text-yc-green transition-colors disabled:opacity-50"
+            >
+              <Languages size={11} />
+              {translating ? t("news.translating") : t("news.translate")}
+            </button>
+          )}
+          <div className="flex items-center justify-between text-[11px] text-yc-text-tertiary pt-0.5">
+            <span>{article.source_name}</span>
+            <span className="flex items-center gap-0.5"><Clock size={10} /> {timeAgo(article.published_at)}</span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function TeamNewsCompact({ article, userLang }: { article: NewsArticle; userLang: string }) {
+  const needsTranslation = !article.translated && article.original_language !== userLang;
+  const [translating, setTranslating] = useState(false);
+  const [localTitle, setLocalTitle] = useState(article.title);
+  const [isTranslated, setIsTranslated] = useState(article.translated);
+
+  const handleTranslate = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setTranslating(true);
+    const result = await translateArticleOnDemand(article.slug, userLang);
+    if (result) {
+      setLocalTitle(result.title);
+      setIsTranslated(true);
+    }
+    setTranslating(false);
+  }, [article.slug, userLang]);
+
+  return (
+    <Link to={`/news/${article.slug}`} className="block group">
+      <div className="flex gap-3 p-2.5 rounded-xl bg-yc-bg-surface border border-yc-border/50 hover:border-[var(--yc-border-accent-bright)] transition-colors">
+        {article.image_url ? (
+          <img
+            src={article.image_url}
+            alt=""
+            className="w-16 h-16 rounded-lg object-cover shrink-0"
+            loading="lazy"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        ) : (
+          <div className="w-16 h-16 rounded-lg bg-yc-bg-elevated flex items-center justify-center shrink-0">
+            <Newspaper size={14} className="text-yc-text-tertiary" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {isTranslated && (
+              <span className="text-[8px] uppercase tracking-wider text-yc-info bg-yc-bg-elevated px-1 py-0.5 rounded">
+                {LANG_LABELS[article.original_language]}
+              </span>
+            )}
+          </div>
+          <h4 className="text-xs font-medium text-yc-text-primary leading-snug line-clamp-2 group-hover:text-yc-green transition-colors">
+            {localTitle}
+          </h4>
+          <div className="flex items-center gap-2 text-[10px] text-yc-text-tertiary">
+            <span>{article.source_name}</span>
+            <span className="flex items-center gap-0.5"><Clock size={9} /> {timeAgo(article.published_at)}</span>
+            {needsTranslation && !isTranslated && (
+              <button
+                onClick={handleTranslate}
+                disabled={translating}
+                className="text-yc-info hover:text-yc-green transition-colors disabled:opacity-50 ml-auto"
+              >
+                <Languages size={11} />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main page
+// ---------------------------------------------------------------------------
 
 export default function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -464,6 +696,9 @@ export default function TeamPage() {
           </div>
         </div>
       )}
+
+      {/* Team Newspaper — AI-curated news */}
+      <TeamNewspaper teamTla={team.tla} teamName={team.name} teamCrest={team.crest} />
 
       {/* Squad */}
       {team.squad.length > 0 && (
