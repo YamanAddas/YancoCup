@@ -242,5 +242,6 @@
   "news.backToNews": "Back to News",
   "news.readOriginal": "Read full article",
   "news.notFound": "Article not found",
+  "news.translatedFrom": "Translated from",
   "news.attribution": "Articles sourced from RSS feeds. AI summaries are auto-generated. Always verify with the original source."
 }

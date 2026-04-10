@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Newspaper, Star, Globe, Clock, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { Newspaper, Star, Languages, Clock, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { useI18n } from "../lib/i18n";
 import { fetchNews, fetchCompetitionNews, type NewsArticle } from "../lib/api";
 import { COMPETITIONS } from "../lib/competitions";
@@ -8,14 +8,7 @@ import { COMPETITIONS } from "../lib/competitions";
 const PAGE_SIZE = 20;
 
 const LANG_LABELS: Record<string, string> = {
-  all: "All",
-  en: "English",
-  ar: "العربية",
-  es: "Español",
-  de: "Deutsch",
-  it: "Italiano",
-  fr: "Français",
-  pt: "Português",
+  en: "EN", ar: "AR", es: "ES", de: "DE", it: "IT", fr: "FR", pt: "PT",
 };
 
 function timeAgo(dateStr: string): string {
@@ -59,7 +52,7 @@ function NewsCard({ article }: { article: NewsArticle }) {
           <div className="flex items-center gap-2 flex-wrap">
             {article.is_featured && (
               <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-semibold text-yc-green bg-[var(--yc-accent-dim)] px-2 py-0.5 rounded-full">
-                <Star size={10} /> AI Summary
+                <Star size={10} /> AI
               </span>
             )}
             {article.competition_id && (
@@ -67,9 +60,12 @@ function NewsCard({ article }: { article: NewsArticle }) {
                 {article.competition_id}
               </span>
             )}
-            <span className="text-[10px] uppercase tracking-wider text-yc-text-tertiary">
-              {LANG_LABELS[article.language] ?? article.language}
-            </span>
+            {article.translated && (
+              <span className="flex items-center gap-0.5 text-[10px] uppercase tracking-wider text-yc-info bg-yc-bg-elevated px-2 py-0.5 rounded-full">
+                <Languages size={10} />
+                {LANG_LABELS[article.original_language] ?? article.original_language}
+              </span>
+            )}
           </div>
 
           {/* Title */}
@@ -98,27 +94,25 @@ function NewsCard({ article }: { article: NewsArticle }) {
 
 export default function NewsPage() {
   const { competition } = useParams<{ competition?: string }>();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
-  const [langFilter, setLangFilter] = useState("all");
   const [featuredOnly, setFeaturedOnly] = useState(false);
 
   const loadArticles = useCallback(async () => {
     setLoading(true);
     try {
       const filters = {
-        lang: langFilter === "all" ? undefined : langFilter,
         featured: featuredOnly || undefined,
         limit: PAGE_SIZE,
         offset: page * PAGE_SIZE,
       };
 
       const result = competition
-        ? await fetchCompetitionNews(competition, filters)
-        : await fetchNews(filters);
+        ? await fetchCompetitionNews(competition, lang, filters)
+        : await fetchNews(lang, filters);
 
       setArticles(result.articles);
       setTotal(result.total);
@@ -127,7 +121,7 @@ export default function NewsPage() {
     } finally {
       setLoading(false);
     }
-  }, [competition, langFilter, featuredOnly, page]);
+  }, [competition, lang, featuredOnly, page]);
 
   useEffect(() => {
     loadArticles();
@@ -136,7 +130,7 @@ export default function NewsPage() {
   // Reset page when filters change
   useEffect(() => {
     setPage(0);
-  }, [langFilter, featuredOnly, competition]);
+  }, [featuredOnly, competition, lang]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const compName = competition ? COMPETITIONS[competition]?.name : null;
@@ -158,20 +152,6 @@ export default function NewsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        {/* Language filter */}
-        <div className="flex items-center gap-1.5">
-          <Globe size={14} className="text-yc-text-tertiary" />
-          <select
-            value={langFilter}
-            onChange={(e) => setLangFilter(e.target.value)}
-            className="bg-yc-bg-surface border border-yc-border rounded-lg px-3 py-1.5 text-sm text-yc-text-primary focus:outline-none focus:border-yc-green-muted"
-          >
-            {Object.entries(LANG_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
-            ))}
-          </select>
-        </div>
-
         {/* Featured toggle */}
         <button
           onClick={() => setFeaturedOnly(!featuredOnly)}

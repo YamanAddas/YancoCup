@@ -124,50 +124,53 @@ export interface NewsArticle {
   source_url: string;
   image_url: string | null;
   language: string;
+  original_language: string;
   competition_id: string | null;
   team_tags: string[];
   is_featured: boolean;
+  translated: boolean;
   published_at: string;
   created_at: string;
 }
 
-/** Fetch news articles with optional filters. */
-export async function fetchNews(filters?: {
-  lang?: string;
-  featured?: boolean;
-  limit?: number;
-  offset?: number;
-}): Promise<{ articles: NewsArticle[]; total: number }> {
+/** Fetch news articles. lang = user's display language (articles are translated to it). */
+export async function fetchNews(
+  lang: string,
+  filters?: {
+    featured?: boolean;
+    limit?: number;
+    offset?: number;
+  },
+): Promise<{ articles: NewsArticle[]; total: number }> {
   const params = new URLSearchParams();
-  if (filters?.lang) params.set("lang", filters.lang);
+  params.set("lang", lang);
   if (filters?.featured) params.set("featured", "true");
   if (filters?.limit) params.set("limit", String(filters.limit));
   if (filters?.offset) params.set("offset", String(filters.offset));
-  const qs = params.toString();
   const data = await apiFetch<{ articles: NewsArticle[]; total: number }>(
-    `/api/news${qs ? `?${qs}` : ""}`,
+    `/api/news?${params.toString()}`,
   );
   return data ?? { articles: [], total: 0 };
 }
 
-/** Fetch a single article by slug. */
-export async function fetchArticle(slug: string): Promise<NewsArticle | null> {
-  const data = await apiFetch<{ article: NewsArticle }>(`/api/news/${slug}`);
+/** Fetch a single article by slug, translated to the user's language. */
+export async function fetchArticle(slug: string, lang: string): Promise<NewsArticle | null> {
+  const data = await apiFetch<{ article: NewsArticle }>(`/api/news/${slug}?lang=${lang}`);
   return data?.article ?? null;
 }
 
 /** Fetch news for a specific competition. */
 export async function fetchCompetitionNews(
   comp: string,
-  filters?: { lang?: string; limit?: number; offset?: number },
+  lang: string,
+  filters?: { limit?: number; offset?: number },
 ): Promise<{ articles: NewsArticle[]; total: number }> {
   const params = new URLSearchParams();
-  if (filters?.lang) params.set("lang", filters.lang);
+  params.set("lang", lang);
   if (filters?.limit) params.set("limit", String(filters.limit));
   if (filters?.offset) params.set("offset", String(filters.offset));
-  const qs = params.toString();
   const data = await apiFetch<{ articles: NewsArticle[]; total: number }>(
-    `/api/${comp}/news${qs ? `?${qs}` : ""}`,
+    `/api/${comp}/news?${params.toString()}`,
   );
   return data ?? { articles: [], total: 0 };
 }
@@ -175,14 +178,14 @@ export async function fetchCompetitionNews(
 /** Fetch news for a specific team. */
 export async function fetchTeamNews(
   teamId: string,
-  filters?: { lang?: string; limit?: number },
+  lang: string,
+  filters?: { limit?: number },
 ): Promise<{ articles: NewsArticle[]; total: number }> {
   const params = new URLSearchParams();
-  if (filters?.lang) params.set("lang", filters.lang);
+  params.set("lang", lang);
   if (filters?.limit) params.set("limit", String(filters.limit));
-  const qs = params.toString();
   const data = await apiFetch<{ articles: NewsArticle[]; total: number }>(
-    `/api/team/${teamId}/news${qs ? `?${qs}` : ""}`,
+    `/api/team/${teamId}/news?${params.toString()}`,
   );
   return data ?? { articles: [], total: 0 };
 }

@@ -240,5 +240,6 @@
   "news.backToNews": "Zurück zu Nachrichten",
   "news.readOriginal": "Originalartikel lesen",
   "news.notFound": "Artikel nicht gefunden",
+  "news.translatedFrom": "Übersetzt aus",
   "news.attribution": "Artikel aus RSS-Feeds. KI-Zusammenfassungen sind automatisch generiert. Überprüfe immer die Originalquelle."
 }

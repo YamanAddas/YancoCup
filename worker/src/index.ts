@@ -487,43 +487,85 @@ async function fetchAllFeeds(): Promise<RSSArticle[]> {
   return all;
 }
 
-/** AI rewrite an article into a 3-5 sentence summary */
-async function aiRewrite(
+const SUPPORTED_LANGS = ["en", "ar", "es", "fr", "de", "pt"] as const;
+
+const LANG_NAMES: Record<string, string> = {
+  en: "English", ar: "Arabic", es: "Spanish",
+  fr: "French", de: "German", pt: "Portuguese", it: "Italian",
+};
+
+/** AI translate title + summary into a target language */
+async function aiTranslate(
   ai: Ai,
-  article: RSSArticle,
-): Promise<string | null> {
+  title: string,
+  summary: string,
+  targetLang: string,
+): Promise<{ title: string; summary: string } | null> {
   try {
-    const prompt = article.language === "ar"
-      ? `لخص هذا المقال الرياضي في 3-5 جمل بالعربية. اكتب بشكل محايد وإخباري.\n\nالعنوان: ${article.title}\n\n${article.description}`
-      : article.language === "es"
-      ? `Resume este artículo deportivo en 3-5 oraciones en español. Escribe de forma neutral e informativa.\n\nTítulo: ${article.title}\n\n${article.description}`
-      : article.language === "de"
-      ? `Fasse diesen Sportartikel in 3-5 Sätzen auf Deutsch zusammen. Schreibe neutral und informativ.\n\nTitel: ${article.title}\n\n${article.description}`
-      : article.language === "it"
-      ? `Riassumi questo articolo sportivo in 3-5 frasi in italiano. Scrivi in modo neutrale e informativo.\n\nTitolo: ${article.title}\n\n${article.description}`
-      : article.language === "fr"
-      ? `Résumez cet article sportif en 3-5 phrases en français. Écrivez de manière neutre et informative.\n\nTitre: ${article.title}\n\n${article.description}`
-      : article.language === "pt"
-      ? `Resuma este artigo esportivo em 3-5 frases em português. Escreva de forma neutra e informativa.\n\nTítulo: ${article.title}\n\n${article.description}`
-      : `Summarize this sports article in 3-5 sentences. Write neutrally and informatively. Do not add opinions.\n\nTitle: ${article.title}\n\n${article.description}`;
+    const langName = LANG_NAMES[targetLang] ?? "English";
+    const prompt = `Translate this sports news article title and summary into ${langName}. Output ONLY a JSON object with "title" and "summary" fields. Do not add commentary.\n\nTitle: ${title}\n\nSummary: ${summary}`;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (ai as any).run("@cf/meta/llama-3.1-8b-instruct", {
       messages: [
-        { role: "system", content: "You are a concise sports news summarizer. Output ONLY the summary, no labels or prefixes." },
+        { role: "system", content: `You are a professional translator. Translate sports news accurately into ${langName}. Output ONLY valid JSON: {"title":"...","summary":"..."}` },
         { role: "user", content: prompt },
       ],
-      max_tokens: 256,
+      max_tokens: 512,
     });
 
-    const text = (result as { response?: string }).response;
-    return text?.trim() || null;
+    const text = (result as { response?: string }).response?.trim();
+    if (!text) return null;
+
+    // Parse JSON from response (handle potential markdown code blocks)
+    const jsonStr = text.replace(/^```json?\s*/i, "").replace(/\s*```$/, "");
+    const parsed = JSON.parse(jsonStr) as { title: string; summary: string };
+    if (parsed.title && parsed.summary) return parsed;
+    return null;
   } catch {
     return null;
   }
 }
 
-/** Insert articles into Supabase yc_articles table */
+/** Translate an article into all supported languages and save translations to Supabase */
+async function translateArticleAllLangs(
+  env: Env,
+  articleId: string,
+  title: string,
+  summary: string,
+  originalLang: string,
+): Promise<Record<string, { title: string; summary: string }>> {
+  const translations: Record<string, { title: string; summary: string }> = {};
+
+  // Original language doesn't need translation
+  translations[originalLang] = { title, summary };
+
+  // Translate into each supported language except the original
+  for (const lang of SUPPORTED_LANGS) {
+    if (lang === originalLang) continue;
+    const translated = await aiTranslate(env.AI, title, summary, lang);
+    if (translated) {
+      translations[lang] = translated;
+    }
+  }
+
+  // Save translations to Supabase
+  if (Object.keys(translations).length > 1) {
+    await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${articleId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: env.SUPABASE_SERVICE_KEY,
+        Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+      },
+      body: JSON.stringify({ translations }),
+    });
+  }
+
+  return translations;
+}
+
+/** Insert articles into Supabase yc_articles table. Returns inserted rows (with IDs). */
 async function insertArticles(
   env: Env,
   articles: Array<{
@@ -538,25 +580,29 @@ async function insertArticles(
     team_tags: string[];
     is_featured: boolean;
     published_at: string;
+    translations?: Record<string, { title: string; summary: string }>;
   }>,
-): Promise<void> {
-  if (!articles.length || !env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return;
+): Promise<Array<{ id: string; slug: string }>> {
+  if (!articles.length || !env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return [];
 
-  // Upsert — skip if slug already exists
-  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles`, {
+  // Upsert — skip if slug already exists, return inserted rows
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?select=id,slug`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       apikey: env.SUPABASE_SERVICE_KEY,
       Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
-      Prefer: "resolution=ignore-duplicates",
+      Prefer: "resolution=ignore-duplicates,return=representation",
     },
     body: JSON.stringify(articles),
   });
 
   if (!res.ok) {
     console.error("Supabase insert failed:", res.status, await res.text());
+    return [];
   }
+
+  return (await res.json()) as Array<{ id: string; slug: string }>;
 }
 
 /** News cron: fetch RSS, store raw, AI-rewrite top picks */
@@ -603,34 +649,39 @@ async function handleNewsCron(env: Env): Promise<void> {
     }
     console.log(`News cron: inserted ${rawArticles.length} raw articles`);
 
-    // 5. AI-rewrite top 2 articles (budget: ~1000 neurons each, ~10-15/day)
-    // Pick the 2 most recent football-related articles with enough description
-    const candidates = unique
+    // 5. Pick top 1 article, mark as featured, translate into all 6 languages
+    // Budget: ~200 neurons/translation × 5 target langs × 1 article × 6 runs/day = ~6K neurons/day
+    const candidate = unique
       .filter((a) => a.description.length > 80)
-      .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
-      .slice(0, 2);
+      .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())[0];
 
-    for (const article of candidates) {
-      const summary = await aiRewrite(env.AI, article);
-      if (summary) {
-        const combinedText = `${article.title} ${article.description}`;
-        const featured = {
-          slug: "ai-" + slugify(article.title) + "-" + Date.now().toString(36).slice(-4),
-          title: article.title,
-          summary,
-          source_name: article.sourceName,
-          source_url: article.link,
-          image_url: article.imageUrl,
-          language: article.language,
-          competition_id: detectCompetition(combinedText),
-          team_tags: detectTeamTags(combinedText),
-          is_featured: true,
-          published_at: new Date(article.pubDate).toISOString(),
-        };
-        await insertArticles(env, [featured]);
+    if (candidate) {
+      const combinedText = `${candidate.title} ${candidate.description}`;
+      const featuredSlug = "ai-" + slugify(candidate.title) + "-" + Date.now().toString(36).slice(-4);
+      const featuredArticle = {
+        slug: featuredSlug,
+        title: candidate.title,
+        summary: candidate.description,
+        source_name: candidate.sourceName,
+        source_url: candidate.link,
+        image_url: candidate.imageUrl,
+        language: candidate.language,
+        competition_id: detectCompetition(combinedText),
+        team_tags: detectTeamTags(combinedText),
+        is_featured: true,
+        published_at: new Date(candidate.pubDate).toISOString(),
+      };
+      const inserted = await insertArticles(env, [featuredArticle]);
+      const insertedRow = inserted[0];
+
+      if (insertedRow) {
+        // Translate into all supported languages
+        await translateArticleAllLangs(
+          env, insertedRow.id, candidate.title, candidate.description, candidate.language,
+        );
+        console.log(`News cron: translated featured article "${candidate.title}" into all languages`);
       }
     }
-    console.log(`News cron: AI-rewrote ${candidates.length} featured articles`);
   } catch (err) {
     console.error("News cron failed:", err);
   }
@@ -1232,17 +1283,51 @@ app.get("/api/:comp/scorers", async (c) => {
 // News API endpoints — read from Supabase yc_articles
 // ---------------------------------------------------------------------------
 
+/** Article row from Supabase */
+interface ArticleRow {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  source_name: string;
+  source_url: string;
+  image_url: string | null;
+  language: string;
+  competition_id: string | null;
+  team_tags: string[];
+  is_featured: boolean;
+  published_at: string;
+  created_at: string;
+  translations: Record<string, { title: string; summary: string }> | null;
+}
+
+/** Overlay translation onto an article if available for the target language */
+function applyTranslation(article: ArticleRow, targetLang: string): ArticleRow & { translated: boolean; original_language: string } {
+  const original_language = article.language;
+  // If article is already in target language, no translation needed
+  if (article.language === targetLang) {
+    return { ...article, translated: false, original_language };
+  }
+  // Check if translation exists
+  const t = article.translations?.[targetLang];
+  if (t) {
+    return { ...article, title: t.title, summary: t.summary, translated: true, original_language };
+  }
+  // No translation available — return original
+  return { ...article, translated: false, original_language };
+}
+
 /** Helper: fetch articles from Supabase with filters */
 async function fetchArticles(
   env: Env,
   params: {
     competitionId?: string;
     teamId?: string;
-    language?: string;
     featured?: boolean;
     limit?: number;
     offset?: number;
     slug?: string;
+    targetLang?: string; // language to translate results into
   },
 ): Promise<{ data: unknown[]; count: number }> {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) {
@@ -1261,9 +1346,6 @@ async function fetchArticles(
     }
     if (params.teamId) {
       query.set("team_tags", `cs.{${params.teamId}}`);
-    }
-    if (params.language) {
-      query.set("language", `eq.${params.language}`);
     }
     if (params.featured) {
       query.set("is_featured", "eq.true");
@@ -1285,25 +1367,31 @@ async function fetchArticles(
 
   if (!res.ok) return { data: [], count: 0 };
 
-  const data = (await res.json()) as unknown[];
+  const rows = (await res.json()) as ArticleRow[];
   const countHeader = res.headers.get("content-range");
-  const count = countHeader ? parseInt(countHeader.split("/")[1] ?? "0", 10) : data.length;
+  const count = countHeader ? parseInt(countHeader.split("/")[1] ?? "0", 10) : rows.length;
+
+  // Apply translations if target language specified
+  const targetLang = params.targetLang;
+  const data = targetLang
+    ? rows.map((r) => applyTranslation(r, targetLang))
+    : rows.map((r) => ({ ...r, translated: false, original_language: r.language }));
 
   return { data, count };
 }
 
-// GET /api/news — global news feed
+// GET /api/news — global news feed (lang = user's display language for translations)
 app.get("/api/news", async (c) => {
-  const lang = c.req.query("lang");
+  const lang = c.req.query("lang") ?? "en";
   const featured = c.req.query("featured") === "true";
   const limit = parseInt(c.req.query("limit") ?? "30", 10);
   const offset = parseInt(c.req.query("offset") ?? "0", 10);
 
   const { data, count } = await fetchArticles(c.env, {
-    language: lang,
     featured: featured || undefined,
     limit,
     offset,
+    targetLang: lang,
   });
 
   return c.json({ articles: data, total: count });
@@ -1312,7 +1400,8 @@ app.get("/api/news", async (c) => {
 // GET /api/news/:slug — single article by slug
 app.get("/api/news/:slug", async (c) => {
   const slug = c.req.param("slug");
-  const { data } = await fetchArticles(c.env, { slug });
+  const lang = c.req.query("lang") ?? "en";
+  const { data } = await fetchArticles(c.env, { slug, targetLang: lang });
 
   if (!data.length) {
     return c.json({ error: "Article not found" }, 404);
@@ -1321,18 +1410,57 @@ app.get("/api/news/:slug", async (c) => {
   return c.json({ article: data[0] });
 });
 
+// POST /api/news/:slug/translate — on-demand translation for a single article
+app.get("/api/news/:slug/translate", async (c) => {
+  const slug = c.req.param("slug");
+  const lang = c.req.query("lang");
+  if (!lang) return c.json({ error: "lang parameter required" }, 400);
+
+  // Fetch the article
+  const { data } = await fetchArticles(c.env, { slug });
+  if (!data.length) return c.json({ error: "Article not found" }, 404);
+
+  const article = data[0] as ArticleRow & { translated: boolean };
+
+  // Check if translation already exists
+  const existing = article.translations?.[lang];
+  if (existing) {
+    return c.json({ title: existing.title, summary: existing.summary, cached: true });
+  }
+
+  // Translate on demand
+  const translated = await aiTranslate(c.env.AI, article.title, article.summary, lang);
+  if (!translated) {
+    return c.json({ error: "Translation failed" }, 500);
+  }
+
+  // Cache the translation in Supabase
+  const updatedTranslations = { ...(article.translations ?? {}), [lang]: translated };
+  await fetch(`${c.env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${article.id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: c.env.SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${c.env.SUPABASE_SERVICE_KEY}`,
+    },
+    body: JSON.stringify({ translations: updatedTranslations }),
+  });
+
+  return c.json({ title: translated.title, summary: translated.summary, cached: false });
+});
+
 // GET /api/:comp/news — competition-specific news
 app.get("/api/:comp/news", async (c) => {
   const comp = c.req.param("comp").toUpperCase();
-  const lang = c.req.query("lang");
+  const lang = c.req.query("lang") ?? "en";
   const limit = parseInt(c.req.query("limit") ?? "20", 10);
   const offset = parseInt(c.req.query("offset") ?? "0", 10);
 
   const { data, count } = await fetchArticles(c.env, {
     competitionId: comp,
-    language: lang,
     limit,
     offset,
+    targetLang: lang,
   });
 
   return c.json({ articles: data, total: count });
@@ -1341,13 +1469,13 @@ app.get("/api/:comp/news", async (c) => {
 // GET /api/team/:teamId/news — team-specific news
 app.get("/api/team/:teamId/news", async (c) => {
   const teamId = c.req.param("teamId").toUpperCase();
-  const lang = c.req.query("lang");
+  const lang = c.req.query("lang") ?? "en";
   const limit = parseInt(c.req.query("limit") ?? "15", 10);
 
   const { data, count } = await fetchArticles(c.env, {
     teamId,
-    language: lang,
     limit,
+    targetLang: lang,
   });
 
   return c.json({ articles: data, total: count });
@@ -1386,10 +1514,11 @@ app.notFound((c) => {
         "GET /api/:comp/match/:id",
         "GET /api/match/:id/detail",
         "GET /api/h2h/:id",
-        "GET /api/news",
-        "GET /api/news/:slug",
-        "GET /api/:comp/news",
-        "GET /api/team/:teamId/news",
+        "GET /api/news?lang=en",
+        "GET /api/news/:slug?lang=en",
+        "GET /api/news/:slug/translate?lang=fr",
+        "GET /api/:comp/news?lang=en",
+        "GET /api/team/:teamId/news?lang=en",
         "GET /api/scores (alias → WC)",
         "GET /api/standings (alias → WC)",
         "GET /api/match/:id (alias)",

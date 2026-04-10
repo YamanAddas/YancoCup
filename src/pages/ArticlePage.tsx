@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ExternalLink, Clock, Star, Newspaper } from "lucide-react";
+import { ArrowLeft, ExternalLink, Clock, Star, Languages, Newspaper } from "lucide-react";
 import { useI18n } from "../lib/i18n";
 import { fetchArticle, type NewsArticle } from "../lib/api";
+
+const LANG_NAMES: Record<string, string> = {
+  en: "English", ar: "العربية", es: "Español",
+  de: "Deutsch", it: "Italiano", fr: "Français", pt: "Português",
+};
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -16,17 +21,17 @@ function timeAgo(dateStr: string): string {
 
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [article, setArticle] = useState<NewsArticle | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
-    fetchArticle(slug)
+    fetchArticle(slug, lang)
       .then((a) => setArticle(a))
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [slug, lang]);
 
   if (loading) {
     return (
@@ -76,6 +81,12 @@ export default function ArticlePage() {
         {article.is_featured && (
           <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-semibold text-yc-green bg-[var(--yc-accent-dim)] px-2 py-0.5 rounded-full">
             <Star size={10} /> AI Summary
+          </span>
+        )}
+        {article.translated && (
+          <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-yc-info bg-yc-bg-elevated px-2 py-0.5 rounded-full">
+            <Languages size={10} />
+            {t("news.translatedFrom")} {LANG_NAMES[article.original_language] ?? article.original_language}
           </span>
         )}
         {article.competition_id && (
