@@ -223,5 +223,6 @@
   "pools.removeMember": "Aus Pool entfernen",
 
   "hub.overview": "Überblick",
-  "profile.history": "Tipp-Verlauf"
+  "profile.history": "Tipp-Verlauf",
+  "profile.accuracy": "Genauigkeitsaufschlüsselung"
 }

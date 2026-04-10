@@ -190,6 +190,7 @@
   "hub.overview": "Overview",
   "lang.title": "Language",
   "profile.history": "Prediction History",
+  "profile.accuracy": "Accuracy Breakdown",
 
   "pools.title": "Pools",
   "pools.subtitle": "Compete with friends",

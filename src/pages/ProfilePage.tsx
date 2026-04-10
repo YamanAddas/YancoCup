@@ -33,6 +33,9 @@ interface UserStats {
   totalPredictions: number;
   scoredPredictions: number;
   exactScores: number;
+  correctGD: number;
+  correctResult: number;
+  wrong: number;
   correctResults: number;
   totalPoints: number;
   competitions: number;
@@ -122,6 +125,52 @@ interface HistoryRow {
 }
 
 const PAGE_SIZE = 15;
+
+function AccuracyBar({ stats }: { stats: UserStats }) {
+  const { t } = useI18n();
+  const total = stats.scoredPredictions;
+  if (total === 0) return null;
+
+  const segments = [
+    { label: t("howToPlay.exactScore"), count: stats.exactScores, color: "bg-yc-green" },
+    { label: t("howToPlay.correctGD"), count: stats.correctGD, color: "bg-emerald-500" },
+    { label: t("howToPlay.correctWinner"), count: stats.correctResult, color: "bg-yc-warning" },
+    { label: t("howToPlay.wrong"), count: stats.wrong, color: "bg-red-500/70" },
+  ];
+
+  return (
+    <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-4 mb-8">
+      <h3 className="text-sm font-medium text-yc-text-tertiary uppercase tracking-wider mb-3">
+        {t("profile.accuracy")}
+      </h3>
+      {/* Bar */}
+      <div className="flex h-4 rounded-full overflow-hidden mb-3">
+        {segments.map((s) =>
+          s.count > 0 ? (
+            <div
+              key={s.label}
+              className={`${s.color} transition-all`}
+              style={{ width: `${(s.count / total) * 100}%` }}
+              title={`${s.label}: ${s.count}`}
+            />
+          ) : null,
+        )}
+      </div>
+      {/* Legend */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {segments.map((s) => (
+          <div key={s.label} className="flex items-center gap-1.5 text-xs">
+            <span className={`w-2.5 h-2.5 rounded-full ${s.color}`} />
+            <span className="text-yc-text-secondary">{s.label}</span>
+            <span className="text-yc-text-tertiary font-mono">
+              {s.count} ({total > 0 ? Math.round((s.count / total) * 100) : 0}%)
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function PredictionHistory({ userId }: { userId: string }) {
   const { t } = useI18n();
@@ -278,6 +327,9 @@ export default function ProfilePage() {
       const competitions = new Set(predictions.map((p) => p.competition_id));
       let totalPoints = 0;
       let exactScores = 0;
+      let correctGD = 0;
+      let correctResult = 0;
+      let wrong = 0;
       let correctResults = 0;
       let scoredPredictions = 0;
 
@@ -287,6 +339,9 @@ export default function ProfilePage() {
           const pts = p.points ?? 0;
           totalPoints += pts;
           if (pts >= 10) exactScores++;
+          else if (pts >= 5) correctGD++;
+          else if (pts > 0) { correctResult++; }
+          else wrong++;
           if (pts > 0) correctResults++;
         }
       }
@@ -295,6 +350,9 @@ export default function ProfilePage() {
         totalPredictions: predictions.length,
         scoredPredictions,
         exactScores,
+        correctGD,
+        correctResult,
+        wrong,
         correctResults,
         totalPoints,
         competitions: competitions.size,
@@ -380,6 +438,9 @@ export default function ProfilePage() {
           <StatBox label="Accuracy" value={`${accuracy}%`} icon={TrendingUp} />
         </div>
       )}
+
+      {/* Accuracy breakdown */}
+      {stats && <AccuracyBar stats={stats} />}
 
       {/* Notifications toggle */}
       {"Notification" in window && (

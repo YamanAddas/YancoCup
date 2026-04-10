@@ -223,5 +223,6 @@
   "pools.removeMember": "إزالة من المجموعة",
 
   "hub.overview": "نظرة عامة",
-  "profile.history": "سجل التوقعات"
+  "profile.history": "سجل التوقعات",
+  "profile.accuracy": "تفصيل الدقة"
 }

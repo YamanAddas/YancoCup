@@ -223,5 +223,6 @@
   "pools.removeMember": "Remover do grupo",
 
   "hub.overview": "Visão geral",
-  "profile.history": "Histórico de palpites"
+  "profile.history": "Histórico de palpites",
+  "profile.accuracy": "Detalhamento da precisão"
 }

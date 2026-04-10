@@ -223,5 +223,6 @@
   "pools.removeMember": "Retirer du groupe",
 
   "hub.overview": "Aperçu",
-  "profile.history": "Historique des pronostics"
+  "profile.history": "Historique des pronostics",
+  "profile.accuracy": "Répartition de la précision"
 }
