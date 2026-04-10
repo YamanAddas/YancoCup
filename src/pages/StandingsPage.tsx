@@ -190,6 +190,32 @@ export default function StandingsPage() {
     });
   }, [standings, sortKey, sortDir]);
 
+  // Points gap to nearest zone boundary (for title/safety indicators)
+  const gapMap = useMemo(() => {
+    const map = new Map<number, { label: string; gap: number }>();
+    if (!zones || standings.length === 0) return map;
+
+    // Find zone boundary positions
+    const clLast = Math.max(...zones.cl, 0);
+    const relFirst = zones.relegation.length > 0 ? Math.min(...zones.relegation) : 0;
+
+    for (const row of standings) {
+      if (clLast > 0 && row.position > clLast && row.position <= clLast + 3) {
+        // Teams just below CL zone
+        const targetPts = standings.find((r) => r.position === clLast)?.points ?? 0;
+        const gap = targetPts - row.points;
+        if (gap > 0) map.set(row.position, { label: "CL", gap });
+      }
+      if (relFirst > 0 && row.position >= relFirst - 3 && row.position < relFirst) {
+        // Teams just above relegation
+        const targetPts = standings.find((r) => r.position === relFirst)?.points ?? 0;
+        const gap = row.points - targetPts;
+        if (gap >= 0) map.set(row.position, { label: "safe", gap });
+      }
+    }
+    return map;
+  }, [standings, zones]);
+
   // "If season ended today" banner data
   const seasonBanner = useMemo(() => {
     if (!zones || standings.length === 0) return null;
@@ -306,7 +332,18 @@ export default function StandingsPage() {
                       </span>
                     </td>
                     <td className="py-2.5 px-2 text-center font-bold text-yc-green">
-                      {row.points}
+                      <span>{row.points}</span>
+                      {gapMap.has(row.position) && (
+                        <span className={`ml-1 text-[9px] font-normal ${
+                          gapMap.get(row.position)!.label === "CL" ? "text-yc-text-tertiary" : "text-yc-warning"
+                        }`} title={
+                          gapMap.get(row.position)!.label === "CL"
+                            ? `${gapMap.get(row.position)!.gap} pts from CL`
+                            : `${gapMap.get(row.position)!.gap} pts above relegation`
+                        }>
+                          {gapMap.get(row.position)!.label === "CL" ? `-${gapMap.get(row.position)!.gap}` : `+${gapMap.get(row.position)!.gap}`}
+                        </span>
+                      )}
                     </td>
                     <td className="py-2.5 px-2 text-center hidden md:table-cell">
                       <FormGuide form={formMap.get(row.team.tla) ?? row.form} />
