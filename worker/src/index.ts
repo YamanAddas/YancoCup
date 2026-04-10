@@ -2134,6 +2134,114 @@ app.get("/api/:comp/teams", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /api/team/:teamId/photos — player headshots from API-Football (30-day cache)
+// ---------------------------------------------------------------------------
+
+app.get("/api/team/:teamId/photos", async (c) => {
+  const fdTeamId = c.req.param("teamId");
+  if (!fdTeamId || !/^\d+$/.test(fdTeamId)) {
+    return c.json({ error: "Invalid team ID" }, 400);
+  }
+
+  // 1. Check KV cache
+  const cacheKey = `photos:${fdTeamId}`;
+  const cached = await c.env.SCORES_KV.get(cacheKey);
+  if (cached) {
+    const parsed = safeParse(cached);
+    if (parsed) return c.json(parsed);
+  }
+
+  if (!c.env.API_FOOTBALL_KEY) {
+    return c.json({ photos: {} });
+  }
+
+  // 2. Find team name from any cached competition team data
+  let teamName = "";
+  for (const compCode of Object.keys(COMPETITIONS)) {
+    const teamsCached = await c.env.SCORES_KV.get(`${compCode}:teams`);
+    if (!teamsCached) continue;
+    const teamsData = safeParse<{ teams: Array<{ id: number; name: string; shortName: string }> }>(teamsCached);
+    const found = teamsData?.teams?.find((t) => String(t.id) === fdTeamId);
+    if (found) {
+      teamName = found.name;
+      break;
+    }
+  }
+
+  if (!teamName) {
+    // Fallback: fetch team directly from football-data.org
+    try {
+      const fdRes = await fetchFromFootballData(`/teams/${fdTeamId}`, c.env.FOOTBALL_DATA_API_KEY);
+      if (fdRes.ok) {
+        const fdData = (await fdRes.json()) as { name?: string };
+        teamName = fdData.name ?? "";
+      }
+    } catch { /* */ }
+  }
+
+  if (!teamName) {
+    return c.json({ photos: {} });
+  }
+
+  // 3. Search API-Football for this team to get their AF team ID
+  let afTeamId: number | null = null;
+  try {
+    const searchRes = await fetchFromApiFootball(
+      `/teams?search=${encodeURIComponent(teamName)}`,
+      c.env.API_FOOTBALL_KEY,
+    );
+    if (searchRes.ok) {
+      const searchData = (await searchRes.json()) as {
+        response: Array<{ team: { id: number; name: string } }>;
+      };
+      // Pick best match (first result or exact name match)
+      const exact = searchData.response?.find(
+        (r) => r.team.name.toLowerCase() === teamName.toLowerCase(),
+      );
+      afTeamId = exact?.team.id ?? searchData.response?.[0]?.team.id ?? null;
+    }
+  } catch { /* */ }
+
+  if (!afTeamId) {
+    // Cache empty result for 1 day to avoid re-searching
+    const empty = { photos: {} };
+    await kvPut(c.env.SCORES_KV, cacheKey, JSON.stringify(empty), { expirationTtl: 86400 });
+    return c.json(empty);
+  }
+
+  // 4. Fetch squad photos from API-Football
+  const photos: Record<string, string> = {};
+  try {
+    const squadRes = await fetchFromApiFootball(
+      `/players/squads?team=${afTeamId}`,
+      c.env.API_FOOTBALL_KEY,
+    );
+    if (squadRes.ok) {
+      const squadData = (await squadRes.json()) as {
+        response: Array<{
+          players: Array<{ id: number; name: string; photo: string }>;
+        }>;
+      };
+      const players = squadData.response?.[0]?.players ?? [];
+      for (const p of players) {
+        if (p.photo) {
+          photos[p.name] = p.photo;
+        }
+      }
+    }
+  } catch { /* */ }
+
+  const result = { photos };
+
+  // Cache for 30 days (squad photos rarely change)
+  await kvPut(c.env.SCORES_KV, cacheKey, JSON.stringify(result), {
+    expirationTtl: 2592000,
+  });
+
+  return c.json(result);
+});
+
+// ---------------------------------------------------------------------------
 // Backward-compatible aliases (existing frontend uses these)
 // ---------------------------------------------------------------------------
 

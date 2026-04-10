@@ -125,7 +125,8 @@ const POS_BG: Record<string, string> = {
   Unknown: "bg-yc-bg-elevated text-yc-text-tertiary border-yc-border",
 };
 
-function PlayerAvatar({ name, position }: { name: string; position: string }) {
+function PlayerAvatar({ name, position, photoUrl }: { name: string; position: string; photoUrl?: string }) {
+  const [imgError, setImgError] = useState(false);
   const initials = name
     .split(" ")
     .filter(Boolean)
@@ -134,11 +135,44 @@ function PlayerAvatar({ name, position }: { name: string; position: string }) {
     .join("")
     .toUpperCase();
   const colors = POS_BG[position] ?? POS_BG.Unknown!;
+
+  if (photoUrl && !imgError) {
+    return (
+      <img
+        src={photoUrl}
+        alt={name}
+        onError={() => setImgError(true)}
+        className="w-9 h-9 rounded-full object-cover shrink-0 border border-yc-border"
+      />
+    );
+  }
+
   return (
     <div className={`w-9 h-9 rounded-full border flex items-center justify-center shrink-0 ${colors}`}>
       <span className="text-[11px] font-bold font-mono leading-none">{initials}</span>
     </div>
   );
+}
+
+/** Find a player photo by fuzzy name matching (last name fallback) */
+function findPhoto(name: string, photos: Record<string, string>): string | undefined {
+  if (!name || Object.keys(photos).length === 0) return undefined;
+  // Exact match
+  if (photos[name]) return photos[name];
+  // Case-insensitive match
+  const lower = name.toLowerCase();
+  for (const [k, v] of Object.entries(photos)) {
+    if (k.toLowerCase() === lower) return v;
+  }
+  // Last name match (most reliable for cross-API matching)
+  const lastName = name.split(" ").pop()?.toLowerCase();
+  if (lastName && lastName.length > 2) {
+    for (const [k, v] of Object.entries(photos)) {
+      const afLast = k.split(" ").pop()?.toLowerCase();
+      if (afLast === lastName) return v;
+    }
+  }
+  return undefined;
 }
 
 function FormDot({ result }: { result: "W" | "D" | "L" }) {
@@ -345,6 +379,7 @@ export default function TeamPage() {
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [leaguePosition, setLeaguePosition] = useState<StandingEntry | null>(null);
   const [loading, setLoading] = useState(true);
+  const [playerPhotos, setPlayerPhotos] = useState<Record<string, string>>({});
 
   // Fetch team data from /api/:comp/teams
   useEffect(() => {
@@ -366,6 +401,15 @@ export default function TeamPage() {
           setMatches(data.matches ?? []);
         }
       } catch { /* */ }
+
+      // Fetch player photos from API-Football (non-blocking)
+      fetch(`${WORKER_URL}/api/team/${teamId}/photos`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          const photos = (d as { photos?: Record<string, string> })?.photos;
+          if (photos && Object.keys(photos).length > 0) setPlayerPhotos(photos);
+        })
+        .catch(() => {});
 
       // Fetch standings for league position
       try {
@@ -696,7 +740,7 @@ export default function TeamPage() {
                     key={p.id}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-yc-bg-elevated/30 transition-colors"
                   >
-                    <PlayerAvatar name={p.name} position={position} />
+                    <PlayerAvatar name={p.name} position={position} photoUrl={findPhoto(p.name, playerPhotos)} />
                     <span className="text-xs font-mono text-yc-text-tertiary w-6 text-center shrink-0">
                       {p.shirtNumber ?? "—"}
                     </span>
