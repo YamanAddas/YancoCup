@@ -390,6 +390,20 @@ function detectCompetition(text: string): string | null {
   return null;
 }
 
+/** Fallback: infer competition from RSS source when text detection fails */
+const SOURCE_COMPETITION_HINT: Record<string, string> = {
+  "BBC Sport": "PL",       // BBC Sport football section is PL-heavy
+  "The Guardian": "PL",
+  "Sky Sports": "PL",
+  "ESPN": "PL",
+  "Marca": "PD",
+  "AS": "PD",
+  "Kicker": "BL1",
+  "Gazzetta dello Sport": "SA",
+  "L'Equipe": "FL1",
+  "Record": "PD",           // Portuguese source, covers Liga Portugal + La Liga
+};
+
 /** Team name → TLA mapping for detection in article text */
 const TEAM_NAMES: Array<{ tla: string; patterns: RegExp }> = [
   // === SPAIN ===
@@ -503,10 +517,20 @@ async function fetchRSSFeed(feed: RSSFeedConfig): Promise<RSSArticle[]> {
     });
     if (!res.ok) return [];
 
-    const xml = await res.text();
+    // Handle encoding: some feeds (e.g. Record.pt) use ISO-8859-1/Windows-1252
+    const buf = await res.arrayBuffer();
+    const contentType = res.headers.get("content-type") ?? "";
+    // Peek at first 200 bytes to check XML encoding declaration
+    const peek = new TextDecoder("ascii").decode(buf.slice(0, 200));
+    const xmlEnc = peek.match(/encoding\s*=\s*["']([^"']+)["']/i)?.[1] ?? "";
+    const isLatin = /iso-8859|latin|windows-1252/i.test(contentType) || /iso-8859|latin|windows-1252/i.test(xmlEnc);
+    const xml = new TextDecoder(isLatin ? "iso-8859-1" : "utf-8").decode(buf);
     const parser = new XMLParser({
       ignoreAttributes: false,
       attributeNamePrefix: "@_",
+      processEntities: true,
+      htmlEntities: true,
+      cdataPropName: "__cdata",
     });
     const parsed = parser.parse(xml);
 
@@ -522,12 +546,27 @@ async function fetchRSSFeed(feed: RSSFeedConfig): Promise<RSSArticle[]> {
     for (const item of itemArray.slice(0, 10)) {
       const i = item as Record<string, unknown>;
 
-      // Title
-      const title = (typeof i.title === "string" ? i.title : (i.title as Record<string, unknown>)?.["#text"] as string) ?? "";
+      // Title — handle string, object with #text, or CDATA-wrapped
+      let title = "";
+      if (typeof i.title === "string") {
+        title = i.title;
+      } else if (i.title && typeof i.title === "object") {
+        const titleObj = i.title as Record<string, unknown>;
+        title = (titleObj["#text"] as string) ?? (titleObj["__cdata"] as string) ?? "";
+      }
+      // Strip any residual CDATA wrappers and HTML entities
+      title = title.replace(/<!\[CDATA\[|\]\]>/g, "").replace(/&#0*39;/g, "'").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').trim();
       if (!title) continue;
 
       // Link
-      const link = (typeof i.link === "string" ? i.link : (i.link as Record<string, unknown>)?.["@_href"] as string) ?? "";
+      let link = "";
+      if (typeof i.link === "string") {
+        link = i.link;
+      } else if (i.link && typeof i.link === "object") {
+        const linkObj = i.link as Record<string, unknown>;
+        link = (linkObj["@_href"] as string) ?? (linkObj["#text"] as string) ?? "";
+      }
+      link = link.replace(/<!\[CDATA\[|\]\]>/g, "").trim();
       if (!link) continue;
 
       // Filter non-football articles from generic sports feeds
@@ -553,9 +592,20 @@ async function fetchRSSFeed(feed: RSSFeedConfig): Promise<RSSArticle[]> {
         if (!isFootball) continue;
       }
 
-      // Description
-      const desc = (typeof i.description === "string" ? i.description : (i["content:encoded"] as string) ?? (i.summary as string) ?? "")
+      // Description — handle string, CDATA, or nested objects
+      let rawDesc = "";
+      if (typeof i.description === "string") {
+        rawDesc = i.description;
+      } else if (i.description && typeof i.description === "object") {
+        const descObj = i.description as Record<string, unknown>;
+        rawDesc = (descObj["#text"] as string) ?? (descObj["__cdata"] as string) ?? "";
+      }
+      if (!rawDesc) rawDesc = (i["content:encoded"] as string) ?? (i.summary as string) ?? "";
+      if (typeof rawDesc !== "string") rawDesc = "";
+      const desc = rawDesc
+        .replace(/<!\[CDATA\[|\]\]>/g, "")
         .replace(/<[^>]+>/g, "") // strip HTML tags
+        .replace(/&#0*39;/g, "'").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
         .slice(0, 500);
 
       // Image URL
@@ -755,7 +805,7 @@ async function handleNewsCron(env: Env): Promise<void> {
         source_url: a.link,
         image_url: a.imageUrl,
         language: a.language,
-        competition_id: detectCompetition(combinedText),
+        competition_id: detectCompetition(combinedText) ?? SOURCE_COMPETITION_HINT[a.sourceName] ?? null,
         team_tags: detectTeamTags(combinedText),
         is_featured: false,
         published_at: (() => { try { return new Date(a.pubDate).toISOString(); } catch { return new Date().toISOString(); } })(),
@@ -864,9 +914,9 @@ async function handleCron(env: Env): Promise<void> {
           allLive.push(score);
         }
 
-        // Store individual match detail
+        // Store individual match detail (24h TTL — cron refreshes frequently)
         await kvPut(env.SCORES_KV,kvMatch(m.id), JSON.stringify(score), {
-          expirationTtl: 300,
+          expirationTtl: 86400,
         });
       }
 
@@ -885,11 +935,11 @@ async function handleCron(env: Env): Promise<void> {
         }
 
         await kvPut(env.SCORES_KV,kvScores(code), JSON.stringify(merged), {
-          expirationTtl: 3600,
+          expirationTtl: 86400,
         });
       }
 
-      // Store all live matches
+      // Store all live matches (short TTL — ephemeral by nature)
       await kvPut(env.SCORES_KV,"all:live", JSON.stringify(allLive), {
         expirationTtl: 120,
       });
@@ -923,9 +973,9 @@ async function handleCron(env: Env): Promise<void> {
             byComp.set(score.competitionCode, []);
           byComp.get(score.competitionCode)!.push(score);
 
-          // Store individual match detail
+          // Store individual match detail (24h TTL)
           await kvPut(env.SCORES_KV,kvMatch(m.id), JSON.stringify(score), {
-            expirationTtl: 3600,
+            expirationTtl: 86400,
           });
         }
 
@@ -942,7 +992,7 @@ async function handleCron(env: Env): Promise<void> {
           }
 
           await kvPut(env.SCORES_KV,kvScores(code), JSON.stringify(merged), {
-            expirationTtl: 3600,
+            expirationTtl: 86400,
           });
         }
       }
@@ -969,7 +1019,7 @@ async function handleCron(env: Env): Promise<void> {
           await kvPut(env.SCORES_KV,
             kvStandings(comp),
             JSON.stringify(sData.standings),
-            { expirationTtl: 1800 },
+            { expirationTtl: 86400 },
           );
         }
       }
@@ -994,7 +1044,7 @@ async function handleCron(env: Env): Promise<void> {
         const schedData = (await schedRes.json()) as { matches: FDMatch[] };
         const matches = schedData.matches.map(transformMatch);
         await kvPut(env.SCORES_KV, kvSchedule(comp), JSON.stringify(matches), {
-          expirationTtl: 7200, // 2 hours
+          expirationTtl: 86400,
         });
       }
     }
@@ -1049,6 +1099,7 @@ app.use(
     origin: [
       "https://yamanaddas.github.io",
       "http://localhost:5173",
+      "http://localhost:5175",
       "http://localhost:4173",
     ],
     allowMethods: ["GET", "OPTIONS"],
@@ -1632,6 +1683,43 @@ app.get("/api/admin/trigger-news", async (c) => {
   } catch (err) {
     return c.json({ status: "error", message: String(err) }, 500);
   }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/diag — temporary diagnostic endpoint
+// ---------------------------------------------------------------------------
+
+app.get("/api/diag", async (c) => {
+  const results: Record<string, unknown> = {};
+
+  // Check what's in KV
+  const kvKeys = ["all:live", KV_TICK, KV_LAST_POLL];
+  for (const comp of Object.keys(COMPETITIONS)) {
+    kvKeys.push(kvScores(comp), kvStandings(comp), kvSchedule(comp));
+  }
+  const kvData: Record<string, string | null> = {};
+  for (const k of kvKeys) {
+    const v = await c.env.SCORES_KV.get(k);
+    kvData[k] = v ? `${v.length} chars` : null;
+  }
+  results.kv = kvData;
+
+  // Test upstream API
+  try {
+    const testRes = await fetchFromFootballData("/matches", c.env.FOOTBALL_DATA_API_KEY);
+    const status = testRes.status;
+    if (testRes.ok) {
+      const data = (await testRes.json()) as { matches: unknown[] };
+      results.upstream = { status, matchCount: data.matches?.length ?? 0 };
+    } else {
+      const text = await testRes.text();
+      results.upstream = { status, error: text.slice(0, 200) };
+    }
+  } catch (e) {
+    results.upstream = { error: String(e) };
+  }
+
+  return c.json(results);
 });
 
 // ---------------------------------------------------------------------------
