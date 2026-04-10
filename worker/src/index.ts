@@ -681,53 +681,69 @@ const M2M100_LANG: Record<string, string> = {
   fr: "french", de: "german", pt: "portuguese", it: "italian",
 };
 
-/** Translate a single text using m2m100 (fast, purpose-built translator) */
+/** Translate a single text using m2m100 (fast, purpose-built translator) — with retry */
 async function m2m100Translate(
   ai: Ai,
   text: string,
   sourceLang: string,
   targetLang: string,
+  retries = 2,
 ): Promise<string | null> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (ai as any).run("@cf/meta/m2m100-1.2b", {
-      text,
-      source_lang: M2M100_LANG[sourceLang] ?? "english",
-      target_lang: M2M100_LANG[targetLang] ?? "english",
-    });
-    return (result as { translated_text?: string }).translated_text ?? null;
-  } catch {
-    return null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (ai as any).run("@cf/meta/m2m100-1.2b", {
+        text,
+        source_lang: M2M100_LANG[sourceLang] ?? "english",
+        target_lang: M2M100_LANG[targetLang] ?? "english",
+      });
+      const translated = (result as { translated_text?: string }).translated_text;
+      if (translated && translated.trim().length > 0) return translated;
+    } catch (err) {
+      console.warn(`m2m100 attempt ${attempt + 1} failed for ${sourceLang}->${targetLang}: ${err}`);
+      if (attempt < retries) await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+    }
   }
+  return null;
 }
 
-/** Translate using Llama 3.1 8B (better quality for Arabic) */
+/** Translate using Llama 3.1 8B (better quality for Arabic) — with retry */
 async function llamaTranslate(
   ai: Ai,
   title: string,
   summary: string,
   targetLang: string,
+  retries = 2,
 ): Promise<{ title: string; summary: string } | null> {
-  try {
-    const langName = LANG_NAMES[targetLang] ?? "English";
-    const prompt = `Translate this sports news into ${langName}. Output ONLY valid JSON: {"title":"...","summary":"..."}\n\nTitle: ${title}\n\nSummary: ${summary}`;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (ai as any).run("@cf/meta/llama-3.1-8b-instruct", {
-      messages: [
-        { role: "system", content: `You are a professional sports translator. Translate accurately into ${langName}. Output ONLY valid JSON.` },
-        { role: "user", content: prompt },
-      ],
-      max_tokens: 512,
-    });
-    const text = (result as { response?: string }).response?.trim();
-    if (!text) return null;
-    const jsonStr = text.replace(/^```json?\s*/i, "").replace(/\s*```$/, "");
-    const parsed = JSON.parse(jsonStr) as { title: string; summary: string };
-    if (parsed.title && parsed.summary) return parsed;
-    return null;
-  } catch {
-    return null;
+  const langName = LANG_NAMES[targetLang] ?? "English";
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const prompt = `Translate this sports news into ${langName}. Output ONLY valid JSON: {"title":"...","summary":"..."}\n\nTitle: ${title}\n\nSummary: ${summary}`;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (ai as any).run("@cf/meta/llama-3.1-8b-instruct", {
+        messages: [
+          { role: "system", content: `You are a professional sports translator. Translate accurately into ${langName}. Output ONLY valid JSON.` },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: 512,
+      });
+      const text = (result as { response?: string }).response?.trim();
+      if (!text) { continue; }
+      // Try multiple JSON extraction strategies
+      let jsonStr = text;
+      // Strip markdown fences
+      jsonStr = jsonStr.replace(/^```json?\s*/i, "").replace(/\s*```$/, "");
+      // Try to find JSON object in the response
+      const jsonMatch = jsonStr.match(/\{[\s\S]*"title"[\s\S]*"summary"[\s\S]*\}/);
+      if (jsonMatch) jsonStr = jsonMatch[0];
+      const parsed = JSON.parse(jsonStr) as { title: string; summary: string };
+      if (parsed.title?.trim() && parsed.summary?.trim()) return parsed;
+    } catch (err) {
+      console.warn(`Llama translate attempt ${attempt + 1} failed for ${targetLang}: ${err}`);
+      if (attempt < retries) await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+    }
   }
+  return null;
 }
 
 /** Hybrid translate: m2m100 for EU languages (fast), Llama for Arabic (better quality) */
@@ -752,48 +768,59 @@ async function aiTranslate(
   return llamaTranslate(ai, title, summary, targetLang);
 }
 
-/** Translate an article into all supported languages and save translations to Supabase */
-async function translateArticleAllLangs(
+/** Translate an article into missing languages and merge with existing translations */
+async function translateArticleMissing(
   env: Env,
   articleId: string,
   title: string,
   summary: string,
   originalLang: string,
-): Promise<Record<string, { title: string; summary: string }>> {
-  const translations: Record<string, { title: string; summary: string }> = {};
+  existingTranslations: Record<string, { title: string; summary: string }> | null,
+): Promise<{ translated: number; failed: number }> {
+  const translations: Record<string, { title: string; summary: string }> = {
+    ...(existingTranslations ?? {}),
+  };
 
   // Original language doesn't need translation
   translations[originalLang] = { title, summary };
 
-  // Translate into each supported language except the original
-  // Process in batches of 3 to stay within neuron budget
-  const targets = SUPPORTED_LANGS.filter((l) => l !== originalLang);
-  const results: Array<{ lang: string; r: { title: string; summary: string } | null }> = [];
-  for (let i = 0; i < targets.length; i += 3) {
-    const batch = targets.slice(i, i + 3);
-    const batchResults = await Promise.all(
-      batch.map((lang) => aiTranslate(env.AI, title, summary, lang, originalLang).then((r) => ({ lang, r }))),
-    );
-    results.push(...batchResults);
-  }
-  for (const { lang, r } of results) {
-    if (r) translations[lang] = r;
+  // Find which languages are missing
+  const missing = SUPPORTED_LANGS.filter((l) => !translations[l]);
+  if (missing.length === 0) return { translated: 0, failed: 0 };
+
+  // Translate missing languages — sequentially for reliability, with delay between calls
+  let translated = 0;
+  let failed = 0;
+  for (const lang of missing) {
+    const result = await aiTranslate(env.AI, title, summary, lang, originalLang);
+    if (result) {
+      translations[lang] = result;
+      translated++;
+    } else {
+      failed++;
+      console.warn(`Translation failed: article=${articleId} lang=${lang}`);
+    }
+    // Small delay between translations to avoid rate limiting
+    if (missing.indexOf(lang) < missing.length - 1) {
+      await new Promise((r) => setTimeout(r, 300));
+    }
   }
 
-  // Save translations to Supabase
-  if (Object.keys(translations).length > 1) {
-    await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${articleId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: env.SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
-      },
-      body: JSON.stringify({ translations }),
-    });
+  // Save all translations (merged) to Supabase — always save even partial progress
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${articleId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: env.SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+    },
+    body: JSON.stringify({ translations }),
+  });
+  if (!res.ok) {
+    console.error(`Failed to save translations for ${articleId}: ${res.status}`);
   }
 
-  return translations;
+  return { translated, failed };
 }
 
 /** Insert articles into Supabase yc_articles table. Returns inserted rows (with IDs). */
@@ -886,10 +913,10 @@ async function handleNewsCron(env: Env): Promise<void> {
     }
     console.log(`News cron: inserted ${rawArticles.length} raw articles`);
 
-    // 5. Translate ALL new articles into all 6 languages (pre-translate during cron)
-    // Fetch recently inserted articles that don't have translations yet
-    const untranslatedRes = await fetch(
-      `${env.SUPABASE_URL}/rest/v1/yc_articles?translations=is.null&order=published_at.desc&limit=30&select=id,title,summary,language,is_featured`,
+    // 5. Translate articles — both brand-new (NULL) and incomplete (missing languages)
+    // Phase A: articles with no translations at all
+    const nullRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/yc_articles?translations=is.null&order=published_at.desc&limit=50&select=id,title,summary,language,is_featured,translations`,
       {
         headers: {
           apikey: env.SUPABASE_SERVICE_KEY,
@@ -898,24 +925,55 @@ async function handleNewsCron(env: Env): Promise<void> {
       },
     );
 
-    if (untranslatedRes.ok) {
-      const untranslated = (await untranslatedRes.json()) as Array<{
-        id: string; title: string; summary: string;
-        language: string; is_featured: boolean;
-      }>;
-      console.log(`News cron: ${untranslated.length} articles need translation`);
+    // Phase B: articles with partial translations (have translations but less than 6 keys)
+    // Use RPC or filter for articles that exist but aren't complete
+    const partialRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/yc_articles?translations=not.is.null&order=published_at.desc&limit=200&select=id,title,summary,language,is_featured,translations`,
+      {
+        headers: {
+          apikey: env.SUPABASE_SERVICE_KEY,
+          Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+        },
+      },
+    );
 
-      // Mark top 8 (by recency with description) as featured
+    const nullArticles = nullRes.ok ? ((await nullRes.json()) as Array<{
+      id: string; title: string; summary: string;
+      language: string; is_featured: boolean;
+      translations: Record<string, { title: string; summary: string }> | null;
+    }>) : [];
+
+    const partialArticlesRaw = partialRes.ok ? ((await partialRes.json()) as Array<{
+      id: string; title: string; summary: string;
+      language: string; is_featured: boolean;
+      translations: Record<string, { title: string; summary: string }> | null;
+    }>) : [];
+
+    // Filter to only articles missing at least one language
+    const partialArticles = partialArticlesRaw.filter((a) => {
+      const langCount = a.translations ? Object.keys(a.translations).length : 0;
+      return langCount < SUPPORTED_LANGS.length;
+    });
+
+    // Cap per cron run to avoid CPU timeout (Worker free tier = 30s).
+    // Prioritize new (null) articles, then oldest partial ones.
+    const MAX_PER_CRON = 10;
+    const allNeedWork = [...nullArticles, ...partialArticles].slice(0, MAX_PER_CRON);
+    console.log(`News cron: ${nullArticles.length} untranslated + ${partialArticles.length} partial — processing ${allNeedWork.length} this run`);
+
+    if (allNeedWork.length > 0) {
+      // Mark top 8 new articles (by recency with description) as featured
       const featuredIds = new Set(
-        untranslated
+        nullArticles
           .filter((a) => a.summary.length > 80)
           .slice(0, 8)
           .map((a) => a.id),
       );
 
-      // Translate sequentially to stay within neuron budget
-      let translated = 0;
-      for (const row of untranslated) {
+      let totalTranslated = 0;
+      let totalFailed = 0;
+
+      for (const row of allNeedWork) {
         // Mark as featured if in top 8
         if (featuredIds.has(row.id) && !row.is_featured) {
           await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${row.id}`, {
@@ -929,10 +987,17 @@ async function handleNewsCron(env: Env): Promise<void> {
           });
         }
 
-        await translateArticleAllLangs(env, row.id, row.title, row.summary, row.language);
-        translated++;
-        console.log(`News cron: translated ${translated}/${untranslated.length} — "${row.title.slice(0, 50)}..."`);
+        const { translated, failed } = await translateArticleMissing(
+          env, row.id, row.title, row.summary, row.language, row.translations,
+        );
+        totalTranslated += translated;
+        totalFailed += failed;
+
+        const existing = row.translations ? Object.keys(row.translations).length : 0;
+        console.log(`News cron: ${row.id} — had ${existing} langs, added ${translated}, failed ${failed} — "${row.title.slice(0, 40)}..."`);
       }
+
+      console.log(`News cron: translation complete — ${totalTranslated} succeeded, ${totalFailed} failed across ${allNeedWork.length} articles`);
     }
   } catch (err) {
     console.error("News cron failed:", err);
@@ -1228,6 +1293,59 @@ app.get("/api/admin/trigger-news", async (c) => {
   } catch (err) {
     return c.json({ status: "error", message: String(err) }, 500);
   }
+});
+
+// Admin: backfill missing translations for all articles
+app.get("/api/admin/backfill-translations", async (c) => {
+  const key = c.req.query("key");
+  if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const limit = parseInt(c.req.query("limit") ?? "50", 10);
+
+  // Fetch all articles (up to limit) that are missing translations
+  const res = await fetch(
+    `${c.env.SUPABASE_URL}/rest/v1/yc_articles?order=published_at.desc&limit=${limit}&select=id,title,summary,language,translations`,
+    {
+      headers: {
+        apikey: c.env.SUPABASE_SERVICE_KEY,
+        Authorization: `Bearer ${c.env.SUPABASE_SERVICE_KEY}`,
+      },
+    },
+  );
+
+  if (!res.ok) return c.json({ error: "Failed to fetch articles" }, 500);
+
+  const articles = (await res.json()) as Array<{
+    id: string; title: string; summary: string; language: string;
+    translations: Record<string, { title: string; summary: string }> | null;
+  }>;
+
+  // Filter to articles missing at least one language
+  const incomplete = articles.filter((a) => {
+    const langCount = a.translations ? Object.keys(a.translations).length : 0;
+    return langCount < SUPPORTED_LANGS.length;
+  });
+
+  let totalTranslated = 0;
+  let totalFailed = 0;
+
+  for (const row of incomplete) {
+    const { translated, failed } = await translateArticleMissing(
+      c.env, row.id, row.title, row.summary, row.language, row.translations,
+    );
+    totalTranslated += translated;
+    totalFailed += failed;
+  }
+
+  return c.json({
+    status: "ok",
+    checked: articles.length,
+    incomplete: incomplete.length,
+    translated: totalTranslated,
+    failed: totalFailed,
+  });
 });
 
 app.get("/api/admin/populate", async (c) => {
