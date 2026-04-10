@@ -114,7 +114,7 @@ export default function MobileNav() {
           }
         >
           <User size={20} />
-          {user ? "Profile" : t("nav.signIn")}
+          {user ? t("nav.profile") : t("nav.signIn")}
         </NavLink>
       </div>
     </nav>

@@ -11,15 +11,16 @@ import { getRank, getRankStars } from "../lib/ranks";
 import { TrendingUp, Target, Award, Star, ArrowUp, ArrowDown, Users } from "lucide-react";
 
 function RankPill({ points }: { points: number }) {
+  const { t } = useI18n();
   const rank = getRank(points);
   const stars = getRankStars(points);
 
   return (
     <span
       className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${rank.bgColor} ${rank.color} ${rank.borderColor} border`}
-      title={`${rank.name} — ${stars}/5 stars`}
+      title={`${t(rank.nameKey)} — ${stars}/5 stars`}
     >
-      {rank.name.charAt(0)}
+      {t(rank.nameKey).charAt(0)}
       <span className="flex gap-px">
         {Array.from({ length: Math.min(stars, 5) }).map((_, i) => (
           <Star key={i} size={7} fill="currentColor" />

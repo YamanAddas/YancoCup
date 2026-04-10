@@ -52,7 +52,7 @@ function PersonalizedGreeting() {
         <span
           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold ${rank.bgColor} ${rank.color} ${rank.borderColor} border`}
         >
-          {rank.name}
+          {t(rank.nameKey)}
           <span className="flex gap-px">
             {Array.from({ length: Math.min(stars, 5) }).map((_, i) => (
               <Star key={i} size={8} fill="currentColor" />

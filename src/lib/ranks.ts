@@ -2,6 +2,9 @@
 
 export interface RankTier {
   id: string;
+  /** i18n key for the rank name (e.g., "rank.diamond"). Use t(rank.nameKey) to get the translated name. */
+  nameKey: string;
+  /** Fallback English name (used in non-i18n contexts like share cards) */
   name: string;
   minPoints: number;
   color: string;       // Tailwind text color class
@@ -10,11 +13,11 @@ export interface RankTier {
 }
 
 export const RANK_TIERS: RankTier[] = [
-  { id: "diamond",  name: "Diamond",  minPoints: 1000, color: "text-cyan-300",   bgColor: "bg-cyan-500/15",   borderColor: "border-cyan-500/30" },
-  { id: "platinum", name: "Platinum", minPoints: 600,  color: "text-slate-200",  bgColor: "bg-slate-400/15",  borderColor: "border-slate-400/30" },
-  { id: "gold",     name: "Gold",     minPoints: 300,  color: "text-amber-400",  bgColor: "bg-amber-500/15",  borderColor: "border-amber-500/30" },
-  { id: "silver",   name: "Silver",   minPoints: 100,  color: "text-gray-300",   bgColor: "bg-gray-400/15",   borderColor: "border-gray-400/30" },
-  { id: "bronze",   name: "Bronze",   minPoints: 0,    color: "text-orange-400", bgColor: "bg-orange-500/15", borderColor: "border-orange-500/30" },
+  { id: "diamond",  nameKey: "rank.diamond",  name: "Diamond",  minPoints: 1000, color: "text-cyan-300",   bgColor: "bg-cyan-500/15",   borderColor: "border-cyan-500/30" },
+  { id: "platinum", nameKey: "rank.platinum", name: "Platinum", minPoints: 600,  color: "text-slate-200",  bgColor: "bg-slate-400/15",  borderColor: "border-slate-400/30" },
+  { id: "gold",     nameKey: "rank.gold",     name: "Gold",     minPoints: 300,  color: "text-amber-400",  bgColor: "bg-amber-500/15",  borderColor: "border-amber-500/30" },
+  { id: "silver",   nameKey: "rank.silver",   name: "Silver",   minPoints: 100,  color: "text-gray-300",   bgColor: "bg-gray-400/15",   borderColor: "border-gray-400/30" },
+  { id: "bronze",   nameKey: "rank.bronze",   name: "Bronze",   minPoints: 0,    color: "text-orange-400", bgColor: "bg-orange-500/15", borderColor: "border-orange-500/30" },
 ];
 
 /** Get the rank tier for a given point total */

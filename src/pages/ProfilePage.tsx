@@ -54,12 +54,13 @@ interface CompStats {
 }
 
 function RankBadge({ points }: { points: number }) {
+  const { t } = useI18n();
   const rank = getRank(points);
   const stars = getRankStars(points);
 
   return (
     <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${rank.bgColor} ${rank.borderColor}`}>
-      <span className={`font-heading text-sm font-bold ${rank.color}`}>{rank.name}</span>
+      <span className={`font-heading text-sm font-bold ${rank.color}`}>{t(rank.nameKey)}</span>
       <div className="flex gap-0.5">
         {Array.from({ length: 5 }).map((_, i) => (
           <Star
@@ -274,7 +275,7 @@ function PredictionHistory({ userId }: { userId: string }) {
                       </span>
                     ) : row.quick_pick ? (
                       <span className="text-sm font-mono font-bold text-yc-text-primary">
-                        {row.quick_pick === "H" ? "Home" : row.quick_pick === "A" ? "Away" : "Draw"}
+                        {row.quick_pick === "H" ? t("quickPick.home") : row.quick_pick === "A" ? t("quickPick.away") : t("quickPick.draw")}
                       </span>
                     ) : (
                       <span className="text-sm text-yc-text-tertiary">—</span>
@@ -463,12 +464,12 @@ export default function ProfilePage() {
         )}
         <div className="flex-1">
           <h2 className="font-heading text-2xl font-bold">
-            {profile?.display_name ?? profile?.handle ?? "Player"}
+            {profile?.display_name ?? profile?.handle ?? t("profile.player")}
           </h2>
           <div className="flex items-center gap-3 mt-1">
             <RankBadge points={stats?.totalPoints ?? 0} />
             <span className="text-xs text-yc-text-tertiary">
-              {earnedCount}/{totalBadges} badges
+              {t("profile.badgesCount", { earned: earnedCount, total: totalBadges })}
             </span>
           </div>
         </div>
@@ -496,10 +497,10 @@ export default function ProfilePage() {
       {/* Stats grid */}
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-          <StatBox label="Total Points" value={stats.totalPoints} icon={Trophy} />
-          <StatBox label="Predictions" value={stats.totalPredictions} icon={Target} />
-          <StatBox label="Exact Scores" value={stats.exactScores} icon={Crosshair} />
-          <StatBox label="Accuracy" value={`${accuracy}%`} icon={TrendingUp} />
+          <StatBox label={t("profile.totalPoints")} value={stats.totalPoints} icon={Trophy} />
+          <StatBox label={t("profile.predictions")} value={stats.totalPredictions} icon={Target} />
+          <StatBox label={t("profile.exactScores")} value={stats.exactScores} icon={Crosshair} />
+          <StatBox label={t("profile.accuracy")} value={`${accuracy}%`} icon={TrendingUp} />
         </div>
       )}
 
@@ -517,8 +518,8 @@ export default function ProfilePage() {
               <div key={cs.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-yc-bg-elevated/50">
                 <span className="text-xs font-mono font-bold text-yc-green w-8">{cs.id}</span>
                 <span className="text-sm text-yc-text-primary flex-1 truncate">{cs.name}</span>
-                <span className="text-xs text-yc-text-secondary font-mono">{cs.predictions} pred</span>
-                <span className="text-xs text-yc-text-secondary font-mono">{cs.exact} exact</span>
+                <span className="text-xs text-yc-text-secondary font-mono">{cs.predictions} {t("profile.pred")}</span>
+                <span className="text-xs text-yc-text-secondary font-mono">{cs.exact} {t("profile.exact")}</span>
                 <span className="text-xs text-yc-text-secondary font-mono">{cs.accuracy}%</span>
                 <span className="text-xs font-bold font-mono text-yc-green">{cs.points} pts</span>
               </div>
@@ -536,8 +537,8 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3">
             <Bell size={18} className="text-yc-green" />
             <div>
-              <p className="text-sm font-medium text-yc-text-primary">Match Notifications</p>
-              <p className="text-xs text-yc-text-tertiary">Get reminded before prediction deadlines</p>
+              <p className="text-sm font-medium text-yc-text-primary">{t("profile.matchNotifications")}</p>
+              <p className="text-xs text-yc-text-tertiary">{t("profile.matchNotificationsDesc")}</p>
             </div>
           </div>
           <button
@@ -552,7 +553,7 @@ export default function ProfilePage() {
                 : "bg-yc-bg-elevated text-yc-text-secondary hover:text-yc-text-primary border border-yc-border"
             }`}
           >
-            {notificationsEnabled() ? "Enabled" : "Enable"}
+            {notificationsEnabled() ? t("profile.enabled") : t("profile.enable")}
           </button>
         </div>
       )}
@@ -562,11 +563,11 @@ export default function ProfilePage() {
         {(["activity", "skill", "loyalty"] as const).map((category) => {
           const categoryBadges = badgesByCategory[category];
           if (categoryBadges.length === 0) return null;
-          const categoryLabels = { activity: "Activity", skill: "Skill", loyalty: "Loyalty" };
+          const categoryKeys = { activity: "profile.activityBadges", skill: "profile.skillBadges", loyalty: "profile.loyaltyBadges" };
           return (
             <div key={category}>
               <h3 className="text-sm font-medium text-yc-text-tertiary uppercase tracking-wider mb-3">
-                {categoryLabels[category]} Badges
+                {t(categoryKeys[category])} {t("profile.badges")}
               </h3>
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                 {categoryBadges.map((badge) => (

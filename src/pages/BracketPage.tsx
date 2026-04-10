@@ -7,6 +7,7 @@ import { useTeamMap } from "../hooks/useTeams";
 import { useScores } from "../hooks/useScores";
 import { useMyPredictions, type Prediction } from "../hooks/usePredictions";
 import TeamCrest from "../components/match/TeamCrest";
+import { useI18n } from "../lib/i18n";
 import type { Match, Team } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -23,13 +24,13 @@ interface BracketMatch {
 
 type RoundId = "playoff" | "round-of-32" | "round-of-16" | "quarterfinal" | "semifinal" | "final";
 
-const ROUND_LABELS: Record<RoundId, string> = {
-  playoff: "Play-offs",
-  "round-of-32": "Round of 32",
-  "round-of-16": "Round of 16",
-  quarterfinal: "Quarterfinals",
-  semifinal: "Semifinals",
-  final: "Final",
+const ROUND_LABEL_KEYS: Record<RoundId, string> = {
+  playoff: "bracket.playoffs",
+  "round-of-32": "bracket.roundOf32",
+  "round-of-16": "bracket.roundOf16",
+  quarterfinal: "bracket.quarterfinals",
+  semifinal: "bracket.semifinals",
+  final: "bracket.final",
 };
 
 // ---------------------------------------------------------------------------
@@ -51,6 +52,7 @@ function BracketNode({
   prediction?: Prediction;
   highlighted?: boolean;
 }) {
+  const { t } = useI18n();
   const m = bm.match;
   const effectiveStatus = liveScore?.status ?? m.status;
   const isLive = effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED";
@@ -111,7 +113,7 @@ function BracketNode({
         {/* User prediction overlay */}
         {prediction && prediction.home_score !== null && prediction.away_score !== null && (
           <div className="relative z-2 flex items-center justify-center gap-1 py-0.5 bg-yc-green/[0.06] border-t border-yc-green/10">
-            <span className="text-[9px] text-yc-text-tertiary">You:</span>
+            <span className="text-[9px] text-yc-text-tertiary">{t("bracket.you")}</span>
             <span className="text-[10px] font-mono font-bold text-yc-green">
               {prediction.home_score}-{prediction.away_score}
             </span>
@@ -128,9 +130,9 @@ function BracketNode({
         )}
         {prediction && prediction.quick_pick && prediction.home_score === null && (
           <div className="relative z-2 flex items-center justify-center gap-1 py-0.5 bg-yc-green/[0.06] border-t border-yc-green/10">
-            <span className="text-[9px] text-yc-text-tertiary">You:</span>
+            <span className="text-[9px] text-yc-text-tertiary">{t("bracket.you")}</span>
             <span className="text-[10px] font-mono font-bold text-yc-green">
-              {prediction.quick_pick === "H" ? "Home" : prediction.quick_pick === "A" ? "Away" : "Draw"}
+              {prediction.quick_pick === "H" ? t("quickPick.home") : prediction.quick_pick === "A" ? t("quickPick.away") : t("quickPick.draw")}
             </span>
           </div>
         )}
@@ -208,6 +210,7 @@ function RoundColumn({
   predMap: Map<number, Prediction>;
   highlightTeam: string | null;
 }) {
+  const { t } = useI18n();
   const pairs = groupIntoPairs(matches);
 
   return (
@@ -215,7 +218,7 @@ function RoundColumn({
       {/* Round header */}
       <h4 className="text-[10px] text-yc-text-tertiary uppercase tracking-wider text-center mb-3 font-medium flex items-center justify-center gap-1.5">
         <span className="w-4 h-px bg-yc-green/20" />
-        {ROUND_LABELS[roundId]}
+        {t(ROUND_LABEL_KEYS[roundId])}
         <span className="w-4 h-px bg-yc-green/20" />
       </h4>
 
@@ -247,6 +250,7 @@ function RoundColumn({
 
 export default function BracketPage() {
   const comp = useCompetition();
+  const { t } = useI18n();
   const { matches } = useCompetitionSchedule();
   const teamMap = useTeamMap();
   const { scoreMap } = useScores();
@@ -309,7 +313,7 @@ export default function BracketPage() {
         <div className="yc-card p-12 text-center">
           <GitBranch size={48} className="text-yc-text-tertiary mx-auto mb-4 opacity-40" />
           <p className="text-yc-text-tertiary text-sm">
-            No knockout matches available yet.
+            {t("bracket.noMatches")}
           </p>
         </div>
       </div>
@@ -327,7 +331,7 @@ export default function BracketPage() {
             onChange={(e) => setHighlightTeam(e.target.value || null)}
             className="bg-yc-bg-elevated border border-yc-border rounded-lg px-3 py-1.5 text-xs text-yc-text-secondary"
           >
-            <option value="">Path to the final...</option>
+            <option value="">{t("bracket.pathToFinal")}</option>
             {bracketTeams.map((tla) => {
               const team = teamMap.get(tla);
               return (
@@ -342,7 +346,7 @@ export default function BracketPage() {
               onClick={() => setHighlightTeam(null)}
               className="text-xs text-yc-text-tertiary hover:text-yc-text-primary"
             >
-              Clear
+              {t("bracket.clear")}
             </button>
           )}
         </div>
@@ -389,7 +393,7 @@ export default function BracketPage() {
         <div className="mt-6">
           <h4 className="text-[10px] text-yc-text-tertiary uppercase tracking-wider mb-2 font-medium flex items-center gap-1.5">
             <span className="w-4 h-px bg-yc-green/20" />
-            Third Place
+            {t("bracket.thirdPlace")}
             <span className="w-4 h-px bg-yc-green/20" />
           </h4>
           <div className="max-w-[200px]">

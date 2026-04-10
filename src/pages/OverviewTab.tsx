@@ -152,7 +152,7 @@ export default function OverviewTab() {
       ? t("home.liveNow")
       : upcoming.length > 0
         ? t("home.nextMatches")
-        : "Recent Results";
+        : t("overview.recentResults");
 
   if (loading) {
     return (
@@ -284,13 +284,13 @@ export default function OverviewTab() {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-yc-text-secondary text-sm font-medium flex items-center gap-2">
               <Target size={14} className="text-yc-green" />
-              Top Scorers
+              {t("stats.topScorers")}
             </h3>
             <Link
               to="standings"
               className="text-xs text-yc-green hover:underline flex items-center gap-1"
             >
-              Full table <ArrowRight size={12} />
+              {t("overview.fullTable")} <ArrowRight size={12} />
             </Link>
           </div>
           <div className="yc-card rounded-xl overflow-hidden">
@@ -309,7 +309,7 @@ export default function OverviewTab() {
                 <span className="text-yc-green font-mono text-sm font-bold">
                   {s.goals ?? 0}
                 </span>
-                <span className="text-yc-text-tertiary text-xs">goals</span>
+                <span className="text-yc-text-tertiary text-xs">{t("overview.goals")}</span>
               </div>
             ))}
           </div>

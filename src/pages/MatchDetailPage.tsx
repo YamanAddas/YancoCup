@@ -100,28 +100,24 @@ interface H2HData {
 // ---------------------------------------------------------------------------
 
 type TabId = "overview" | "stats" | "lineup" | "h2h";
-const TABS: { id: TabId; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "stats", label: "Stats" },
-  { id: "lineup", label: "Lineup" },
-  { id: "h2h", label: "H2H" },
-];
+const TAB_IDS: TabId[] = ["overview", "stats", "lineup", "h2h"];
 
 function TabBar({ active, onChange }: { active: TabId; onChange: (t: TabId) => void }) {
+  const { t } = useI18n();
   return (
     <div className="flex border-b border-yc-border mb-6">
-      {TABS.map((tab) => (
+      {TAB_IDS.map((id) => (
         <button
-          key={tab.id}
-          onClick={() => onChange(tab.id)}
+          key={id}
+          onClick={() => onChange(id)}
           className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
-            active === tab.id
+            active === id
               ? "text-yc-green"
               : "text-yc-text-tertiary hover:text-yc-text-secondary"
           }`}
         >
-          {tab.label}
-          {active === tab.id && (
+          {t(`match.tabs.${id}`)}
+          {active === id && (
             <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-yc-green rounded-t" />
           )}
         </button>
@@ -131,6 +127,7 @@ function TabBar({ active, onChange }: { active: TabId; onChange: (t: TabId) => v
 }
 
 function StatusBadge({ status, minute }: { status: string; minute?: string }) {
+  const { t } = useI18n();
   if (status === "IN_PLAY" || status === "PAUSED") {
     return (
       <span className="flex items-center gap-1.5 text-yc-green text-sm font-medium">
@@ -138,15 +135,15 @@ function StatusBadge({ status, minute }: { status: string; minute?: string }) {
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yc-green opacity-75" />
           <span className="relative inline-flex rounded-full h-2 w-2 bg-yc-green" />
         </span>
-        {status === "PAUSED" ? "HT" : minute ?? "LIVE"}
+        {status === "PAUSED" ? t("match.ht") : minute ?? t("match.live")}
       </span>
     );
   }
   if (status === "FINISHED") {
-    return <span className="text-yc-text-tertiary text-sm font-medium">FT</span>;
+    return <span className="text-yc-text-tertiary text-sm font-medium">{t("match.ft")}</span>;
   }
   if (status === "TIMED" || status === "SCHEDULED") {
-    return <span className="text-yc-text-secondary text-sm font-medium">Upcoming</span>;
+    return <span className="text-yc-text-secondary text-sm font-medium">{t("match.upcoming")}</span>;
   }
   return <span className="text-yc-text-tertiary text-sm font-medium">{status}</span>;
 }
@@ -200,6 +197,7 @@ interface AFLineup {
 
 /** Events timeline: uses API-Football events if available, falls back to football-data.org */
 function EventsTimeline({ match }: { match: MatchData }) {
+  const { t } = useI18n();
   // API-Football events (enriched)
   const afEvents = (match as unknown as Record<string, unknown>).events as AFEvent[] | undefined;
 
@@ -234,8 +232,8 @@ function EventsTimeline({ match }: { match: MatchData }) {
         side,
         type,
         primary: type === "sub" ? (ev.assist.name ?? "Unknown") : (ev.player.name ?? "Unknown"),
-        secondary: type === "goal" && ev.assist.name ? `Assist: ${ev.assist.name}`
-          : type === "own_goal" ? "Own Goal"
+        secondary: type === "goal" && ev.assist.name ? `${t("match.events.assist")} ${ev.assist.name}`
+          : type === "own_goal" ? t("match.events.ownGoal")
           : type === "sub" ? `↓ ${ev.player.name ?? ""}`
           : undefined,
       });
@@ -251,7 +249,7 @@ function EventsTimeline({ match }: { match: MatchData }) {
         side,
         type: goalType,
         primary: g.scorer?.name ?? "Unknown",
-        secondary: g.type === "OWN_GOAL" ? "Own Goal" : g.assist?.name ? `Assist: ${g.assist.name}` : undefined,
+        secondary: g.type === "OWN_GOAL" ? t("match.events.ownGoal") : g.assist?.name ? `${t("match.events.assist")} ${g.assist.name}` : undefined,
       });
     }
     for (const b of Array.isArray(match.bookings) ? match.bookings : []) {
@@ -267,7 +265,7 @@ function EventsTimeline({ match }: { match: MatchData }) {
   events.sort((a, b) => a.minute - b.minute);
 
   if (events.length === 0) {
-    return <p className="text-yc-text-tertiary text-sm text-center py-6">No events yet</p>;
+    return <p className="text-yc-text-tertiary text-sm text-center py-6">{t("match.events.none")}</p>;
   }
 
   return (
@@ -298,10 +296,11 @@ function EventsTimeline({ match }: { match: MatchData }) {
 
 /** Match statistics comparison (from API-Football) */
 function StatsTab({ match }: { match: MatchData }) {
+  const { t } = useI18n();
   const afStats = (match as unknown as Record<string, unknown>).statistics as AFStat[] | undefined;
 
   if (!afStats || afStats.length < 2) {
-    return <p className="text-yc-text-tertiary text-sm text-center py-8">Statistics not available for this match</p>;
+    return <p className="text-yc-text-tertiary text-sm text-center py-8">{t("stats.notAvailable")}</p>;
   }
 
   const homeStats = afStats.find((s) => s.team.id === match.homeTeam.id)?.statistics ?? [];
@@ -325,13 +324,27 @@ function StatsTab({ match }: { match: MatchData }) {
       const aStr = String(aVal);
       const hNum = typeof hVal === "number" ? hVal : parseFloat(hStr) || 0;
       const aNum = typeof aVal === "number" ? aVal : parseFloat(aStr) || 0;
-      const label = statType === "expected_goals" ? "xG" : statType;
+      const STAT_KEYS: Record<string, string> = {
+        "Ball Possession": "stats.ballPossession",
+        "Total Shots": "stats.totalShots",
+        "Shots on Goal": "stats.shotsOnGoal",
+        "Shots off Goal": "stats.shotsOffGoal",
+        "Corner Kicks": "stats.cornerKicks",
+        "Fouls": "stats.fouls",
+        "Offsides": "stats.offsides",
+        "Yellow Cards": "stats.yellowCards",
+        "Red Cards": "stats.redCards",
+        "Passes %": "stats.passAccuracy",
+        "Total passes": "stats.totalPasses",
+        "expected_goals": "stats.xG",
+      };
+      const label = STAT_KEYS[statType] ? t(STAT_KEYS[statType]) : statType;
       statPairs.push({ label, home: hStr, away: aStr, homeNum: hNum, awayNum: aNum });
     }
   }
 
   if (statPairs.length === 0) {
-    return <p className="text-yc-text-tertiary text-sm text-center py-8">Statistics not available</p>;
+    return <p className="text-yc-text-tertiary text-sm text-center py-8">{t("stats.notAvailableShort")}</p>;
   }
 
   return (
@@ -359,6 +372,7 @@ function StatsTab({ match }: { match: MatchData }) {
 
 /** Lineup display for one team — uses API-Football data if available */
 function TeamLineup({ team, afLineup, side }: { team: TeamDetail; afLineup?: AFLineup; side: "home" | "away" }) {
+  const { t } = useI18n();
   const align = side === "home" ? "text-left" : "text-right";
 
   // Prefer API-Football lineup (has formation, coach, full starting XI)
@@ -373,12 +387,12 @@ function TeamLineup({ team, afLineup, side }: { team: TeamDetail; afLineup?: AFL
       <div className="mb-3">
         {coachName && (
           <p className="text-xs text-yc-text-tertiary mb-0.5">
-            Coach: <span className="text-yc-text-secondary">{coachName}</span>
+            {t("match.lineup.coach")} <span className="text-yc-text-secondary">{coachName}</span>
           </p>
         )}
         {formation && (
           <p className="text-xs text-yc-text-tertiary">
-            Formation: <span className="text-yc-green font-mono">{formation}</span>
+            {t("match.lineup.formation")} <span className="text-yc-green font-mono">{formation}</span>
           </p>
         )}
       </div>
@@ -386,7 +400,7 @@ function TeamLineup({ team, afLineup, side }: { team: TeamDetail; afLineup?: AFL
       {/* Starting XI */}
       {lineup.length > 0 && (
         <div className="mb-4">
-          <p className="text-xs text-yc-text-tertiary uppercase tracking-wider mb-1.5">Starting XI</p>
+          <p className="text-xs text-yc-text-tertiary uppercase tracking-wider mb-1.5">{t("match.lineup.startingXI")}</p>
           <div className="space-y-0.5">
             {lineup.map((p) => (
               <div key={p.id ?? p.name} className={`flex items-center gap-2 ${side === "away" ? "flex-row-reverse" : ""}`}>
@@ -406,7 +420,7 @@ function TeamLineup({ team, afLineup, side }: { team: TeamDetail; afLineup?: AFL
       {/* Bench */}
       {bench.length > 0 && (
         <div>
-          <p className="text-xs text-yc-text-tertiary uppercase tracking-wider mb-1.5">Bench</p>
+          <p className="text-xs text-yc-text-tertiary uppercase tracking-wider mb-1.5">{t("match.lineup.bench")}</p>
           <div className="space-y-0.5">
             {bench.map((p) => (
               <div key={p.id ?? p.name} className={`flex items-center gap-2 ${side === "away" ? "flex-row-reverse" : ""}`}>
@@ -421,7 +435,7 @@ function TeamLineup({ team, afLineup, side }: { team: TeamDetail; afLineup?: AFL
       )}
 
       {lineup.length === 0 && bench.length === 0 && (
-        <p className="text-yc-text-tertiary text-sm">Lineup not available</p>
+        <p className="text-yc-text-tertiary text-sm">{t("match.lineup.notAvailable")}</p>
       )}
     </div>
   );
@@ -429,6 +443,7 @@ function TeamLineup({ team, afLineup, side }: { team: TeamDetail; afLineup?: AFL
 
 /** H2H tab */
 function H2HTab({ matchId }: { matchId: string }) {
+  const { t } = useI18n();
   const [data, setData] = useState<H2HData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -480,7 +495,7 @@ function H2HTab({ matchId }: { matchId: string }) {
           </div>
           <div className="flex-1 text-center">
             <p className="text-2xl font-bold text-yc-text-secondary font-mono">{data.homeTeam.draws}</p>
-            <p className="text-xs text-yc-text-tertiary mt-0.5">Draws</p>
+            <p className="text-xs text-yc-text-tertiary mt-0.5">{t("match.h2h.draws")}</p>
           </div>
           <div className="flex-1 text-center">
             <p className="text-2xl font-bold text-yc-green font-mono">{data.awayTeam.wins}</p>
@@ -500,7 +515,7 @@ function H2HTab({ matchId }: { matchId: string }) {
       {/* Recent meetings */}
       {data.matches.length > 0 && (
         <div>
-          <p className="text-xs text-yc-text-tertiary uppercase tracking-wider mb-2">Recent Matches</p>
+          <p className="text-xs text-yc-text-tertiary uppercase tracking-wider mb-2">{t("match.h2h.recentMatches")}</p>
           <div className="space-y-1">
             {data.matches.map((m) => {
               const date = new Date(m.utcDate);
@@ -659,7 +674,7 @@ export default function MatchDetailPage() {
         <div className="flex items-center justify-center gap-3 mb-4">
           <StatusBadge status={match.status} />
           {match.matchday && (
-            <span className="text-xs text-yc-text-tertiary">Matchday {match.matchday}</span>
+            <span className="text-xs text-yc-text-tertiary">{t("match.matchday", { num: match.matchday })}</span>
           )}
         </div>
 
@@ -690,7 +705,7 @@ export default function MatchDetailPage() {
                 </span>
                 {match.score.halfTime.home !== null && (isFinished || isLive) && (
                   <span className="text-xs text-yc-text-tertiary font-mono">
-                    HT {match.score.halfTime.home} - {match.score.halfTime.away}
+                    {t("match.htScore", { home: String(match.score.halfTime.home), away: String(match.score.halfTime.away) })}
                   </span>
                 )}
               </>

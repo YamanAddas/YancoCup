@@ -18,7 +18,10 @@ interface ShareCardData {
 const CARD_WIDTH = 600;
 const CARD_HEIGHT = 340;
 
-export async function generateShareCard(data: ShareCardData): Promise<Blob | null> {
+export async function generateShareCard(
+  data: ShareCardData,
+  t?: (key: string, params?: Record<string, string | number>) => string,
+): Promise<Blob | null> {
   try {
     const canvas = document.createElement("canvas");
     canvas.width = CARD_WIDTH;
@@ -58,7 +61,7 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
     ctx.fillStyle = "#a0a0a0";
     ctx.font = "12px 'Inter', sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("MY PREDICTION", CARD_WIDTH / 2, 76);
+    ctx.fillText(t ? t("shareCard.myPrediction") : "MY PREDICTION", CARD_WIDTH / 2, 76);
 
     // Team names
     ctx.fillStyle = "#ffffff";
@@ -78,7 +81,7 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
     if (data.actualHome !== null && data.actualHome !== undefined && data.actualAway !== null && data.actualAway !== undefined) {
       ctx.fillStyle = "#666666";
       ctx.font = "12px 'Inter', sans-serif";
-      ctx.fillText("ACTUAL RESULT", CARD_WIDTH / 2, 220);
+      ctx.fillText(t ? t("shareCard.actualResult") : "ACTUAL RESULT", CARD_WIDTH / 2, 220);
 
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold 28px 'Space Grotesk', monospace";
@@ -100,7 +103,7 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
         ctx.fillText(pointsText, CARD_WIDTH / 2, 289);
 
         // Result label
-        const label = data.points >= 10 ? "EXACT SCORE!" : data.points >= 5 ? "GOAL DIFFERENCE" : data.points >= 3 ? "CORRECT RESULT" : "";
+        const label = data.points >= 10 ? (t ? t("shareCard.exactScore") : "EXACT SCORE!") : data.points >= 5 ? (t ? t("shareCard.goalDifference") : "GOAL DIFFERENCE") : data.points >= 3 ? (t ? t("shareCard.correctResult") : "CORRECT RESULT") : "";
         if (label) {
           ctx.fillStyle = badgeColor;
           ctx.font = "bold 11px 'Inter', sans-serif";
@@ -137,7 +140,10 @@ interface ProfileCardData {
   accuracy: number;
 }
 
-export async function generateProfileCard(data: ProfileCardData): Promise<Blob | null> {
+export async function generateProfileCard(
+  data: ProfileCardData,
+  t?: (key: string, params?: Record<string, string | number>) => string,
+): Promise<Blob | null> {
   try {
     const W = 600;
     const H = 360;
@@ -187,10 +193,10 @@ export async function generateProfileCard(data: ProfileCardData): Promise<Blob |
 
     // Stats row
     const stats = [
-      { label: "POINTS", value: String(data.totalPoints) },
-      { label: "PREDICTIONS", value: String(data.predictions) },
-      { label: "EXACT", value: String(data.exactScores) },
-      { label: "ACCURACY", value: `${data.accuracy}%` },
+      { label: t ? t("shareCard.points") : "POINTS", value: String(data.totalPoints) },
+      { label: t ? t("shareCard.predictions") : "PREDICTIONS", value: String(data.predictions) },
+      { label: t ? t("shareCard.exact") : "EXACT", value: String(data.exactScores) },
+      { label: t ? t("shareCard.accuracy") : "ACCURACY", value: `${data.accuracy}%` },
     ];
 
     const colW = W / stats.length;
@@ -220,7 +226,7 @@ export async function generateProfileCard(data: ProfileCardData): Promise<Blob |
     ctx.fillStyle = "#a0a0a0";
     ctx.font = "14px 'Inter', sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("Join me on YancoCup — predict the World Cup!", W / 2, baseY + 70);
+    ctx.fillText(t ? t("shareCard.joinMe") : "Join me on YancoCup — predict the World Cup!", W / 2, baseY + 70);
 
     // Footer
     ctx.fillStyle = "#333333";
@@ -235,16 +241,23 @@ export async function generateProfileCard(data: ProfileCardData): Promise<Blob |
   }
 }
 
-export async function shareProfileCard(data: ProfileCardData): Promise<"shared" | "downloaded" | "failed"> {
-  const blob = await generateProfileCard(data);
+export async function shareProfileCard(
+  data: ProfileCardData,
+  t?: (key: string, params?: Record<string, string | number>) => string,
+): Promise<"shared" | "downloaded" | "failed"> {
+  const blob = await generateProfileCard(data, t);
   if (!blob) return "failed";
 
   const file = new File([blob], "yancocup-profile.png", { type: "image/png" });
 
+  const shareText = t
+    ? `${data.rank} ${t("shareCard.onYancoCup")} ${data.totalPoints} pts! | YancoCup`
+    : `I'm ${data.rank} on YancoCup with ${data.totalPoints} points! | YancoCup`;
+
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({
-        text: `I'm ${data.rank} on YancoCup with ${data.totalPoints} points! | YancoCup`,
+        text: shareText,
         files: [file],
       });
       return "shared";
@@ -263,17 +276,24 @@ export async function shareProfileCard(data: ProfileCardData): Promise<"shared" 
 }
 
 /** Share a prediction card image via Web Share API or download */
-export async function sharePredictionCard(data: ShareCardData): Promise<"shared" | "downloaded" | "failed"> {
-  const blob = await generateShareCard(data);
+export async function sharePredictionCard(
+  data: ShareCardData,
+  t?: (key: string, params?: Record<string, string | number>) => string,
+): Promise<"shared" | "downloaded" | "failed"> {
+  const blob = await generateShareCard(data, t);
   if (!blob) return "failed";
 
   const file = new File([blob], "yancocup-prediction.png", { type: "image/png" });
+
+  const shareText = t
+    ? `${t("shareCard.myPredictionText")} ${data.homeTeam} ${data.homeScore}-${data.awayScore} ${data.awayTeam} | YancoCup`
+    : `My prediction: ${data.homeTeam} ${data.homeScore}-${data.awayScore} ${data.awayTeam} | YancoCup`;
 
   // Try Web Share API with file (mobile)
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({
-        text: `My prediction: ${data.homeTeam} ${data.homeScore}-${data.awayScore} ${data.awayTeam} | YancoCup`,
+        text: shareText,
         files: [file],
       });
       return "shared";

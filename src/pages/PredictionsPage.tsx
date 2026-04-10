@@ -228,7 +228,7 @@ export default function PredictionsPage() {
                   : "text-yc-text-tertiary hover:text-yc-text-secondary"
               }`}
             >
-              Full
+              {t("predictions.full")}
             </button>
             <button
               onClick={() => setQuickMode(true)}
@@ -238,7 +238,7 @@ export default function PredictionsPage() {
                   : "text-yc-text-tertiary hover:text-yc-text-secondary"
               }`}
             >
-              1X2
+              {t("predictions.quickPickMode")}
             </button>
           </div>
         )}
@@ -274,7 +274,7 @@ export default function PredictionsPage() {
                 >
                   {status === "done" && <CheckCircle size={12} />}
                   {status === "locked" && <Clock size={12} />}
-                  <span className="font-mono">MD {md}</span>
+                  <span className="font-mono">{t("common.matchday")} {md}</span>
                 </button>
               );
             })}
@@ -375,7 +375,7 @@ export default function PredictionsPage() {
 
           {!predsLoading && open.length === 0 && locked.length === 0 && (
             <div className="yc-card p-8 rounded-xl text-center">
-              <p className="text-yc-text-tertiary text-sm">No matches available for prediction.</p>
+              <p className="text-yc-text-tertiary text-sm">{t("predictions.noMatches")}</p>
             </div>
           )}
         </div>

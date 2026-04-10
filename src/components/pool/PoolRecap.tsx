@@ -109,7 +109,7 @@ export default function PoolRecap({
     const mvp = recaps[0];
     const lines = recaps.map(
       (r, i) =>
-        `${i + 1}. ${r.displayName ?? r.handle}: ${r.points} pts (${r.predicted} predicted${r.exact ? `, ${r.exact} exact` : ""})`,
+        `${i + 1}. ${r.displayName ?? r.handle}: ${r.points} pts (${r.predicted} ${t("recap.predicted")}${r.exact ? `, ${r.exact} ${t("recap.exact")}` : ""})`,
     );
     const text = [
       `Pool Recap - ${matchdayLabel}`,
@@ -194,7 +194,7 @@ export default function PoolRecap({
             </span>
             {r.exact > 0 && (
               <span className="text-[9px] bg-yc-green-dark/30 text-yc-green px-1.5 py-0.5 rounded">
-                {r.exact} exact
+                {r.exact} {t("recap.exact")}
               </span>
             )}
             <span className="font-mono font-bold text-yc-text-primary">{r.points}</span>

@@ -276,11 +276,11 @@ export default function StandingsPage() {
                   <SortHeader k="won" label={t("groupTable.won")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-8" />
                   <SortHeader k="draw" label={t("groupTable.drawn")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-8" />
                   <SortHeader k="lost" label={t("groupTable.lost")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-8" />
-                  <SortHeader k="goalsFor" label="GF" current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-10 hidden sm:table-cell" />
-                  <SortHeader k="goalsAgainst" label="GA" current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-10 hidden sm:table-cell" />
+                  <SortHeader k="goalsFor" label={t("standings.gf")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-10 hidden sm:table-cell" />
+                  <SortHeader k="goalsAgainst" label={t("standings.ga")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-10 hidden sm:table-cell" />
                   <SortHeader k="goalDifference" label={t("groupTable.gd")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-10" />
                   <SortHeader k="points" label={t("groupTable.pts")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-10 font-bold" />
-                  <th className="text-center py-3 px-2 w-20 hidden md:table-cell">Form</th>
+                  <th className="text-center py-3 px-2 w-20 hidden md:table-cell">{t("stats.form")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -360,25 +360,25 @@ export default function StandingsPage() {
               {zones.cl.length > 0 && (
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-yc-green" />
-                  Champions League
+                  {t("standings.clZone")}
                 </span>
               )}
               {zones.el.length > 0 && (
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-amber-500" />
-                  Europa League
+                  {t("standings.elZone")}
                 </span>
               )}
               {zones.ecl.length > 0 && (
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-sky-400" />
-                  Conference League
+                  {t("standings.eclZone")}
                 </span>
               )}
               {zones.relegation.length > 0 && (
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-red-500" />
-                  Relegation
+                  {t("standings.relegation")}
                 </span>
               )}
             </div>
@@ -388,18 +388,18 @@ export default function StandingsPage() {
             <div className="mt-8">
               <div className="flex items-center gap-2 mb-4">
                 <Target size={18} className="text-yc-green" />
-                <h3 className="font-heading text-lg font-bold">Top Scorers</h3>
+                <h3 className="font-heading text-lg font-bold">{t("stats.topScorers")}</h3>
               </div>
               <div className="yc-card rounded-xl overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-yc-text-tertiary text-xs uppercase tracking-wider border-b border-yc-border">
                       <th className="text-left py-3 px-3 w-8">#</th>
-                      <th className="text-left py-3 px-2">Player</th>
-                      <th className="text-left py-3 px-2 hidden sm:table-cell">Team</th>
-                      <th className="text-center py-3 px-2 w-10">MP</th>
-                      <th className="text-center py-3 px-2 w-10 font-bold">G</th>
-                      <th className="text-center py-3 px-2 w-10">A</th>
+                      <th className="text-left py-3 px-2">{t("stats.player")}</th>
+                      <th className="text-left py-3 px-2 hidden sm:table-cell">{t("stats.team")}</th>
+                      <th className="text-center py-3 px-2 w-10">{t("stats.mp")}</th>
+                      <th className="text-center py-3 px-2 w-10 font-bold">{t("stats.goals")}</th>
+                      <th className="text-center py-3 px-2 w-10">{t("stats.assists")}</th>
                     </tr>
                   </thead>
                   <tbody>

@@ -183,6 +183,7 @@ interface PoolPrediction {
 }
 
 function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; competitionId: string }) {
+  const { t } = useI18n();
   const [predictions, setPredictions] = useState<PoolPrediction[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -215,13 +216,13 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
   }, [members, competitionId]);
 
   if (loading) return <div className="h-12 bg-yc-bg-elevated rounded animate-pulse" />;
-  if (predictions.length === 0) return <p className="text-xs text-yc-text-tertiary">No predictions yet</p>;
+  if (predictions.length === 0) return <p className="text-xs text-yc-text-tertiary">{t("pools.noPredictions")}</p>;
 
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-1 text-xs text-yc-text-tertiary mb-1">
         <Activity size={10} />
-        Recent Activity
+        {t("pools.recentActivity")}
       </div>
       {predictions.map((p, i) => {
         const ago = Math.floor((Date.now() - new Date(p.created_at).getTime()) / 60000);
@@ -231,7 +232,7 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
             <span className="text-yc-text-primary font-medium truncate max-w-[80px]">
               {p.display_name ?? p.handle}
             </span>
-            <span className="text-yc-text-tertiary">predicted</span>
+            <span className="text-yc-text-tertiary">{t("pools.predicted")}</span>
             <span className="text-yc-green font-mono font-bold">{p.home_score}-{p.away_score}</span>
             <span className="text-yc-text-tertiary ml-auto">{timeLabel}</span>
           </div>
