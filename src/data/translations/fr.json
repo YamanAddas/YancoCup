@@ -225,5 +225,9 @@
   "hub.overview": "Aperçu",
   "profile.history": "Historique des pronostics",
   "profile.accuracy": "Répartition de la précision",
-  "profile.compStats": "Stats par compétition"
+  "profile.compStats": "Stats par compétition",
+  "profile.rivals": "Rivaux",
+  "profile.addRival": "Ajouter un rival",
+  "profile.searchRival": "Rechercher par pseudo...",
+  "profile.noRivals": "Pas encore de rivaux. Ajoutez jusqu'à 3 amis !"
 }

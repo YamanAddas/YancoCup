@@ -225,5 +225,9 @@
   "hub.overview": "Überblick",
   "profile.history": "Tipp-Verlauf",
   "profile.accuracy": "Genauigkeitsaufschlüsselung",
-  "profile.compStats": "Statistiken nach Wettbewerb"
+  "profile.compStats": "Statistiken nach Wettbewerb",
+  "profile.rivals": "Rivalen",
+  "profile.addRival": "Rivale hinzufügen",
+  "profile.searchRival": "Nach Benutzername suchen...",
+  "profile.noRivals": "Noch keine Rivalen. Füge bis zu 3 Freunde hinzu!"
 }

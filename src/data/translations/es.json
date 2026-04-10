@@ -225,5 +225,9 @@
   "hub.overview": "Resumen",
   "profile.history": "Historial de predicciones",
   "profile.accuracy": "Desglose de precisión",
-  "profile.compStats": "Estadísticas por competición"
+  "profile.compStats": "Estadísticas por competición",
+  "profile.rivals": "Rivales",
+  "profile.addRival": "Añadir rival",
+  "profile.searchRival": "Buscar por usuario...",
+  "profile.noRivals": "Sin rivales aún. ¡Añade hasta 3 amigos para comparar!"
 }

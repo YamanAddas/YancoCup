@@ -192,6 +192,10 @@
   "profile.history": "Prediction History",
   "profile.accuracy": "Accuracy Breakdown",
   "profile.compStats": "Stats by Competition",
+  "profile.rivals": "Rivals",
+  "profile.addRival": "Add rival",
+  "profile.searchRival": "Search by username...",
+  "profile.noRivals": "No rivals yet. Add up to 3 friends to compare stats!",
 
   "pools.title": "Pools",
   "pools.subtitle": "Compete with friends",

@@ -225,5 +225,9 @@
   "hub.overview": "Visão geral",
   "profile.history": "Histórico de palpites",
   "profile.accuracy": "Detalhamento da precisão",
-  "profile.compStats": "Estatísticas por competição"
+  "profile.compStats": "Estatísticas por competição",
+  "profile.rivals": "Rivais",
+  "profile.addRival": "Adicionar rival",
+  "profile.searchRival": "Buscar por usuário...",
+  "profile.noRivals": "Sem rivais ainda. Adicione até 3 amigos para comparar!"
 }

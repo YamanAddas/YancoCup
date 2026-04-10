@@ -3,6 +3,7 @@ import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { getRank, getRankStars } from "../lib/ranks";
 import { fetchBadges, fetchUserBadges, checkLoyaltyBadges, type Badge, type UserBadge } from "../lib/badges";
+import RivalsSection from "../components/predictions/RivalsSection";
 import { requestNotificationPermission, notificationsEnabled } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
 import { COMPETITIONS } from "../lib/competitions";
@@ -505,6 +506,9 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Rivals */}
+      <RivalsSection />
 
       {/* Notifications toggle */}
       {"Notification" in window && (

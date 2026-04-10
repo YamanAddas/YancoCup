@@ -225,5 +225,9 @@
   "hub.overview": "نظرة عامة",
   "profile.history": "سجل التوقعات",
   "profile.accuracy": "تفصيل الدقة",
-  "profile.compStats": "إحصائيات حسب المسابقة"
+  "profile.compStats": "إحصائيات حسب المسابقة",
+  "profile.rivals": "المنافسون",
+  "profile.addRival": "إضافة منافس",
+  "profile.searchRival": "ابحث باسم المستخدم...",
+  "profile.noRivals": "لا منافسين بعد. أضف حتى 3 أصدقاء لمقارنة الإحصائيات!"
 }
