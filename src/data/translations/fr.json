@@ -202,6 +202,11 @@
   "chat.placeholder": "Écrivez un message...",
   "chat.empty": "Aucun message pour l'instant. Dites bonjour !",
   "chat.loadMore": "Charger les messages précédents",
+  "recap.title": "Résumé de la journée",
+  "recap.mvp": "MVP",
+  "recap.noData": "Aucun pronostic scoré pour l'instant.",
+  "share.title": "Partager",
+  "share.more": "Plus d'options",
 
   "hub.overview": "Aperçu"
 }

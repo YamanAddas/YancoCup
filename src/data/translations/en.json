@@ -205,5 +205,10 @@
   "chat.title": "Pool Chat",
   "chat.placeholder": "Type a message...",
   "chat.empty": "No messages yet. Say hi!",
-  "chat.loadMore": "Load older messages"
+  "chat.loadMore": "Load older messages",
+  "recap.title": "Matchday Recap",
+  "recap.mvp": "MVP",
+  "recap.noData": "No scored predictions yet for a recap.",
+  "share.title": "Share",
+  "share.more": "More options"
 }

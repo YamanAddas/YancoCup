@@ -8,6 +8,7 @@ import { sharePredictionCard } from "../../lib/shareCard";
 import { useI18n } from "../../lib/i18n";
 import { formatTimeWithTZ } from "../../lib/formatDate";
 import TeamCrest from "../match/TeamCrest";
+import SocialShareButtons from "../pool/SocialShareButtons";
 import type { Match, Team, Venue } from "../../types";
 import type { Prediction } from "../../hooks/usePredictions";
 
@@ -378,6 +379,20 @@ export default function PredictionCard({
 
       {error && (
         <p className="mt-2 text-yc-danger text-xs">{error}</p>
+      )}
+
+      {locked && hasPrediction && prediction.points !== null && (
+        <div className="mt-2 pt-2 border-t border-yc-border/30">
+          <SocialShareButtons
+            text={buildShareText(
+              match,
+              home ?? { id: match.homeTeam ?? "", name: match.homeTeamName ?? "", fifaCode: match.homeTeam?.toUpperCase() ?? "", isoCode: "", confederation: "", group: "" },
+              away ?? { id: match.awayTeam ?? "", name: match.awayTeamName ?? "", fifaCode: match.awayTeam?.toUpperCase() ?? "", isoCode: "", confederation: "", group: "" },
+              prediction.home_score ?? 0,
+              prediction.away_score ?? 0,
+            )}
+          />
+        </div>
       )}
     </div>
   );

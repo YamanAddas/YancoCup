@@ -202,6 +202,11 @@
   "chat.placeholder": "اكتب رسالة...",
   "chat.empty": "لا توجد رسائل بعد. قل مرحبا!",
   "chat.loadMore": "تحميل رسائل أقدم",
+  "recap.title": "ملخص الجولة",
+  "recap.mvp": "أفضل لاعب",
+  "recap.noData": "لا توجد توقعات محتسبة بعد لعرض الملخص.",
+  "share.title": "مشاركة",
+  "share.more": "خيارات أخرى",
 
   "hub.overview": "نظرة عامة"
 }

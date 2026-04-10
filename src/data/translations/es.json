@@ -202,6 +202,11 @@
   "chat.placeholder": "Escribe un mensaje...",
   "chat.empty": "No hay mensajes aún. ¡Di hola!",
   "chat.loadMore": "Cargar mensajes anteriores",
+  "recap.title": "Resumen de jornada",
+  "recap.mvp": "MVP",
+  "recap.noData": "Aún no hay predicciones puntuadas para un resumen.",
+  "share.title": "Compartir",
+  "share.more": "Más opciones",
 
   "hub.overview": "Resumen"
 }

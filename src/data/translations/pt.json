@@ -202,6 +202,11 @@
   "chat.placeholder": "Digite uma mensagem...",
   "chat.empty": "Nenhuma mensagem ainda. Diga olá!",
   "chat.loadMore": "Carregar mensagens anteriores",
+  "recap.title": "Resumo da rodada",
+  "recap.mvp": "MVP",
+  "recap.noData": "Nenhum palpite pontuado ainda para um resumo.",
+  "share.title": "Compartilhar",
+  "share.more": "Mais opções",
 
   "hub.overview": "Visão geral"
 }

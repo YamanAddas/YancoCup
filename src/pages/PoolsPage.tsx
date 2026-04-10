@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import PoolChat from "../components/pool/PoolChat";
+import PoolRecap from "../components/pool/PoolRecap";
 
 function CreatePoolForm({
   competitionId,
@@ -361,6 +362,11 @@ function PoolCard({
                   {t("chat.title")}
                 </button>
                 {chatOpen && <PoolChat poolId={pool.id} />}
+              </div>
+
+              {/* Pool matchday recap */}
+              <div className="pt-2 border-t border-yc-border/50">
+                <PoolRecap poolId={pool.id} competitionId={pool.competition_id} members={members} />
               </div>
             </>
           )}
