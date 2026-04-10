@@ -222,5 +222,6 @@
   "pools.save": "Speichern",
   "pools.removeMember": "Aus Pool entfernen",
 
-  "hub.overview": "Überblick"
+  "hub.overview": "Überblick",
+  "profile.history": "Tipp-Verlauf"
 }

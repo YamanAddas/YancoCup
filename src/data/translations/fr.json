@@ -222,5 +222,6 @@
   "pools.save": "Enregistrer",
   "pools.removeMember": "Retirer du groupe",
 
-  "hub.overview": "Aperçu"
+  "hub.overview": "Aperçu",
+  "profile.history": "Historique des pronostics"
 }

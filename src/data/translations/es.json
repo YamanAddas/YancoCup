@@ -222,5 +222,6 @@
   "pools.save": "Guardar",
   "pools.removeMember": "Eliminar del grupo",
 
-  "hub.overview": "Resumen"
+  "hub.overview": "Resumen",
+  "profile.history": "Historial de predicciones"
 }

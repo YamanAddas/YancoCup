@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { getRank, getRankStars } from "../lib/ranks";
 import { fetchBadges, fetchUserBadges, type Badge, type UserBadge } from "../lib/badges";
 import { requestNotificationPermission, notificationsEnabled } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
+import { COMPETITIONS } from "../lib/competitions";
 import {
   Trophy, Target, TrendingUp, Flame, Award, Shield, Globe, Medal,
-  Eye, Zap, Crosshair, CheckCircle, Shuffle, Star, Bell,
+  Eye, Zap, Crosshair, CheckCircle, Shuffle, Star, Bell, History, ChevronDown,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -104,6 +105,147 @@ function StatBox({ label, value, icon: Icon }: { label: string; value: string | 
       <Icon size={18} className="text-yc-green" />
       <span className="text-xl font-bold font-mono text-yc-text-primary">{value}</span>
       <span className="text-xs text-yc-text-tertiary">{label}</span>
+    </div>
+  );
+}
+
+interface HistoryRow {
+  id: string;
+  match_id: number;
+  competition_id: string;
+  home_score: number | null;
+  away_score: number | null;
+  quick_pick: string | null;
+  points: number | null;
+  scored_at: string | null;
+  created_at: string;
+}
+
+const PAGE_SIZE = 15;
+
+function PredictionHistory({ userId }: { userId: string }) {
+  const { t } = useI18n();
+  const [rows, setRows] = useState<HistoryRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [compFilter, setCompFilter] = useState<string>("all");
+  const [hasMore, setHasMore] = useState(false);
+
+  const fetchPage = useCallback(async (offset: number, comp: string) => {
+    let query = supabase
+      .from("yc_predictions")
+      .select("id, match_id, competition_id, home_score, away_score, quick_pick, points, scored_at, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + PAGE_SIZE);
+
+    if (comp !== "all") query = query.eq("competition_id", comp);
+
+    const { data } = await query;
+    return (data as HistoryRow[] | null) ?? [];
+  }, [userId]);
+
+  useEffect(() => {
+    setLoading(true);
+    setRows([]);
+    fetchPage(0, compFilter).then((data) => {
+      setRows(data);
+      setHasMore(data.length > PAGE_SIZE);
+      setLoading(false);
+    });
+  }, [fetchPage, compFilter]);
+
+  const loadMore = useCallback(async () => {
+    const data = await fetchPage(rows.length, compFilter);
+    setRows((prev) => [...prev, ...data]);
+    setHasMore(data.length > PAGE_SIZE);
+  }, [rows.length, compFilter, fetchPage]);
+
+  const display = rows.slice(0, rows.length > PAGE_SIZE ? rows.length - 1 : rows.length);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <History size={18} className="text-yc-green" />
+          <h3 className="font-heading text-lg font-bold">{t("profile.history")}</h3>
+        </div>
+        <select
+          value={compFilter}
+          onChange={(e) => setCompFilter(e.target.value)}
+          className="bg-yc-bg-elevated border border-yc-border rounded-lg px-3 py-1.5 text-xs text-yc-text-secondary"
+        >
+          <option value="all">{t("leaderboard.allPlayers")}</option>
+          {Object.values(COMPETITIONS).map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-10 bg-yc-bg-elevated rounded-lg animate-pulse" />
+          ))}
+        </div>
+      ) : display.length === 0 ? (
+        <p className="text-yc-text-tertiary text-sm text-center py-6">{t("activity.noPredictions")}</p>
+      ) : (
+        <>
+          <div className="space-y-1">
+            {display.map((row) => {
+              const isScored = row.scored_at !== null;
+              const pts = row.points ?? 0;
+              return (
+                <div
+                  key={row.id}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg bg-yc-bg-surface/50 border border-yc-border/30"
+                >
+                  <span className="text-[10px] font-mono text-yc-text-tertiary w-8 shrink-0">
+                    {row.competition_id}
+                  </span>
+                  <span className="text-xs text-yc-text-tertiary shrink-0">
+                    #{row.match_id}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    {row.home_score !== null && row.away_score !== null ? (
+                      <span className="text-sm font-mono font-bold text-yc-text-primary">
+                        {row.home_score}-{row.away_score}
+                      </span>
+                    ) : row.quick_pick ? (
+                      <span className="text-sm font-mono font-bold text-yc-text-primary">
+                        {row.quick_pick === "H" ? "Home" : row.quick_pick === "A" ? "Away" : "Draw"}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-yc-text-tertiary">—</span>
+                    )}
+                  </div>
+                  {isScored && (
+                    <span className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded ${
+                      pts >= 10 ? "text-yc-green bg-yc-green/10" :
+                      pts > 0 ? "text-yc-warning bg-yc-warning/10" :
+                      "text-yc-text-tertiary bg-yc-bg-elevated"
+                    }`}>
+                      +{pts}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-yc-text-tertiary shrink-0">
+                    {new Date(row.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          {hasMore && (
+            <button
+              onClick={loadMore}
+              className="w-full mt-3 py-2 text-xs text-yc-text-secondary hover:text-yc-green transition-colors flex items-center justify-center gap-1"
+            >
+              <ChevronDown size={14} />
+              {t("chat.loadMore")}
+            </button>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -267,7 +409,7 @@ export default function ProfilePage() {
       )}
 
       {/* Badge collection */}
-      <div className="space-y-6">
+      <div className="space-y-6 mb-8">
         {(["activity", "skill", "loyalty"] as const).map((category) => {
           const categoryBadges = badgesByCategory[category];
           if (categoryBadges.length === 0) return null;
@@ -290,6 +432,9 @@ export default function ProfilePage() {
           );
         })}
       </div>
+
+      {/* Prediction history */}
+      <PredictionHistory userId={user.id} />
     </div>
   );
 }

@@ -222,5 +222,6 @@
   "pools.save": "حفظ",
   "pools.removeMember": "إزالة من المجموعة",
 
-  "hub.overview": "نظرة عامة"
+  "hub.overview": "نظرة عامة",
+  "profile.history": "سجل التوقعات"
 }
