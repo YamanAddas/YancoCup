@@ -2,10 +2,11 @@ import { useState, useRef, useEffect } from "react";
 import { usePoolChat } from "../../hooks/usePoolChat";
 import { useAuth } from "../../lib/auth";
 import { useI18n } from "../../lib/i18n";
+import { getLocale } from "../../lib/formatDate";
 import { Send, Loader2, ChevronUp } from "lucide-react";
 
 export default function PoolChat({ poolId }: { poolId: string }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { user } = useAuth();
   const { messages, loading, hasMore, loadMore, sendMessage } = usePoolChat(poolId);
   const [draft, setDraft] = useState("");
@@ -68,7 +69,7 @@ export default function PoolChat({ poolId }: { poolId: string }) {
         ) : (
           messages.map((msg) => {
             const isOwn = msg.user_id === user.id;
-            const time = new Date(msg.created_at).toLocaleTimeString(undefined, {
+            const time = new Date(msg.created_at).toLocaleTimeString(getLocale(lang), {
               hour: "2-digit",
               minute: "2-digit",
             });

@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Clock, MapPin } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
-import { formatTimeWithTZ } from "../lib/formatDate";
+import { formatTimeWithTZ, getLocale } from "../lib/formatDate";
 import { useMyPredictions } from "../hooks/usePredictions";
 import TeamCrest from "../components/match/TeamCrest";
 
@@ -443,7 +443,7 @@ function TeamLineup({ team, afLineup, side }: { team: TeamDetail; afLineup?: AFL
 
 /** H2H tab */
 function H2HTab({ matchId }: { matchId: string }) {
-  const { t } = useI18n();
+  const { t, lang, tTeam } = useI18n();
   const [data, setData] = useState<H2HData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -491,7 +491,7 @@ function H2HTab({ matchId }: { matchId: string }) {
         <div className="flex items-center gap-4">
           <div className="flex-1 text-center">
             <p className="text-2xl font-bold text-yc-green font-mono">{data.homeTeam.wins}</p>
-            <p className="text-xs text-yc-text-tertiary mt-0.5">{data.homeTeam.name}</p>
+            <p className="text-xs text-yc-text-tertiary mt-0.5">{tTeam(data.homeTeam.name)}</p>
           </div>
           <div className="flex-1 text-center">
             <p className="text-2xl font-bold text-yc-text-secondary font-mono">{data.homeTeam.draws}</p>
@@ -499,7 +499,7 @@ function H2HTab({ matchId }: { matchId: string }) {
           </div>
           <div className="flex-1 text-center">
             <p className="text-2xl font-bold text-yc-green font-mono">{data.awayTeam.wins}</p>
-            <p className="text-xs text-yc-text-tertiary mt-0.5">{data.awayTeam.name}</p>
+            <p className="text-xs text-yc-text-tertiary mt-0.5">{tTeam(data.awayTeam.name)}</p>
           </div>
         </div>
         {/* Win bar */}
@@ -519,7 +519,7 @@ function H2HTab({ matchId }: { matchId: string }) {
           <div className="space-y-1">
             {data.matches.map((m) => {
               const date = new Date(m.utcDate);
-              const dateStr = date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+              const dateStr = date.toLocaleDateString(getLocale(lang), { year: "numeric", month: "short", day: "numeric" });
               return (
                 <div
                   key={m.id}
@@ -527,7 +527,7 @@ function H2HTab({ matchId }: { matchId: string }) {
                 >
                   <span className="text-xs text-yc-text-tertiary w-24 shrink-0">{dateStr}</span>
                   <div className="flex items-center gap-2 flex-1 justify-end">
-                    <span className="text-sm text-yc-text-primary truncate">{m.homeTeam.shortName}</span>
+                    <span className="text-sm text-yc-text-primary truncate">{tTeam(m.homeTeam.tla)}</span>
                     <TeamCrest tla={m.homeTeam.tla} crest={m.homeTeam.crest} size="xs" />
                   </div>
                   <span className="font-mono text-sm font-bold text-yc-text-primary shrink-0 w-12 text-center">
@@ -535,7 +535,7 @@ function H2HTab({ matchId }: { matchId: string }) {
                   </span>
                   <div className="flex items-center gap-2 flex-1">
                     <TeamCrest tla={m.awayTeam.tla} crest={m.awayTeam.crest} size="xs" />
-                    <span className="text-sm text-yc-text-primary truncate">{m.awayTeam.shortName}</span>
+                    <span className="text-sm text-yc-text-primary truncate">{tTeam(m.awayTeam.tla)}</span>
                   </div>
                 </div>
               );
@@ -585,7 +585,7 @@ export default function MatchDetailPage() {
   const { id } = useParams<{ id: string }>();
   const comp = useCompetition();
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, lang, tTeam } = useI18n();
   const [match, setMatch] = useState<MatchData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabId>("overview");
@@ -644,13 +644,13 @@ export default function MatchDetailPage() {
   const isFinished = match.status === "FINISHED";
   const hasScore = match.score.fullTime.home !== null;
   const kickoff = new Date(match.utcDate);
-  const dateStr = kickoff.toLocaleDateString(undefined, {
+  const dateStr = kickoff.toLocaleDateString(getLocale(lang), {
     weekday: "long",
     month: "short",
     day: "numeric",
     year: "numeric",
   });
-  const timeStr = formatTimeWithTZ(kickoff);
+  const timeStr = formatTimeWithTZ(kickoff, lang);
   const mainRef = (match.referees ?? []).find((r) => r.type === "REFEREE");
 
   return (
@@ -688,7 +688,7 @@ export default function MatchDetailPage() {
               size="xl"
             />
             <p className="text-sm sm:text-base font-semibold text-yc-text-primary text-center">
-              {match.homeTeam.shortName}
+              {tTeam(match.homeTeam.tla)}
             </p>
           </Link>
 
@@ -728,7 +728,7 @@ export default function MatchDetailPage() {
               size="xl"
             />
             <p className="text-sm sm:text-base font-semibold text-yc-text-primary text-center">
-              {match.awayTeam.shortName}
+              {tTeam(match.awayTeam.tla)}
             </p>
           </Link>
         </div>

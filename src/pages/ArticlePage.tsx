@@ -26,17 +26,20 @@ export default function ArticlePage() {
       .finally(() => setLoading(false));
   }, [slug, lang]);
 
-  const handleTranslate = async () => {
-    if (!article || !slug) return;
+  // Auto-translate when article loads in a different language
+  useEffect(() => {
+    if (!article || !slug || article.translated || article.original_language === lang) return;
+    let cancelled = false;
     setTranslating(true);
-    const result = await translateArticleOnDemand(slug, lang);
-    if (result) {
-      setArticle({ ...article, title: result.title, summary: result.summary, translated: true });
-    }
-    setTranslating(false);
-  };
-
-  const needsTranslation = article && !article.translated && article.original_language !== lang;
+    translateArticleOnDemand(slug, lang).then((result) => {
+      if (cancelled) return;
+      if (result) {
+        setArticle((prev) => prev ? { ...prev, title: result.title, summary: result.summary, translated: true } : prev);
+      }
+      setTranslating(false);
+    });
+    return () => { cancelled = true; };
+  }, [article?.slug, article?.translated, article?.original_language, slug, lang]);
 
   if (loading) {
     return (
@@ -137,16 +140,12 @@ export default function ArticlePage() {
         </div>
       )}
 
-      {/* Translate button */}
-      {needsTranslation && (
-        <button
-          onClick={handleTranslate}
-          disabled={translating}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-yc-bg-elevated border border-yc-border text-sm text-yc-info hover:border-yc-green-muted hover:text-yc-green transition-colors disabled:opacity-50"
-        >
-          <Languages size={16} />
-          {translating ? t("news.translating") : t("news.translate")}
-        </button>
+      {/* Auto-translating indicator */}
+      {translating && (
+        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-yc-bg-elevated border border-yc-border text-sm text-yc-info opacity-70">
+          <Languages size={16} className="animate-pulse" />
+          {t("news.translating")}
+        </div>
       )}
 
       {/* Summary */}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import { useI18n } from "../../lib/i18n";
+import { getLocale } from "../../lib/formatDate";
 import type { PoolMember } from "../../hooks/usePools";
 import { Trophy, Share2, Loader2 } from "lucide-react";
 
@@ -23,7 +24,7 @@ export default function PoolRecap({
   competitionId: string;
   members: PoolMember[];
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [recaps, setRecaps] = useState<MemberRecap[]>([]);
   const [loading, setLoading] = useState(true);
   const [matchdayLabel, setMatchdayLabel] = useState("");
@@ -56,7 +57,7 @@ export default function PoolRecap({
       const scoredDates = predictions.map((p) => p.scored_at!.slice(0, 10));
       const latestDate = scoredDates.sort().reverse()[0];
       setMatchdayLabel(
-        new Date(latestDate + "T12:00:00Z").toLocaleDateString(undefined, {
+        new Date(latestDate + "T12:00:00Z").toLocaleDateString(getLocale(lang), {
           weekday: "short",
           month: "short",
           day: "numeric",

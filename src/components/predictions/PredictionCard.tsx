@@ -6,7 +6,7 @@ import { checkActivityBadges } from "../../lib/badges";
 import { buildShareText, sharePrediction } from "../../lib/share";
 import { sharePredictionCard } from "../../lib/shareCard";
 import { useI18n } from "../../lib/i18n";
-import { formatTimeWithTZ } from "../../lib/formatDate";
+import { formatTimeWithTZ, getLocale } from "../../lib/formatDate";
 import TeamCrest from "../match/TeamCrest";
 import SocialShareButtons from "../pool/SocialShareButtons";
 import type { Match, Team, Venue } from "../../types";
@@ -39,7 +39,7 @@ export default function PredictionCard({
   quickMode = false,
   onSaved,
 }: PredictionCardProps) {
-  const { t, tVenue } = useI18n();
+  const { t, lang, tVenue } = useI18n();
   const home = match.homeTeam ? teamMap.get(match.homeTeam) : undefined;
   const away = match.awayTeam ? teamMap.get(match.awayTeam) : undefined;
   const venue = venueMap.get(match.venueId);
@@ -155,12 +155,12 @@ export default function PredictionCard({
   };
 
   const kickoff = new Date(`${match.date}T${match.time}:00Z`);
-  const kickoffLabel = kickoff.toLocaleDateString(undefined, {
+  const kickoffLabel = kickoff.toLocaleDateString(getLocale(lang), {
     weekday: "short",
     month: "short",
     day: "numeric",
   });
-  const kickoffTime = formatTimeWithTZ(kickoff);
+  const kickoffTime = formatTimeWithTZ(kickoff, lang);
 
   const roundLabel = match.group
     ? t("match.group", { id: match.group })

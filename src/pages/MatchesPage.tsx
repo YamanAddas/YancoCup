@@ -11,6 +11,7 @@ import { usePredictedMatchIds } from "../hooks/usePredictions";
 import MatchCard from "../components/match/MatchCard";
 import type { Match } from "../types";
 import { ChevronLeft, ChevronRight, Filter, X } from "lucide-react";
+import { formatDatePill, getLocale } from "../lib/formatDate";
 
 // ---------------------------------------------------------------------------
 // Date navigation pill
@@ -24,6 +25,7 @@ function DatePill({
   matchCount,
   onClick,
   pillRef,
+  lang,
 }: {
   date: string;
   isActive: boolean;
@@ -32,11 +34,9 @@ function DatePill({
   matchCount: number;
   onClick: () => void;
   pillRef?: React.Ref<HTMLButtonElement>;
+  lang?: string;
 }) {
-  const dt = new Date(`${date}T00:00:00Z`);
-  const day = dt.toLocaleDateString(undefined, { day: "numeric" });
-  const weekday = dt.toLocaleDateString(undefined, { weekday: "short" });
-  const month = dt.toLocaleDateString(undefined, { month: "short" });
+  const { day, weekday, month } = formatDatePill(date, lang);
 
   return (
     <button
@@ -74,6 +74,7 @@ function DateStrip({
   todayDate,
   liveSet,
   matchCountByDate,
+  lang,
 }: {
   dates: string[];
   activeDate: string;
@@ -81,6 +82,7 @@ function DateStrip({
   todayDate: string;
   liveSet: Set<string>;
   matchCountByDate: Map<string, number>;
+  lang?: string;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const activePillRef = useRef<HTMLButtonElement>(null);
@@ -120,6 +122,7 @@ function DateStrip({
             matchCount={matchCountByDate.get(date) ?? 0}
             onClick={() => onDateSelect(date)}
             pillRef={date === activeDate ? activePillRef : undefined}
+            lang={lang}
           />
         ))}
       </div>
@@ -183,7 +186,7 @@ const ROUND_KEYS: { value: Match["round"] | ""; labelKey: string }[] = [
 
 function TournamentMatches() {
   const comp = useCompetition();
-  const { t, tTeam, tVenue } = useI18n();
+  const { t, lang, tTeam, tVenue } = useI18n();
   const [showFilters, setShowFilters] = useState(false);
   const [round, setRound] = useState("");
   const [group, setGroup] = useState("");
@@ -332,6 +335,7 @@ function TournamentMatches() {
           todayDate={today}
           liveSet={liveSet}
           matchCountByDate={matchCountByDate}
+          lang={lang}
         />
       )}
 
@@ -339,7 +343,7 @@ function TournamentMatches() {
       {effectiveDate && (
         <div className="flex items-center gap-3 mb-4">
           <h3 className="font-heading text-lg font-semibold text-yc-text-primary">
-            {new Date(`${effectiveDate}T00:00:00Z`).toLocaleDateString(undefined, {
+            {new Date(`${effectiveDate}T00:00:00Z`).toLocaleDateString(getLocale(lang), {
               weekday: "long",
               year: "numeric",
               month: "long",
@@ -390,7 +394,7 @@ function TournamentMatches() {
 
 function LeagueMatches() {
   const comp = useCompetition();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { scoreMap } = useScores();
   const [selectedMatchday, setSelectedMatchday] = useState<number | undefined>(undefined);
   const { matches, matchdays, loading } = useCompetitionSchedule(selectedMatchday);
@@ -531,7 +535,7 @@ function LeagueMatches() {
               {[...matchesByDate.entries()].map(([date, dateMatches]) => (
                 <div key={date}>
                   <h3 className="text-yc-text-secondary text-sm font-medium mb-3 sticky top-14 bg-yc-bg-deep/80 backdrop-blur-sm py-2 z-10 border-b border-yc-border/30">
-                    {new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, {
+                    {new Date(`${date}T00:00:00Z`).toLocaleDateString(getLocale(lang), {
                       weekday: "long",
                       year: "numeric",
                       month: "long",

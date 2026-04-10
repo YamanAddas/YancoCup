@@ -52,7 +52,7 @@ function BracketNode({
   prediction?: Prediction;
   highlighted?: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, tTeam } = useI18n();
   const m = bm.match;
   const effectiveStatus = liveScore?.status ?? m.status;
   const isLive = effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED";
@@ -63,8 +63,8 @@ function BracketNode({
 
   const homeTeam = m.homeTeam ? teamMap.get(m.homeTeam) : undefined;
   const awayTeam = m.awayTeam ? teamMap.get(m.awayTeam) : undefined;
-  const homeName = m.homeTeamName ?? homeTeam?.name ?? bm.homeLabel;
-  const awayName = m.awayTeamName ?? awayTeam?.name ?? bm.awayLabel;
+  const homeName = m.homeTeam ? tTeam(m.homeTeam) : (m.homeTeamName ?? bm.homeLabel);
+  const awayName = m.awayTeam ? tTeam(m.awayTeam) : (m.awayTeamName ?? bm.awayLabel);
   const homeCrest = m.homeCrest ?? bm.homeCrest;
   const awayCrest = m.awayCrest ?? bm.awayCrest;
   const homeTla = m.homeTeam?.toUpperCase() ?? "TBD";
@@ -250,7 +250,7 @@ function RoundColumn({
 
 export default function BracketPage() {
   const comp = useCompetition();
-  const { t } = useI18n();
+  const { t, tTeam } = useI18n();
   const { matches } = useCompetitionSchedule();
   const teamMap = useTeamMap();
   const { scoreMap } = useScores();
@@ -332,14 +332,11 @@ export default function BracketPage() {
             className="bg-yc-bg-elevated border border-yc-border rounded-lg px-3 py-1.5 text-xs text-yc-text-secondary"
           >
             <option value="">{t("bracket.pathToFinal")}</option>
-            {bracketTeams.map((tla) => {
-              const team = teamMap.get(tla);
-              return (
+            {bracketTeams.map((tla) => (
                 <option key={tla} value={tla}>
-                  {team?.name ?? tla}
+                  {tTeam(tla)}
                 </option>
-              );
-            })}
+            ))}
           </select>
           {highlightTeam && (
             <button

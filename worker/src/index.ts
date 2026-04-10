@@ -326,11 +326,14 @@ interface RSSFeedConfig {
 }
 
 const RSS_FEEDS: RSSFeedConfig[] = [
-  // English
+  // English — general
   { url: "https://feeds.bbci.co.uk/sport/football/rss.xml", sourceName: "BBC Sport", language: "en" },
   { url: "https://www.theguardian.com/football/rss", sourceName: "The Guardian", language: "en" },
   { url: "https://www.espn.com/espn/rss/soccer/news", sourceName: "ESPN", language: "en" },
   { url: "https://www.skysports.com/rss/12040", sourceName: "Sky Sports", language: "en" },
+  // English — competition-specific
+  { url: "https://www.theguardian.com/football/championsleague/rss", sourceName: "The Guardian CL", language: "en" },
+  { url: "https://www.theguardian.com/football/europaleague/rss", sourceName: "The Guardian EL", language: "en" },
   // Arabic
   { url: "https://www.aljazeera.net/rss", sourceName: "Al Jazeera", language: "ar" },
   // Spanish
@@ -390,18 +393,18 @@ function detectCompetition(text: string): string | null {
   return null;
 }
 
-/** Fallback: infer competition from RSS source when text detection fails */
+/** Fallback: infer competition from RSS source when text detection fails.
+ *  Only sources that are genuinely single-competition get a hint.
+ *  General sources (BBC, Guardian, ESPN, Sky) cover all competitions equally. */
 const SOURCE_COMPETITION_HINT: Record<string, string> = {
-  "BBC Sport": "PL",       // BBC Sport football section is PL-heavy
-  "The Guardian": "PL",
-  "Sky Sports": "PL",
-  "ESPN": "PL",
+  "The Guardian CL": "CL",
+  "The Guardian EL": "EL",
   "Marca": "PD",
   "AS": "PD",
   "Kicker": "BL1",
   "Gazzetta dello Sport": "SA",
   "L'Equipe": "FL1",
-  "Record": "PD",           // Portuguese source, covers Liga Portugal + La Liga
+  "Record": "PL",            // Portuguese source, covers Liga Portugal + PL
 };
 
 /** Team name → TLA mapping for detection in article text */
@@ -704,13 +707,13 @@ async function translateArticleAllLangs(
   // Original language doesn't need translation
   translations[originalLang] = { title, summary };
 
-  // Translate into each supported language except the original
-  for (const lang of SUPPORTED_LANGS) {
-    if (lang === originalLang) continue;
-    const translated = await aiTranslate(env.AI, title, summary, lang);
-    if (translated) {
-      translations[lang] = translated;
-    }
+  // Translate into each supported language except the original (parallel)
+  const targets = SUPPORTED_LANGS.filter((l) => l !== originalLang);
+  const results = await Promise.all(
+    targets.map((lang) => aiTranslate(env.AI, title, summary, lang).then((r) => ({ lang, r }))),
+  );
+  for (const { lang, r } of results) {
+    if (r) translations[lang] = r;
   }
 
   // Save translations to Supabase
@@ -819,12 +822,12 @@ async function handleNewsCron(env: Env): Promise<void> {
     }
     console.log(`News cron: inserted ${rawArticles.length} raw articles`);
 
-    // 5. Pick top 3 articles, mark as featured, translate into all 6 languages
+    // 5. Pick top 8 articles, mark as featured, translate into all 6 languages
     // Find articles that don't have translations yet and translate them
     const candidateUrls = unique
       .filter((a) => a.description.length > 80)
       .sort((a, b) => (new Date(b.pubDate).getTime() || 0) - (new Date(a.pubDate).getTime() || 0))
-      .slice(0, 3)
+      .slice(0, 8)
       .map((a) => a.link);
 
     // Fetch these articles from DB (they were just inserted above)

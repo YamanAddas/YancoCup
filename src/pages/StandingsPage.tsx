@@ -98,7 +98,7 @@ function SortHeader({ k, label, current, dir, onClick, className }: {
 
 export default function StandingsPage() {
   const comp = useCompetition();
-  const { t } = useI18n();
+  const { t, tTeam } = useI18n();
   const [standings, setStandings] = useState<StandingRow[]>([]);
   const [matchScores, setMatchScores] = useState<MatchScore[]>([]);
   const [scorers, setScorers] = useState<Scorer[]>([]);
@@ -304,7 +304,7 @@ export default function StandingsPage() {
                           size="sm"
                         />
                         <span className="font-medium truncate">
-                          {row.team.shortName}
+                          {tTeam(row.team.tla)}
                         </span>
                       </Link>
                     </td>
@@ -420,7 +420,7 @@ export default function StandingsPage() {
                             className="flex items-center gap-1.5 hover:text-yc-green transition-colors"
                           >
                             <TeamCrest tla={s.team.tla} crest={s.team.crest} size="xs" />
-                            <span className="text-yc-text-secondary text-xs truncate">{s.team.shortName}</span>
+                            <span className="text-yc-text-secondary text-xs truncate">{tTeam(s.team.tla)}</span>
                           </Link>
                         </td>
                         <td className="py-2.5 px-2 text-center text-yc-text-secondary">

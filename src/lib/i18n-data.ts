@@ -84,6 +84,138 @@ const TEAM_NAMES: Record<string, Record<LangCode, string>> = {
   cro: { en: "Croatia", ar: "كرواتيا", es: "Croacia", fr: "Croatie", de: "Kroatien", pt: "Croácia" },
   gha: { en: "Ghana", ar: "غانا", es: "Ghana", fr: "Ghana", de: "Ghana", pt: "Gana" },
   pan: { en: "Panama", ar: "بنما", es: "Panamá", fr: "Panama", de: "Panama", pt: "Panamá" },
+
+  // ── Club Teams (for news tags, standings, match pages) ─────────────────────
+  // Spain
+  rma: { en: "Real Madrid", ar: "ريال مدريد", es: "Real Madrid", fr: "Real Madrid", de: "Real Madrid", pt: "Real Madrid" },
+  bar: { en: "Barcelona", ar: "برشلونة", es: "Barcelona", fr: "Barcelone", de: "Barcelona", pt: "Barcelona" },
+  atm: { en: "Atlético Madrid", ar: "أتلتيكو مدريد", es: "Atlético de Madrid", fr: "Atlético Madrid", de: "Atlético Madrid", pt: "Atlético de Madrid" },
+  rso: { en: "Real Sociedad", ar: "ريال سوسيداد", es: "Real Sociedad", fr: "Real Sociedad", de: "Real Sociedad", pt: "Real Sociedad" },
+  vil: { en: "Villarreal", ar: "فياريال", es: "Villarreal", fr: "Villarreal", de: "Villarreal", pt: "Villarreal" },
+  bet: { en: "Real Betis", ar: "ريال بيتيس", es: "Real Betis", fr: "Real Betis", de: "Real Betis", pt: "Real Betis" },
+  sev: { en: "Sevilla", ar: "إشبيلية", es: "Sevilla", fr: "Séville", de: "Sevilla", pt: "Sevilha" },
+  atb: { en: "Athletic Bilbao", ar: "أتلتيك بيلباو", es: "Athletic Club", fr: "Athletic Bilbao", de: "Athletic Bilbao", pt: "Athletic Bilbao" },
+
+  // England
+  liv: { en: "Liverpool", ar: "ليفربول", es: "Liverpool", fr: "Liverpool", de: "Liverpool", pt: "Liverpool" },
+  mci: { en: "Manchester City", ar: "مانشستر سيتي", es: "Manchester City", fr: "Manchester City", de: "Manchester City", pt: "Manchester City" },
+  mun: { en: "Manchester United", ar: "مانشستر يونايتد", es: "Manchester United", fr: "Manchester United", de: "Manchester United", pt: "Manchester United" },
+  che: { en: "Chelsea", ar: "تشيلسي", es: "Chelsea", fr: "Chelsea", de: "Chelsea", pt: "Chelsea" },
+  ars: { en: "Arsenal", ar: "آرسنال", es: "Arsenal", fr: "Arsenal", de: "Arsenal", pt: "Arsenal" },
+  tot: { en: "Tottenham Hotspur", ar: "توتنهام هوتسبير", es: "Tottenham Hotspur", fr: "Tottenham Hotspur", de: "Tottenham Hotspur", pt: "Tottenham Hotspur" },
+  new: { en: "Newcastle United", ar: "نيوكاسل يونايتد", es: "Newcastle United", fr: "Newcastle United", de: "Newcastle United", pt: "Newcastle United" },
+  avl: { en: "Aston Villa", ar: "أستون فيلا", es: "Aston Villa", fr: "Aston Villa", de: "Aston Villa", pt: "Aston Villa" },
+  whu: { en: "West Ham United", ar: "وست هام يونايتد", es: "West Ham United", fr: "West Ham United", de: "West Ham United", pt: "West Ham United" },
+  bha: { en: "Brighton", ar: "برايتون", es: "Brighton", fr: "Brighton", de: "Brighton", pt: "Brighton" },
+  nfo: { en: "Nottingham Forest", ar: "نوتنغهام فورست", es: "Nottingham Forest", fr: "Nottingham Forest", de: "Nottingham Forest", pt: "Nottingham Forest" },
+  ful: { en: "Fulham", ar: "فولهام", es: "Fulham", fr: "Fulham", de: "Fulham", pt: "Fulham" },
+  wol: { en: "Wolverhampton", ar: "وولفرهامبتون", es: "Wolverhampton", fr: "Wolverhampton", de: "Wolverhampton", pt: "Wolverhampton" },
+  eve: { en: "Everton", ar: "إيفرتون", es: "Everton", fr: "Everton", de: "Everton", pt: "Everton" },
+  cry: { en: "Crystal Palace", ar: "كريستال بالاس", es: "Crystal Palace", fr: "Crystal Palace", de: "Crystal Palace", pt: "Crystal Palace" },
+  bre: { en: "Brentford", ar: "برنتفورد", es: "Brentford", fr: "Brentford", de: "Brentford", pt: "Brentford" },
+  bou: { en: "Bournemouth", ar: "بورنموث", es: "Bournemouth", fr: "Bournemouth", de: "Bournemouth", pt: "Bournemouth" },
+  lee: { en: "Leeds United", ar: "ليدز يونايتد", es: "Leeds United", fr: "Leeds United", de: "Leeds United", pt: "Leeds United" },
+  sun: { en: "Sunderland", ar: "سندرلاند", es: "Sunderland", fr: "Sunderland", de: "Sunderland", pt: "Sunderland" },
+  lei: { en: "Leicester City", ar: "ليستر سيتي", es: "Leicester City", fr: "Leicester City", de: "Leicester City", pt: "Leicester City" },
+  ips: { en: "Ipswich Town", ar: "إيبسويتش تاون", es: "Ipswich Town", fr: "Ipswich Town", de: "Ipswich Town", pt: "Ipswich Town" },
+  sou: { en: "Southampton", ar: "ساوثهامبتون", es: "Southampton", fr: "Southampton", de: "Southampton", pt: "Southampton" },
+
+  // Spain — remaining
+  rea: { en: "Real Valladolid", ar: "بلد الوليد", es: "Real Valladolid", fr: "Real Valladolid", de: "Real Valladolid", pt: "Real Valladolid" },
+  val: { en: "Valencia", ar: "فالنسيا", es: "Valencia", fr: "Valence", de: "Valencia", pt: "Valência" },
+  cel: { en: "Celta Vigo", ar: "سيلتا فيغو", es: "Celta de Vigo", fr: "Celta Vigo", de: "Celta Vigo", pt: "Celta de Vigo" },
+  get: { en: "Getafe", ar: "خيتافي", es: "Getafe", fr: "Getafe", de: "Getafe", pt: "Getafe" },
+  osa: { en: "Osasuna", ar: "أوساسونا", es: "Osasuna", fr: "Osasuna", de: "Osasuna", pt: "Osasuna" },
+  gir: { en: "Girona", ar: "جيرونا", es: "Girona", fr: "Gérone", de: "Girona", pt: "Girona" },
+  ray: { en: "Rayo Vallecano", ar: "رايو فاييكانو", es: "Rayo Vallecano", fr: "Rayo Vallecano", de: "Rayo Vallecano", pt: "Rayo Vallecano" },
+  rbs: { en: "Real Betis", ar: "ريال بيتيس", es: "Real Betis", fr: "Real Betis", de: "Real Betis", pt: "Real Betis" },
+  mal: { en: "Mallorca", ar: "مايوركا", es: "Mallorca", fr: "Majorque", de: "Mallorca", pt: "Maiorca" },
+  rde: { en: "Espanyol", ar: "إسبانيول", es: "Espanyol", fr: "Espanyol", de: "Espanyol", pt: "Espanyol" },
+  ala: { en: "Alavés", ar: "ألافيس", es: "Alavés", fr: "Alavés", de: "Alavés", pt: "Alavés" },
+  leg: { en: "Leganés", ar: "ليغانيس", es: "Leganés", fr: "Leganés", de: "Leganés", pt: "Leganés" },
+  las: { en: "Las Palmas", ar: "لاس بالماس", es: "Las Palmas", fr: "Las Palmas", de: "Las Palmas", pt: "Las Palmas" },
+
+  // Germany — remaining
+  bay: { en: "Bayern Munich", ar: "بايرن ميونخ", es: "Bayern Múnich", fr: "Bayern Munich", de: "Bayern München", pt: "Bayern de Munique" },
+  bvb: { en: "Borussia Dortmund", ar: "بوروسيا دورتموند", es: "Borussia Dortmund", fr: "Borussia Dortmund", de: "Borussia Dortmund", pt: "Borussia Dortmund" },
+  rbl: { en: "RB Leipzig", ar: "آر بي لايبزيغ", es: "RB Leipzig", fr: "RB Leipzig", de: "RB Leipzig", pt: "RB Leipzig" },
+  lev: { en: "Bayer Leverkusen", ar: "باير ليفركوزن", es: "Bayer Leverkusen", fr: "Bayer Leverkusen", de: "Bayer Leverkusen", pt: "Bayer Leverkusen" },
+  sge: { en: "Eintracht Frankfurt", ar: "آينتراخت فرانكفورت", es: "Eintracht Frankfurt", fr: "Eintracht Francfort", de: "Eintracht Frankfurt", pt: "Eintracht Frankfurt" },
+  fre: { en: "SC Freiburg", ar: "فرايبورغ", es: "SC Freiburg", fr: "SC Fribourg", de: "SC Freiburg", pt: "SC Freiburg" },
+  stu: { en: "VfB Stuttgart", ar: "شتوتغارت", es: "VfB Stuttgart", fr: "VfB Stuttgart", de: "VfB Stuttgart", pt: "VfB Stuttgart" },
+  wob: { en: "VfL Wolfsburg", ar: "فولفسبورغ", es: "VfL Wolfsburg", fr: "VfL Wolfsbourg", de: "VfL Wolfsburg", pt: "VfL Wolfsburg" },
+  bmg: { en: "Borussia M'gladbach", ar: "بوروسيا مونشنغلادباخ", es: "Borussia M'gladbach", fr: "Borussia M'gladbach", de: "Borussia Mönchengladbach", pt: "Borussia M'gladbach" },
+  tsg: { en: "TSG Hoffenheim", ar: "هوفنهايم", es: "TSG Hoffenheim", fr: "TSG Hoffenheim", de: "TSG Hoffenheim", pt: "TSG Hoffenheim" },
+  m05: { en: "Mainz 05", ar: "ماينتس", es: "Mainz 05", fr: "Mayence", de: "Mainz 05", pt: "Mainz 05" },
+  aue: { en: "Union Berlin", ar: "أونيون برلين", es: "Union Berlin", fr: "Union Berlin", de: "Union Berlin", pt: "Union Berlin" },
+  her: { en: "Hertha BSC", ar: "هيرتا برلين", es: "Hertha BSC", fr: "Hertha Berlin", de: "Hertha BSC", pt: "Hertha BSC" },
+  svw: { en: "Werder Bremen", ar: "فيردر بريمن", es: "Werder Bremen", fr: "Werder Brême", de: "Werder Bremen", pt: "Werder Bremen" },
+  fca: { en: "FC Augsburg", ar: "أوغسبورغ", es: "FC Augsburg", fr: "FC Augsbourg", de: "FC Augsburg", pt: "FC Augsburg" },
+  boc: { en: "VfL Bochum", ar: "بوخوم", es: "VfL Bochum", fr: "VfL Bochum", de: "VfL Bochum", pt: "VfL Bochum" },
+  d98: { en: "Darmstadt 98", ar: "دارمشتات", es: "Darmstadt 98", fr: "Darmstadt 98", de: "Darmstadt 98", pt: "Darmstadt 98" },
+  sch: { en: "FC Schalke 04", ar: "شالكه", es: "FC Schalke 04", fr: "FC Schalke 04", de: "FC Schalke 04", pt: "FC Schalke 04" },
+  koe: { en: "FC Köln", ar: "كولن", es: "FC Colonia", fr: "FC Cologne", de: "1. FC Köln", pt: "FC Colónia" },
+  hei: { en: "FC Heidenheim", ar: "هايدنهايم", es: "FC Heidenheim", fr: "FC Heidenheim", de: "1. FC Heidenheim", pt: "FC Heidenheim" },
+  hol: { en: "Holstein Kiel", ar: "هولشتاين كيل", es: "Holstein Kiel", fr: "Holstein Kiel", de: "Holstein Kiel", pt: "Holstein Kiel" },
+  stp: { en: "FC St. Pauli", ar: "سانت باولي", es: "FC St. Pauli", fr: "FC St. Pauli", de: "FC St. Pauli", pt: "FC St. Pauli" },
+
+  // Italy — remaining
+  juv: { en: "Juventus", ar: "يوفنتوس", es: "Juventus", fr: "Juventus", de: "Juventus", pt: "Juventus" },
+  int: { en: "Inter Milan", ar: "إنتر ميلان", es: "Inter de Milán", fr: "Inter Milan", de: "Inter Mailand", pt: "Inter de Milão" },
+  mil: { en: "AC Milan", ar: "إيه سي ميلان", es: "AC Milan", fr: "AC Milan", de: "AC Mailand", pt: "AC Milan" },
+  nap: { en: "Napoli", ar: "نابولي", es: "Nápoles", fr: "Naples", de: "Neapel", pt: "Nápoles" },
+  rom: { en: "AS Roma", ar: "أي أس روما", es: "AS Roma", fr: "AS Roma", de: "AS Rom", pt: "AS Roma" },
+  laz: { en: "Lazio", ar: "لاتسيو", es: "Lazio", fr: "Lazio", de: "Lazio", pt: "Lazio" },
+  ata: { en: "Atalanta", ar: "أتالانتا", es: "Atalanta", fr: "Atalanta", de: "Atalanta", pt: "Atalanta" },
+  fio: { en: "Fiorentina", ar: "فيورنتينا", es: "Fiorentina", fr: "Fiorentina", de: "Fiorentina", pt: "Fiorentina" },
+  tor: { en: "Torino", ar: "تورينو", es: "Torino", fr: "Turin", de: "Turin", pt: "Torino" },
+  gen: { en: "Genoa", ar: "جنوى", es: "Génova", fr: "Gênes", de: "Genua", pt: "Génova" },
+  bol: { en: "Bologna", ar: "بولونيا", es: "Bolonia", fr: "Bologne", de: "Bologna", pt: "Bolonha" },
+  mnz: { en: "Monza", ar: "مونزا", es: "Monza", fr: "Monza", de: "Monza", pt: "Monza" },
+  emp: { en: "Empoli", ar: "إمبولي", es: "Empoli", fr: "Empoli", de: "Empoli", pt: "Empoli" },
+  cag: { en: "Cagliari", ar: "كالياري", es: "Cagliari", fr: "Cagliari", de: "Cagliari", pt: "Cagliari" },
+  udi: { en: "Udinese", ar: "أودينيزي", es: "Udinese", fr: "Udinese", de: "Udinese", pt: "Udinese" },
+  sas: { en: "Sassuolo", ar: "ساسولو", es: "Sassuolo", fr: "Sassuolo", de: "Sassuolo", pt: "Sassuolo" },
+  lec: { en: "Lecce", ar: "ليتشي", es: "Lecce", fr: "Lecce", de: "Lecce", pt: "Lecce" },
+  prm: { en: "Parma", ar: "بارما", es: "Parma", fr: "Parme", de: "Parma", pt: "Parma" },
+  com: { en: "Como 1907", ar: "كومو", es: "Como 1907", fr: "Côme", de: "Como 1907", pt: "Como 1907" },
+  ver: { en: "Hellas Verona", ar: "هيلاس فيرونا", es: "Hellas Verona", fr: "Hellas Vérone", de: "Hellas Verona", pt: "Hellas Verona" },
+  ven: { en: "Venezia", ar: "فينيسيا", es: "Venezia", fr: "Venise", de: "Venedig", pt: "Venezia" },
+
+  // France — remaining
+  psg: { en: "Paris Saint-Germain", ar: "باريس سان جيرمان", es: "Paris Saint-Germain", fr: "Paris Saint-Germain", de: "Paris Saint-Germain", pt: "Paris Saint-Germain" },
+  oly: { en: "Olympique Lyonnais", ar: "أولمبيك ليون", es: "Olympique de Lyon", fr: "Olympique Lyonnais", de: "Olympique Lyon", pt: "Olympique de Lyon" },
+  om: { en: "Olympique Marseille", ar: "أولمبيك مارسيليا", es: "Olympique de Marsella", fr: "Olympique de Marseille", de: "Olympique Marseille", pt: "Olympique de Marselha" },
+  mon: { en: "AS Monaco", ar: "أي أس موناكو", es: "AS Mónaco", fr: "AS Monaco", de: "AS Monaco", pt: "AS Mónaco" },
+  lil: { en: "Lille", ar: "ليل", es: "Lille", fr: "Lille", de: "Lille", pt: "Lille" },
+  ren: { en: "Stade Rennais", ar: "رين", es: "Stade Rennais", fr: "Stade Rennais", de: "Stade Rennes", pt: "Stade Rennais" },
+  len: { en: "RC Lens", ar: "لانس", es: "RC Lens", fr: "RC Lens", de: "RC Lens", pt: "RC Lens" },
+  nic: { en: "Nice", ar: "نيس", es: "Niza", fr: "OGC Nice", de: "Nizza", pt: "Nice" },
+  str: { en: "Strasbourg", ar: "ستراسبورغ", es: "Estrasburgo", fr: "RC Strasbourg", de: "Straßburg", pt: "Estrasburgo" },
+  nan: { en: "FC Nantes", ar: "نانت", es: "FC Nantes", fr: "FC Nantes", de: "FC Nantes", pt: "FC Nantes" },
+  tou: { en: "Toulouse", ar: "تولوز", es: "Toulouse", fr: "Toulouse FC", de: "Toulouse", pt: "Toulouse" },
+  rms: { en: "Stade de Reims", ar: "ريمس", es: "Stade de Reims", fr: "Stade de Reims", de: "Stade Reims", pt: "Stade de Reims" },
+  aux: { en: "AJ Auxerre", ar: "أوكسير", es: "AJ Auxerre", fr: "AJ Auxerre", de: "AJ Auxerre", pt: "AJ Auxerre" },
+  ste: { en: "Saint-Étienne", ar: "سانت إتيان", es: "Saint-Étienne", fr: "AS Saint-Étienne", de: "Saint-Étienne", pt: "Saint-Étienne" },
+  ang: { en: "Angers", ar: "أنجيه", es: "Angers", fr: "Angers SCO", de: "Angers", pt: "Angers" },
+  mtp: { en: "Montpellier", ar: "مونبلييه", es: "Montpellier", fr: "Montpellier HSC", de: "Montpellier", pt: "Montpellier" },
+  hav: { en: "Le Havre", ar: "لوهافر", es: "Le Havre", fr: "Le Havre AC", de: "Le Havre", pt: "Le Havre" },
+  bre2: { en: "Stade Brestois", ar: "بريست", es: "Stade Brestois", fr: "Stade Brestois", de: "Stade Brest", pt: "Stade Brestois" },
+
+  // Portugal
+  ben: { en: "Benfica", ar: "بنفيكا", es: "Benfica", fr: "Benfica", de: "Benfica", pt: "Benfica" },
+  fcp: { en: "FC Porto", ar: "بورتو", es: "FC Oporto", fr: "FC Porto", de: "FC Porto", pt: "FC Porto" },
+  spo: { en: "Sporting CP", ar: "سبورتينغ لشبونة", es: "Sporting CP", fr: "Sporting CP", de: "Sporting Lissabon", pt: "Sporting CP" },
+
+  // Netherlands
+  aja: { en: "Ajax", ar: "أياكس", es: "Ajax", fr: "Ajax", de: "Ajax", pt: "Ajax" },
+  psv: { en: "PSV Eindhoven", ar: "بي إس في آيندهوفن", es: "PSV Eindhoven", fr: "PSV Eindhoven", de: "PSV Eindhoven", pt: "PSV Eindhoven" },
+  fey: { en: "Feyenoord", ar: "فاينورد", es: "Feyenoord", fr: "Feyenoord", de: "Feyenoord", pt: "Feyenoord" },
+
+  // Additional clubs (cups / promoted / Serie B / Ligue 2 etc.)
+  pfc: { en: "Paris FC", ar: "باريس إف سي", es: "Paris FC", fr: "Paris FC", de: "Paris FC", pt: "Paris FC" },
+  pis: { en: "AC Pisa", ar: "بيزا", es: "AC Pisa", fr: "AC Pise", de: "AC Pisa", pt: "AC Pisa" },
+  fcm: { en: "FC Metz", ar: "ميتز", es: "FC Metz", fr: "FC Metz", de: "FC Metz", pt: "FC Metz" },
 };
 
 // ─── Competition Names ───────────────────────────────────────────────────────
@@ -331,11 +463,107 @@ const CONFEDERATION_NAMES: Record<string, Record<LangCode, string>> = {
  * Get a translated team name. Falls back to English, then to the raw id.
  * Also handles API team names (from football-data.org) that aren't in our static list.
  */
+// Reverse lookup: English name → key (built once, lazy)
+let _nameToKey: Map<string, string> | null = null;
+// API name aliases: football-data.org sometimes uses longer/different names
+const API_NAME_ALIASES: Record<string, string> = {
+  "wolverhampton wanderers fc": "wol",
+  "wolverhampton wanderers": "wol",
+  "west ham united fc": "whu",
+  "west ham united": "whu",
+  "west ham": "whu",
+  "tottenham hotspur fc": "tot",
+  "tottenham hotspur": "tot",
+  "nottingham forest fc": "nfo",
+  "nottingham forest": "nfo",
+  "crystal palace fc": "cry",
+  "afc bournemouth": "bou",
+  "athletic club": "ath",
+  "atletico de madrid": "atl",
+  "atlético de madrid": "atl",
+  "club atlético de madrid": "atl",
+  "real sociedad de fútbol": "rso",
+  "real betis balompié": "bet",
+  "real betis": "bet",
+  "rcd espanyol de barcelona": "rde",
+  "borussia dortmund": "bvb",
+  "bayer 04 leverkusen": "b04",
+  "bayer leverkusen": "b04",
+  "rb leipzig": "rbl",
+  "eintracht frankfurt": "sge",
+  "sc freiburg": "scf",
+  "vfb stuttgart": "vfb",
+  "vfl wolfsburg": "wob",
+  "borussia mönchengladbach": "bmg",
+  "tsg 1899 hoffenheim": "tsg",
+  "hoffenheim": "tsg",
+  "tsg hoffenheim": "tsg",
+  "1. fsv mainz 05": "m05",
+  "1. fc union berlin": "fcub",
+  "sv werder bremen": "svw",
+  "werder bremen": "svw",
+  "fc augsburg": "fca",
+  "augsburg": "fca",
+  "1. fc heidenheim 1846": "hei",
+  "holstein kiel": "kiel",
+  "fc st. pauli 1910": "pau",
+  "fc st. pauli": "pau",
+  "fc internazionale milano": "int",
+  "inter milan": "int",
+  "ac milan": "acm",
+  "ssc napoli": "nap",
+  "as roma": "rom",
+  "roma": "rom",
+  "ss lazio": "laz",
+  "atalanta bc": "ata",
+  "acf fiorentina": "fio",
+  "torino fc": "tor",
+  "genoa cfc": "gen",
+  "bologna fc 1909": "bol",
+  "us lecce": "lec",
+  "parma calcio 1913": "prm",
+  "us sassuolo calcio": "sas",
+  "hellas verona fc": "ver",
+  "olympique de marseille": "om",
+  "olympique marseille": "om",
+  "marseille": "om",
+  "as monaco fc": "mon",
+  "as monaco": "mon",
+  "monaco": "mon",
+  "ogc nice": "nic",
+  "rc strasbourg alsace": "str",
+  "stade brestois 29": "bre2",
+  "sl benfica": "ben",
+  "fc porto": "fcp",
+  "sporting clube de portugal": "spo",
+  "sporting cp": "spo",
+  "afc ajax": "aja",
+};
+
+function getNameToKey(): Map<string, string> {
+  if (!_nameToKey) {
+    _nameToKey = new Map();
+    for (const [key, val] of Object.entries(TEAM_NAMES)) {
+      if (val.en) _nameToKey.set(val.en.toLowerCase(), key);
+    }
+    // Add API aliases
+    for (const [alias, key] of Object.entries(API_NAME_ALIASES)) {
+      _nameToKey.set(alias, key);
+    }
+  }
+  return _nameToKey;
+}
+
 export function teamName(idOrName: string, lang: LangCode): string {
   const id = idOrName.toLowerCase();
   const entry = TEAM_NAMES[id];
   if (entry) return entry[lang] ?? entry.en ?? idOrName;
-  // For API teams not in our 48-team list, return the name as-is
+  // Try reverse lookup by English name (handles API full names like "Olympique Marseille")
+  const keyByName = getNameToKey().get(id);
+  if (keyByName) {
+    const e = TEAM_NAMES[keyByName];
+    if (e) return e[lang] ?? e.en ?? idOrName;
+  }
   return idOrName;
 }
 

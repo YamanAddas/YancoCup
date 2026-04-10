@@ -21,18 +21,22 @@ function NewsCard({ article, userLang }: { article: NewsArticle; userLang: strin
   const [localSummary, setLocalSummary] = useState(article.summary);
   const [isTranslated, setIsTranslated] = useState(article.translated);
 
-  const handleTranslate = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Don't navigate to article
-    e.stopPropagation();
+  // Auto-translate on mount when article language differs from user language
+  useEffect(() => {
+    if (!needsTranslation || isTranslated) return;
+    let cancelled = false;
     setTranslating(true);
-    const result = await translateArticleOnDemand(article.slug, userLang);
-    if (result) {
-      setLocalTitle(result.title);
-      setLocalSummary(result.summary);
-      setIsTranslated(true);
-    }
-    setTranslating(false);
-  };
+    translateArticleOnDemand(article.slug, userLang).then((result) => {
+      if (cancelled) return;
+      if (result) {
+        setLocalTitle(result.title);
+        setLocalSummary(result.summary);
+        setIsTranslated(true);
+      }
+      setTranslating(false);
+    });
+    return () => { cancelled = true; };
+  }, [article.slug, userLang, needsTranslation, isTranslated]);
 
   return (
     <Link
@@ -90,16 +94,12 @@ function NewsCard({ article, userLang }: { article: NewsArticle; userLang: strin
             {localSummary}
           </p>
 
-          {/* Translate button for untranslated articles */}
-          {needsTranslation && !isTranslated && (
-            <button
-              onClick={handleTranslate}
-              disabled={translating}
-              className="flex items-center gap-1.5 text-xs text-yc-info hover:text-yc-green transition-colors disabled:opacity-50"
-            >
-              <Languages size={12} />
-              {translating ? t("news.translating") : t("news.translate")}
-            </button>
+          {/* Auto-translating indicator */}
+          {translating && (
+            <span className="flex items-center gap-1.5 text-xs text-yc-info opacity-70">
+              <Languages size={12} className="animate-pulse" />
+              {t("news.translating")}
+            </span>
           )}
 
           {/* Meta */}

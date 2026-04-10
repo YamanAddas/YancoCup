@@ -11,6 +11,7 @@ import { useLeaderboard } from "../hooks/useLeaderboard";
 import { usePredictedMatchIds } from "../hooks/usePredictions";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
+import { getLocale } from "../lib/formatDate";
 import { COMPETITION_LIST } from "../lib/competitions";
 import { getRank, getRankStars } from "../lib/ranks";
 import ActivityFeed from "../components/activity/ActivityFeed";
@@ -157,7 +158,7 @@ function TodaysMatches() {
   const venueMap = useVenueMap();
   const { scoreMap } = useScores();
   const predictedIds = usePredictedMatchIds();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
   const [upcomingLeague, setUpcomingLeague] = useState<Match[]>([]);
   // Track per-match competition code for detail page linking
@@ -232,7 +233,7 @@ function TodaysMatches() {
     if (upcomingLeague.length > 0) {
       const firstDate = upcomingLeague[0]!.date;
       const dateLabel = new Date(`${firstDate}T00:00:00Z`).toLocaleDateString(
-        undefined,
+        getLocale(lang),
         { weekday: "long", month: "short", day: "numeric" },
       );
       return {

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { MapPin, Clock, Check } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
 import TeamCrest from "./TeamCrest";
-import { formatTimeWithTZ } from "../../lib/formatDate";
+import { formatTimeWithTZ, formatMatchDate as fmtDate } from "../../lib/formatDate";
 import type { Match, Team, Venue } from "../../types";
 import type { LocalLiveScore } from "../../hooks/useScores";
 
@@ -52,13 +52,8 @@ function Placeholder({ label, side }: { label: string; side: "home" | "away" }) 
   );
 }
 
-function formatMatchTime(date: string, time: string): string {
-  return formatTimeWithTZ(new Date(`${date}T${time}:00Z`));
-}
-
-function formatMatchDate(date: string): string {
-  const dt = new Date(`${date}T00:00:00Z`);
-  return dt.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+function formatMatchTime(date: string, time: string, lang?: string): string {
+  return formatTimeWithTZ(new Date(`${date}T${time}:00Z`), lang);
 }
 
 const ROUND_KEYS: Record<Match["round"], string> = {
@@ -102,7 +97,7 @@ interface MatchCardProps {
 }
 
 export default function MatchCard({ match, teamMap, venueMap, liveScore, compact, competitionId, predicted }: MatchCardProps) {
-  const { t, tTeam, tVenue } = useI18n();
+  const { t, lang, tTeam, tVenue } = useI18n();
   const wrapRef = useRef<HTMLDivElement>(null);
   const specRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef(0);
@@ -207,7 +202,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
                 <StatusBadge status={effectiveStatus} />
               ) : (
                 <span className="text-yc-text-tertiary text-xs">
-                  {formatMatchDate(match.date)}
+                  {fmtDate(match.date, lang)}
                 </span>
               )}
             </div>
@@ -245,7 +240,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
                     <span className="text-yc-green font-mono text-lg font-bold">{t("match.vs")}</span>
                     <div className="flex items-center gap-1 text-yc-text-secondary">
                       <Clock size={10} />
-                      <span className="text-[11px]">{formatMatchTime(match.date, match.time)}</span>
+                      <span className="text-[11px]">{formatMatchTime(match.date, match.time, lang)}</span>
                     </div>
                   </>
                 )}
@@ -267,7 +262,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
             {/* Footer: date + venue */}
             {!compact && (
               <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between text-yc-text-tertiary text-xs">
-                <span>{formatMatchTime(match.date, match.time)}</span>
+                <span>{formatMatchTime(match.date, match.time, lang)}</span>
                 {venue && (
                   <span className="flex items-center gap-1 truncate ml-2">
                     <MapPin size={10} className="shrink-0" />

@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, User, MapPin, Calendar, Shield, TrendingUp, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
-import { formatTimeWithTZ } from "../lib/formatDate";
+import { formatTimeWithTZ, getLocale } from "../lib/formatDate";
 import TeamCrest from "../components/match/TeamCrest";
 import { fetchTeamNews, translateArticleOnDemand, type NewsArticle } from "../lib/api";
 
@@ -355,7 +355,7 @@ function TeamNewsCompact({ article, userLang }: { article: NewsArticle; userLang
 export default function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const comp = useCompetition();
-  const { t } = useI18n();
+  const { t, lang, tTeam } = useI18n();
   const [team, setTeam] = useState<TeamData | null>(null);
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [leaguePosition, setLeaguePosition] = useState<StandingEntry | null>(null);
@@ -537,7 +537,7 @@ export default function TeamPage() {
       <div className="flex items-center gap-4 mb-8">
         <TeamCrest tla={team.tla} crest={team.crest} size="xl" />
         <div>
-          <h2 className="font-heading text-2xl font-bold">{team.name}</h2>
+          <h2 className="font-heading text-2xl font-bold">{tTeam(team.tla)}</h2>
           <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-yc-text-secondary">
             {team.coach && (
               <span className="flex items-center gap-1">
@@ -639,14 +639,14 @@ export default function TeamPage() {
                 <div key={m.apiId} className="flex items-center gap-3 px-3 py-2 bg-yc-bg-surface border border-yc-border/50 rounded-lg text-sm">
                   <FormDot result={m.result} />
                   <span className="text-xs text-yc-text-tertiary w-16 shrink-0">
-                    {date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    {date.toLocaleDateString(getLocale(lang), { month: "short", day: "numeric" })}
                   </span>
                   <span className="text-yc-text-secondary text-xs w-6 text-center">{m.isHome ? "H" : "A"}</span>
                   <div className="flex items-center gap-1.5 flex-1 min-w-0">
                     {m.opponentCrest && (
                       <TeamCrest tla={m.opponentTla ?? "?"} crest={m.opponentCrest} size="xs" />
                     )}
-                    <span className="text-yc-text-primary truncate">{m.opponentName ?? m.opponentTla}</span>
+                    <span className="text-yc-text-primary truncate">{tTeam(m.opponentTla ?? m.opponentName ?? "?")}</span>
                   </div>
                   <span className="font-mono font-bold text-yc-text-primary shrink-0">
                     {m.goalsFor}-{m.goalsAgainst}
@@ -674,15 +674,15 @@ export default function TeamPage() {
               return (
                 <div key={m.apiId} className="flex items-center gap-3 px-3 py-2 bg-yc-bg-surface border border-yc-border/50 rounded-lg text-sm">
                   <span className="text-xs text-yc-text-tertiary w-16 shrink-0">
-                    {date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    {date.toLocaleDateString(getLocale(lang), { month: "short", day: "numeric" })}
                   </span>
                   <span className="text-yc-text-secondary text-xs w-6 text-center">{isHome ? "H" : "A"}</span>
                   <div className="flex items-center gap-1.5 flex-1 min-w-0">
                     {opCrest && <TeamCrest tla={opTla ?? "?"} crest={opCrest} size="xs" />}
-                    <span className="text-yc-text-primary truncate">{opName ?? opTla}</span>
+                    <span className="text-yc-text-primary truncate">{tTeam(opTla ?? opName ?? "?")}</span>
                   </div>
                   <span className="text-xs text-yc-text-tertiary">
-                    {formatTimeWithTZ(date)}
+                    {formatTimeWithTZ(date, lang)}
                   </span>
                 </div>
               );
@@ -692,7 +692,7 @@ export default function TeamPage() {
       )}
 
       {/* Team Newspaper — AI-curated news */}
-      <TeamNewspaper teamTla={team.tla} teamName={team.name} teamCrest={team.crest} />
+      <TeamNewspaper teamTla={team.tla} teamName={tTeam(team.tla)} teamCrest={team.crest} />
 
       {/* Squad */}
       {team.squad.length > 0 && (
