@@ -125,6 +125,10 @@
   "leaderboard.you": "(tú)",
   "leaderboard.pppDesc": "PPP = Puntos Por Predicción (más justo para los que se unen tarde)",
   "leaderboard.accDesc": "Prec = predicciones con puntos / predicciones calificadas",
+  "leaderboard.allTime": "Total",
+  "leaderboard.weekly": "Esta semana",
+  "leaderboard.monthly": "Este mes",
+  "leaderboard.allPlayers": "Todos los jugadores",
 
   "watch.title": "Dónde verlo",
   "watch.subtitle": "Encuentra los transmisores oficiales de la Copa del Mundo FIFA 2026 en tu país.",

@@ -125,6 +125,10 @@
   "leaderboard.you": "(vous)",
   "leaderboard.pppDesc": "PPP = Points Par Pronostic (plus juste pour les retardataires)",
   "leaderboard.accDesc": "Préc = pronostics avec des points / pronostics évalués",
+  "leaderboard.allTime": "Tout temps",
+  "leaderboard.weekly": "Cette semaine",
+  "leaderboard.monthly": "Ce mois",
+  "leaderboard.allPlayers": "Tous les joueurs",
 
   "watch.title": "Où regarder",
   "watch.subtitle": "Trouvez les diffuseurs officiels de la Coupe du Monde FIFA 2026 dans votre pays.",

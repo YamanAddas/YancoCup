@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 
+export type LeaderboardPeriod = "all" | "weekly" | "monthly";
+
 export interface LeaderboardEntry {
   userId: string;
   handle: string;
@@ -11,30 +13,75 @@ export interface LeaderboardEntry {
   totalPredictions: number;
   accuracy: number;
   pointsPerPrediction: number;
+  previousRank?: number;
 }
 
-export function useLeaderboard(competitionId = "WC") {
+function buildLeaderboard(
+  predictions: Array<{ user_id: string; points: number | null; scored_at: string | null }>,
+  profileMap: Map<string, { id: string; handle: string; display_name: string | null; avatar_url: string | null }>,
+): LeaderboardEntry[] {
+  const userIds = [...new Set(predictions.map((p) => p.user_id))];
+
+  const statsMap = new Map<
+    string,
+    { points: number; correct: number; scored: number; total: number }
+  >();
+  for (const p of predictions) {
+    const existing = statsMap.get(p.user_id) ?? {
+      points: 0,
+      correct: 0,
+      scored: 0,
+      total: 0,
+    };
+    existing.total++;
+    if (p.scored_at !== null) {
+      existing.points += p.points ?? 0;
+      if ((p.points ?? 0) > 0) existing.correct++;
+      existing.scored++;
+    }
+    statsMap.set(p.user_id, existing);
+  }
+
+  const board: LeaderboardEntry[] = userIds.map((uid) => {
+    const profile = profileMap.get(uid);
+    const stats = statsMap.get(uid) ?? { points: 0, correct: 0, scored: 0, total: 0 };
+    return {
+      userId: uid,
+      handle: profile?.handle ?? "unknown",
+      displayName: profile?.display_name ?? null,
+      avatarUrl: profile?.avatar_url ?? null,
+      totalPoints: stats.points,
+      correctPredictions: stats.correct,
+      totalPredictions: stats.total,
+      accuracy: stats.scored > 0 ? Math.round((stats.correct / stats.scored) * 100) : 0,
+      pointsPerPrediction: stats.total > 0 ? Math.round((stats.points / stats.total) * 100) / 100 : 0,
+    };
+  });
+
+  board.sort((a, b) => b.totalPoints - a.totalPoints || b.pointsPerPrediction - a.pointsPerPrediction);
+  return board;
+}
+
+export function useLeaderboard(competitionId = "WC", period: LeaderboardPeriod = "all") {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetch() {
-      // Single query for all predictions in this competition
-      const { data: predictions, error: predErr } = await supabase
+      // Fetch all scored predictions for this competition
+      const { data: allPredictions, error: predErr } = await supabase
         .from("yc_predictions")
         .select("user_id, points, scored_at")
         .eq("competition_id", competitionId);
 
-      if (predErr || !predictions || predictions.length === 0) {
+      if (predErr || !allPredictions || allPredictions.length === 0) {
         setEntries([]);
         setLoading(false);
         return;
       }
 
-      // Get unique user IDs
-      const userIds = [...new Set(predictions.map((p) => p.user_id))];
+      const userIds = [...new Set(allPredictions.map((p) => p.user_id))];
 
-      // Fetch profiles
       const { data: profiles, error: profErr } = await supabase
         .from("profiles_public")
         .select("id, handle, display_name, avatar_url")
@@ -45,53 +92,42 @@ export function useLeaderboard(competitionId = "WC") {
         (profiles ?? []).map((p) => [p.id, p]),
       );
 
-      // Aggregate all predictions per user
-      const statsMap = new Map<
-        string,
-        { points: number; correct: number; scored: number; total: number }
-      >();
-      for (const p of predictions) {
-        const existing = statsMap.get(p.user_id) ?? {
-          points: 0,
-          correct: 0,
-          scored: 0,
-          total: 0,
-        };
-        existing.total++;
-        if (p.scored_at !== null) {
-          existing.points += p.points ?? 0;
-          if ((p.points ?? 0) > 0) existing.correct++;
-          existing.scored++;
-        }
-        statsMap.set(p.user_id, existing);
+      // Build all-time board (also used as previous rank reference)
+      const allTimeBoard = buildLeaderboard(allPredictions, profileMap);
+      const allTimeRankMap = new Map(allTimeBoard.map((e, i) => [e.userId, i + 1]));
+
+      if (period === "all") {
+        setEntries(allTimeBoard);
+        setLoading(false);
+        return;
       }
 
-      // Build leaderboard
-      const board: LeaderboardEntry[] = userIds.map((uid) => {
-        const profile = profileMap.get(uid);
-        const stats = statsMap.get(uid) ?? { points: 0, correct: 0, scored: 0, total: 0 };
-        return {
-          userId: uid,
-          handle: profile?.handle ?? "unknown",
-          displayName: profile?.display_name ?? null,
-          avatarUrl: profile?.avatar_url ?? null,
-          totalPoints: stats.points,
-          correctPredictions: stats.correct,
-          totalPredictions: stats.total,
-          accuracy: stats.scored > 0 ? Math.round((stats.correct / stats.scored) * 100) : 0,
-          pointsPerPrediction: stats.total > 0 ? Math.round((stats.points / stats.total) * 100) / 100 : 0,
-        };
-      });
+      // Filter by period
+      const now = Date.now();
+      const cutoff = period === "weekly" ? now - 7 * 86400000 : now - 30 * 86400000;
+      const filtered = allPredictions.filter(
+        (p) => p.scored_at && new Date(p.scored_at).getTime() >= cutoff,
+      );
 
-      // Sort by total points desc, then PPP desc
-      board.sort((a, b) => b.totalPoints - a.totalPoints || b.pointsPerPrediction - a.pointsPerPrediction);
+      if (filtered.length === 0) {
+        setEntries([]);
+        setLoading(false);
+        return;
+      }
 
-      setEntries(board);
+      const periodBoard = buildLeaderboard(filtered, profileMap);
+
+      // Attach previous (all-time) rank for movement arrows
+      for (const entry of periodBoard) {
+        entry.previousRank = allTimeRankMap.get(entry.userId);
+      }
+
+      setEntries(periodBoard);
       setLoading(false);
     }
 
     fetch();
-  }, [competitionId]);
+  }, [competitionId, period]);
 
   return { entries, loading };
 }

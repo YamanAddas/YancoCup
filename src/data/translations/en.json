@@ -128,6 +128,10 @@
   "leaderboard.you": "(you)",
   "leaderboard.pppDesc": "PPP = Points Per Prediction (fairer for late joiners)",
   "leaderboard.accDesc": "Acc = predictions with any points / scored predictions",
+  "leaderboard.allTime": "All Time",
+  "leaderboard.weekly": "This Week",
+  "leaderboard.monthly": "This Month",
+  "leaderboard.allPlayers": "All Players",
 
   "watch.title": "Where to Watch",
   "watch.subtitle": "Find official broadcasters for the 2026 FIFA World Cup in your country.",

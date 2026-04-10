@@ -125,6 +125,10 @@
   "leaderboard.you": "(أنت)",
   "leaderboard.pppDesc": "PPP = النقاط لكل توقّع (أعدل للمنضمّين المتأخرين)",
   "leaderboard.accDesc": "الدقة = التوقعات التي حققت نقاطاً / التوقعات المحتسبة",
+  "leaderboard.allTime": "كل الأوقات",
+  "leaderboard.weekly": "هذا الأسبوع",
+  "leaderboard.monthly": "هذا الشهر",
+  "leaderboard.allPlayers": "جميع اللاعبين",
 
   "watch.title": "أين تشاهد",
   "watch.subtitle": "ابحث عن القنوات الرسمية الناقلة لكأس العالم 2026 في بلدك.",

@@ -1,11 +1,14 @@
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useLeaderboard } from "../hooks/useLeaderboard";
+import type { LeaderboardPeriod } from "../hooks/useLeaderboard";
+import { useMyPools, usePoolMembers } from "../hooks/usePools";
 import { useAuth } from "../lib/auth";
 import { useAutoScore } from "../hooks/useAutoScore";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import { getRank, getRankStars } from "../lib/ranks";
-import { TrendingUp, Target, Award, Star } from "lucide-react";
+import { TrendingUp, Target, Award, Star, ArrowUp, ArrowDown, Users } from "lucide-react";
 
 function RankPill({ points }: { points: number }) {
   const rank = getRank(points);
@@ -28,17 +31,72 @@ function RankPill({ points }: { points: number }) {
 
 export default function LeaderboardPage() {
   const comp = useCompetition();
-  const { entries, loading } = useLeaderboard(comp.id);
+  const [period, setPeriod] = useState<LeaderboardPeriod>("all");
+  const [selectedPoolId, setSelectedPoolId] = useState<string | null>(null);
+  const { entries: allEntries, loading } = useLeaderboard(comp.id, period);
   const { user } = useAuth();
   const { t } = useI18n();
+  const { pools } = useMyPools();
+  const compPools = pools.filter((p) => p.competition_id === comp.id);
+  const { members: poolMembers } = usePoolMembers(selectedPoolId);
   useAutoScore(comp.id);
+
+  // Filter entries by pool if selected
+  const entries = useMemo(() => {
+    if (!selectedPoolId || poolMembers.length === 0) return allEntries;
+    const memberIds = new Set(poolMembers.map((m) => m.user_id));
+    return allEntries.filter((e) => memberIds.has(e.userId));
+  }, [allEntries, selectedPoolId, poolMembers]);
 
   const playerCount = entries.length !== 1
     ? t("leaderboard.playersPlural", { count: entries.length })
     : t("leaderboard.players", { count: entries.length });
 
+  const periods: { key: LeaderboardPeriod; label: string }[] = [
+    { key: "all", label: t("leaderboard.allTime") },
+    { key: "weekly", label: t("leaderboard.weekly") },
+    { key: "monthly", label: t("leaderboard.monthly") },
+  ];
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      {/* Filters row */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        {/* Period filter tabs */}
+        <div className="flex gap-1 bg-yc-bg-surface rounded-lg p-1">
+          {periods.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                period === p.key
+                  ? "bg-yc-green text-yc-bg-deep"
+                  : "text-yc-text-secondary hover:text-yc-text-primary"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Pool filter */}
+        {compPools.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <Users size={12} className="text-yc-text-tertiary" />
+            <select
+              value={selectedPoolId ?? ""}
+              onChange={(e) => setSelectedPoolId(e.target.value || null)}
+              className="bg-yc-bg-surface border border-yc-border rounded-lg px-2 py-1.5 text-xs text-yc-text-primary focus:outline-none focus:border-yc-green-muted"
+            >
+              <option value="">{t("leaderboard.allPlayers")}</option>
+              {compPools.map((pool) => (
+                <option key={pool.id} value={pool.id}>{pool.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
       <p className="text-yc-text-secondary text-sm mb-6">{playerCount}</p>
 
       {loading ? (
@@ -145,7 +203,15 @@ export default function LeaderboardPage() {
                       } hover:bg-white/[0.02]`}
                     >
                       <td className="pl-4 py-3 font-mono text-yc-text-tertiary">
-                        {i + 1}
+                        <div className="flex items-center gap-1">
+                          {i + 1}
+                          {period !== "all" && entry.previousRank !== undefined && (() => {
+                            const diff = entry.previousRank - (i + 1);
+                            if (diff > 0) return <ArrowUp size={10} className="text-yc-green" />;
+                            if (diff < 0) return <ArrowDown size={10} className="text-yc-danger" />;
+                            return null;
+                          })()}
+                        </div>
                       </td>
                       <td className="py-3">
                         <div className="flex items-center gap-2">

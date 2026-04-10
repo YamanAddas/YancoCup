@@ -125,6 +125,10 @@
   "leaderboard.you": "(du)",
   "leaderboard.pppDesc": "PPP = Punkte pro Tipp (fairer für Nachzügler)",
   "leaderboard.accDesc": "Genau = Tipps mit Punkten / bewertete Tipps",
+  "leaderboard.allTime": "Gesamt",
+  "leaderboard.weekly": "Diese Woche",
+  "leaderboard.monthly": "Dieser Monat",
+  "leaderboard.allPlayers": "Alle Spieler",
 
   "watch.title": "Wo schauen",
   "watch.subtitle": "Finde offizielle Sender für die FIFA WM 2026 in deinem Land.",

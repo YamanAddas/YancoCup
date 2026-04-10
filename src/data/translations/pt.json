@@ -125,6 +125,10 @@
   "leaderboard.you": "(você)",
   "leaderboard.pppDesc": "PPP = Pontos Por Palpite (mais justo para quem entrou depois)",
   "leaderboard.accDesc": "Prec = palpites com pontos / palpites pontuados",
+  "leaderboard.allTime": "Total",
+  "leaderboard.weekly": "Esta semana",
+  "leaderboard.monthly": "Este mês",
+  "leaderboard.allPlayers": "Todos os jogadores",
 
   "watch.title": "Onde Assistir",
   "watch.subtitle": "Encontre as emissoras oficiais da Copa do Mundo FIFA 2026 no seu país.",
