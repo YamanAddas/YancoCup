@@ -1,16 +1,17 @@
+import { useMemo } from "react";
 import venuesData from "../data/venues.json";
 import type { Venue } from "../types";
 
 const venues = venuesData as Venue[];
 
 export function useVenues(): Venue[] {
-  return venues;
+  return useMemo(() => venues, []);
 }
 
 export function useVenue(id: string): Venue | undefined {
-  return venues.find((v) => v.id === id);
+  return useMemo(() => venues.find((v) => v.id === id), [id]);
 }
 
 export function useVenueMap(): Map<string, Venue> {
-  return new Map(venues.map((v) => [v.id, v]));
+  return useMemo(() => new Map(venues.map((v) => [v.id, v])), []);
 }

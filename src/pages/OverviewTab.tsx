@@ -65,7 +65,7 @@ export default function OverviewTab() {
   const venueMap = useVenueMap();
   const { scoreMap } = useScores();
   const { entries: leaderboard } = useLeaderboard(comp.id);
-  const { predictions } = useAutoScore();
+  const { predictions } = useAutoScore(comp.id);
   const [scorers, setScorers] = useState<Scorer[]>([]);
 
   useEffect(() => {

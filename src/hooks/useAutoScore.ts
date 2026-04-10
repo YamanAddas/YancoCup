@@ -3,16 +3,17 @@ import { useMyPredictions } from "./usePredictions";
 import { useLiveResults } from "./useLiveResults";
 import { useScoring } from "./useScoring";
 
+const RESCORE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Auto-scores unscored predictions when the user views a page.
- * Runs once when live results and predictions are both loaded.
- * Returns the predictions refresh function so the caller can use it.
+ * Re-runs if >5 minutes have passed since the last scoring attempt.
  */
-export function useAutoScore() {
-  const { predictions, loading: predsLoading, refresh } = useMyPredictions();
+export function useAutoScore(competitionId = "WC") {
+  const { predictions, loading: predsLoading, refresh } = useMyPredictions(competitionId);
   const { results, loading: resultsLoading } = useLiveResults();
-  const { scorePredictions } = useScoring();
-  const hasRun = useRef(false);
+  const { scorePredictions } = useScoring(competitionId);
+  const lastRunRef = useRef(0);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -23,8 +24,11 @@ export function useAutoScore() {
   }, []);
 
   useEffect(() => {
-    if (predsLoading || resultsLoading || hasRun.current) return;
+    if (predsLoading || resultsLoading) return;
     if (predictions.length === 0 || results.length === 0) return;
+
+    const now = Date.now();
+    if (now - lastRunRef.current < RESCORE_INTERVAL_MS) return;
 
     // Check if there are any unscored predictions for finished matches
     const finishedIds = new Set(
@@ -36,7 +40,7 @@ export function useAutoScore() {
 
     if (unscored.length === 0) return;
 
-    hasRun.current = true;
+    lastRunRef.current = now;
     scorePredictions(predictions, results).then((count) => {
       if (count > 0 && mountedRef.current) refresh();
     });

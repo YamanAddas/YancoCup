@@ -16,6 +16,12 @@ export default function HowToPlay() {
     { labelKey: "howToPlay.perfectGroup", points: "+15", descKey: "howToPlay.perfectDesc" },
   ];
 
+  const modifiers = [
+    { labelKey: "howToPlay.jokerLabel", descKey: "howToPlay.jokerDesc" },
+    { labelKey: "howToPlay.knockoutLabel", descKey: "howToPlay.knockoutDesc" },
+    { labelKey: "howToPlay.streakLabel", descKey: "howToPlay.streakDesc" },
+  ];
+
   return (
     <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-5">
       <div className="flex items-center gap-2 mb-4">
@@ -50,6 +56,16 @@ export default function HowToPlay() {
               <span className="text-yc-text-tertiary ml-2 text-xs">— {t(b.descKey)}</span>
             </div>
             <span className="text-yc-warning font-mono font-bold">{b.points}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="border-t border-yc-border pt-3 mt-3 space-y-2">
+        <p className="text-yc-text-tertiary text-xs uppercase tracking-widest mb-2">{t("howToPlay.modifiers")}</p>
+        {modifiers.map((m) => (
+          <div key={m.labelKey} className="text-sm">
+            <span className="text-yc-text-primary">{t(m.labelKey)}</span>
+            <span className="text-yc-text-tertiary ml-2 text-xs">— {t(m.descKey)}</span>
           </div>
         ))}
       </div>

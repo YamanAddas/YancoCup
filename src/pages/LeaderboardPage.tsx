@@ -31,7 +31,7 @@ export default function LeaderboardPage() {
   const { entries, loading } = useLeaderboard(comp.id);
   const { user } = useAuth();
   const { t } = useI18n();
-  useAutoScore();
+  useAutoScore(comp.id);
 
   const playerCount = entries.length !== 1
     ? t("leaderboard.playersPlural", { count: entries.length })

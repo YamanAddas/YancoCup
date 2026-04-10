@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Lock, Check, Loader2, Users as UsersIcon, Share2, Sparkles } from "lucide-react";
 import { upsertPrediction, canPredict } from "../../hooks/usePredictions";
 import { useConsensus } from "../../hooks/useConsensus";
+import { checkActivityBadges } from "../../lib/badges";
 import { buildShareText, sharePrediction } from "../../lib/share";
 import { sharePredictionCard } from "../../lib/shareCard";
 import { useI18n } from "../../lib/i18n";
@@ -17,6 +18,8 @@ interface PredictionCardProps {
   predictionCount: number;
   userId: string;
   competitionId?: string;
+  userPredictionCount?: number;
+  jokerUsedThisMatchday?: boolean;
   onSaved: () => void;
 }
 
@@ -28,6 +31,8 @@ export default function PredictionCard({
   predictionCount,
   userId,
   competitionId = "WC",
+  userPredictionCount = 0,
+  jokerUsedThisMatchday = false,
   onSaved,
 }: PredictionCardProps) {
   const { t } = useI18n();
@@ -74,6 +79,9 @@ export default function PredictionCard({
     } else {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+      // Award activity badges based on new total prediction count
+      const newCount = hasPrediction ? userPredictionCount : userPredictionCount + 1;
+      checkActivityBadges(userId, newCount).catch(() => {});
       onSaved();
     }
   };
@@ -81,8 +89,10 @@ export default function PredictionCard({
   const handleShare = async () => {
     if (!match.homeTeam || !match.awayTeam || !prediction) return;
 
-    const homeName = match.homeTeamName ?? home?.name ?? homeCode;
-    const awayName = match.awayTeamName ?? away?.name ?? awayCode;
+    const hCode = home?.fifaCode ?? match.homeTeam.toUpperCase();
+    const aCode = away?.fifaCode ?? match.awayTeam.toUpperCase();
+    const homeName = match.homeTeamName ?? home?.name ?? hCode;
+    const awayName = match.awayTeamName ?? away?.name ?? aCode;
 
     const cardResult = await sharePredictionCard({
       homeTeam: homeName,
@@ -102,8 +112,8 @@ export default function PredictionCard({
       return;
     }
 
-    const shareHome = home ?? { id: match.homeTeam, name: homeCode, fifaCode: homeCode, isoCode: "", confederation: "", group: "" };
-    const shareAway = away ?? { id: match.awayTeam, name: awayCode, fifaCode: awayCode, isoCode: "", confederation: "", group: "" };
+    const shareHome = home ?? { id: match.homeTeam, name: hCode, fifaCode: hCode, isoCode: "", confederation: "", group: "" };
+    const shareAway = away ?? { id: match.awayTeam, name: aCode, fifaCode: aCode, isoCode: "", confederation: "", group: "" };
     const text = buildShareText(match, shareHome, shareAway, prediction.home_score, prediction.away_score);
     const result = await sharePrediction(text);
     if (result === "copied") {
@@ -224,13 +234,13 @@ export default function PredictionCard({
       {/* Community consensus */}
       {consensus && (
         <div className="mt-2 flex items-center gap-1 text-[10px] text-yc-text-tertiary">
-          <span>{consensus.home}%</span>
+          <span className="text-yc-green/70">H {consensus.home}%</span>
           <div className="flex-1 h-1.5 bg-yc-bg-elevated rounded-full overflow-hidden flex">
             <div className="bg-yc-green/60 h-full transition-all" style={{ width: `${consensus.home}%` }} />
             <div className="bg-yc-text-tertiary/30 h-full transition-all" style={{ width: `${consensus.draw}%` }} />
             <div className="bg-yc-warning/50 h-full transition-all" style={{ width: `${consensus.away}%` }} />
           </div>
-          <span>{consensus.away}%</span>
+          <span className="text-yc-warning/70">A {consensus.away}%</span>
         </div>
       )}
 
@@ -248,16 +258,19 @@ export default function PredictionCard({
 
         {!locked && (
           <button
-            onClick={() => setIsJoker(!isJoker)}
+            onClick={() => !jokerUsedThisMatchday && setIsJoker(!isJoker)}
+            disabled={jokerUsedThisMatchday && !isJoker}
             className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
               isJoker
                 ? "bg-yc-warning/15 text-yc-warning border border-yc-warning/30"
-                : "text-yc-text-tertiary hover:text-yc-warning"
+                : jokerUsedThisMatchday
+                  ? "text-yc-text-tertiary opacity-40 cursor-not-allowed"
+                  : "text-yc-text-tertiary hover:text-yc-warning"
             }`}
-            title={t("predictions.jokerTip")}
+            title={jokerUsedThisMatchday && !isJoker ? t("predictions.jokerUsed") : t("predictions.jokerTip")}
           >
             <Sparkles size={12} />
-            {isJoker ? "2x" : t("predictions.joker")}
+            {isJoker ? "2x" : jokerUsedThisMatchday ? t("predictions.jokerUsed") : t("predictions.joker")}
           </button>
         )}
 
@@ -293,7 +306,7 @@ export default function PredictionCard({
               <Check size={12} className="text-yc-green" />
               {prediction.home_score} : {prediction.away_score}
             </span>
-            {prediction.points !== null && (
+            {prediction.points !== null ? (
               <span
                 className={`font-mono text-xs font-bold px-1.5 py-0.5 rounded ${
                   prediction.points >= 10
@@ -304,6 +317,11 @@ export default function PredictionCard({
                 }`}
               >
                 {t("predictions.pts", { count: prediction.points })}
+              </span>
+            ) : (
+              <span className="text-yc-text-tertiary text-xs flex items-center gap-1">
+                <Loader2 size={10} className="animate-spin" />
+                {t("predictions.scoring")}
               </span>
             )}
           </div>

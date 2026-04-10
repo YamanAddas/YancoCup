@@ -22,7 +22,7 @@ export default function PredictionsPage() {
   const { matches: allMatches, matchdays } = useCompetitionSchedule();
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
-  const { predictions, predsLoading, refresh } = useAutoScore();
+  const { predictions, predsLoading, refresh } = useAutoScore(comp.id);
   const predictionCounts = usePredictionCounts(comp.id);
 
   const predictionMap = useMemo(
@@ -79,6 +79,15 @@ export default function PredictionsPage() {
     () => open.filter((m) => !predictionMap.has(m.id)),
     [open, predictionMap],
   );
+
+  // Check if joker is already used on another match in the current matchday
+  const jokerMatchId = useMemo(() => {
+    const matchIds = new Set(filteredMatches.map((m) => m.id));
+    for (const pred of predictions) {
+      if (pred.is_joker && matchIds.has(pred.match_id)) return pred.match_id;
+    }
+    return null;
+  }, [filteredMatches, predictions]);
 
   // Matchday status for pill styling
   const mdStatus = useCallback(
@@ -215,6 +224,8 @@ export default function PredictionsPage() {
                     predictionCount={predictionCounts.get(m.id) ?? 0}
                     userId={user.id}
                     competitionId={comp.id}
+                    userPredictionCount={predictions.length}
+                    jokerUsedThisMatchday={jokerMatchId !== null && jokerMatchId !== m.id}
                     onSaved={refresh}
                   />
                 ))}

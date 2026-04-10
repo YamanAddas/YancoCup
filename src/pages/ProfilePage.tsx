@@ -30,6 +30,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
 
 interface UserStats {
   totalPredictions: number;
+  scoredPredictions: number;
   exactScores: number;
   correctResults: number;
   totalPoints: number;
@@ -136,9 +137,11 @@ export default function ProfilePage() {
       let totalPoints = 0;
       let exactScores = 0;
       let correctResults = 0;
+      let scoredPredictions = 0;
 
       for (const p of predictions) {
         if (p.scored_at !== null) {
+          scoredPredictions++;
           const pts = p.points ?? 0;
           totalPoints += pts;
           if (pts >= 10) exactScores++;
@@ -148,6 +151,7 @@ export default function ProfilePage() {
 
       setStats({
         totalPredictions: predictions.length,
+        scoredPredictions,
         exactScores,
         correctResults,
         totalPoints,
@@ -187,8 +191,8 @@ export default function ProfilePage() {
   const earnedMap = new Map(userBadges.map((b) => [b.badge_id, b]));
   const earnedCount = userBadges.length;
   const totalBadges = badges.length;
-  const accuracy = stats && stats.totalPredictions > 0
-    ? Math.round((stats.correctResults / stats.totalPredictions) * 100)
+  const accuracy = stats && stats.scoredPredictions > 0
+    ? Math.round((stats.correctResults / stats.scoredPredictions) * 100)
     : 0;
 
   const badgesByCategory = {

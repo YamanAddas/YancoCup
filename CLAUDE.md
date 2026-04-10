@@ -1,19 +1,21 @@
 # YancoCup
 
-Multi-competition soccer prediction platform. World Cup 2026 + Champions League + top European leagues. 3D interactive globe, live scores, predictions game with pools, broadcast links, gamification, multilingual.
+Multi-competition soccer prediction platform with AI-powered news. World Cup 2026 + Champions League + top European leagues. 3D interactive globe, live scores, predictions game with pools, broadcast links, gamification, multilingual, auto-curated team news.
 
-**Current phase:** Premium upgrade — enriching data, adding club crests, form guides, match detail pages, gamification (badges/streaks/ranks), team profiles, bracket visualization. See `docs/PREMIUM_UPGRADE_PLAN.md` for full plan.
+**Current phase:** V2 Upgrade — UX polish, quick-predict, social features (pool chat/recaps), gamification depth (loyalty badges/rivals), AI-powered news section with Arabic + European sources. See `docs/V2_UPGRADE_PLAN.md` for full plan.
 
 ## Stack
 
 - **Frontend**: Vite + React 18 + Tailwind CSS 4
 - **Globe**: r3f-globe (by Vasturiano) + React Three Fiber + Three.js — NOT custom globe from scratch
 - **Backend proxy**: Cloudflare Workers with Hono (API key vault + caching)
-- **Database**: Supabase free tier (auth, predictions, pools, leaderboard, unlimited realtime)
+- **Database**: Supabase free tier (auth, predictions, pools, leaderboard, news articles, unlimited realtime)
 - **Live scores**: football-data.org free tier (10 req/min) — covers WC, CL, PL, PD, BL1, SA, FL1, EC
 - **Live scores fallback**: API-Football (100 req/day + Cron Trigger + KV cache)
 - **Live score delivery**: Cloudflare Cron Triggers poll upstream, write to KV. User requests read KV only.
 - **Key API optimization**: `/v4/matches` (no competition filter) returns ALL competitions in one call — 2-3 req/min for all competitions combined
+- **AI News**: Cloudflare Workers AI (free tier, Llama 3.1 8B) rewrites RSS articles from 18+ sources (EN/AR/ES/DE/FR/PT)
+- **News sources**: RSS feeds from BBC Sport, Al Jazeera, Kooora, beIN Sports, Guardian, ESPN, Marca, Kicker, Gazzetta, L'Equipe + more
 - **Static data**: WC schedule/teams/groups/venues in `src/data/`. League schedules fetched from Worker.
 - **Flags**: circle-flags (circular SVG country flags, open source)
 - **Club crests**: football-data.org API `crest` URLs (hotlinked, never bundled) — see copyright strategy below
@@ -39,14 +41,16 @@ src/
     predictions/    # Prediction cards, how-to-play, pools, badges
     broadcast/      # Broadcaster links
     activity/       # Friend activity feed
+    news/           # News cards, related articles
+    pool/           # Pool chat, pool recaps
     layout/         # Nav, footer, language switcher, mobile nav, skeletons
   hooks/            # Custom React hooks (competition-aware)
   lib/              # Utilities, API clients, i18n, auth, scoring, competitions, ranks, badges
   data/             # Static JSON: teams, groups, venues, schedule, translations, broadcasters
   styles/           # Global CSS, Tailwind config
-  pages/            # Route-level components (incl. MatchDetailPage, TeamPage, ProfilePage)
+  pages/            # Route-level components (incl. MatchDetailPage, TeamPage, ProfilePage, NewsPage, ArticlePage)
 worker/             # Cloudflare Worker source (separate deploy)
-docs/               # Architecture decisions, expansion plan, premium upgrade plan
+docs/               # V2 upgrade plan
 ```
 
 ## Commands
@@ -95,19 +99,81 @@ When in doubt about visual direction, think: "cinematic immersion with depth, gl
 - **Never** host crest files in the repo, use FIFA/UEFA official logos, or use player photos.
 - The `<TeamCrest>` component handles all logic: circle-flag for national teams, API crest for clubs, TLA fallback.
 
-## Premium features (in progress)
+## Completed features (V1)
 
-See `docs/PREMIUM_UPGRADE_PLAN.md` for full plan. Key additions:
+These are live and working. Do not re-implement.
 
-- **Form guide dots**: W/D/L colored circles on standings and match cards (green/gray/red)
-- **Zone coloring**: Champions League, Europa League, relegation zones on standings tables
-- **Match detail page**: Tabbed (Overview/Stats/Lineup/H2H) — route `/:competition/match/:id`
-- **Team profile pages**: Squad, form, fixtures — route `/:competition/team/:teamId`
-- **Gamification**: Badges (activity/skill/loyalty), streak tracking, rank tiers (Bronze→Diamond)
-- **Profile pages**: Stats, badge collection, rank — route `/profile/:userId`
-- **Bracket visualization**: Tournament knockout tree for WC and CL
-- **Skeleton loading**: Replace spinners with layout-matching skeleton screens
-- **Shareable prediction cards**: Canvas-generated images via Web Share API
+- Multi-competition architecture (WC, CL, PL, PD, BL1, SA, FL1, EL)
+- Club crests via football-data.org API URLs + `<TeamCrest>` component
+- Form guide dots on standings + zone coloring (CL/EL/relegation per competition)
+- Match detail page — tabbed (Overview/Stats/Lineup/H2H) at `/:competition/match/:id`
+- Bracket visualization — hexagonal nodes, 3D tilt, connector lines
+- Team profile pages — squad, form, fixtures at `/:competition/team/:teamId`
+- Gamification: badges (activity/skill), streak tracking, rank tiers (Bronze→Diamond)
+- Profile pages — stats, badge collection, rank at `/profile`
+- Pools — create/join, competition-scoped, join codes, deeplinks
+- Skeleton loading screens
+- Shareable prediction cards (Canvas API + Web Share)
+- 3D interactive globe with stadium markers
+- Activity feed with spoiler protection
+- Community consensus visualization (H/D/A percentages)
+- Leaderboard with podium, PPP, accuracy
+- Browser notifications
+- 6-language i18n (EN, AR, ES, FR, DE, PT)
+
+## V2 features (in progress)
+
+See `docs/V2_UPGRADE_PLAN.md` for full plan with implementation details.
+
+### Phase 1: Core UX Fixes
+- "Predicted" indicator (checkmark) on match cards
+- "My Predictions Today" widget on home page
+- Personalized greeting with rank
+- Timezone display on match times
+- Your prediction banner on match detail page
+
+### Phase 2: Predictions Enhancement
+- Quick-predict mode (1X2) for leagues — 3 buttons, max 2 pts, reduces fatigue
+- Prediction streak counter on prediction page
+- "Bold Prediction" tag for upset picks
+- Post-match points reveal animation
+- "Copy last matchday" button for leagues
+
+### Phase 3: Leaderboard & Social
+- Matchday / weekly / monthly sub-leaderboards
+- Rank movement arrows (↑3 / ↓2)
+- Pool leaderboard filter
+- Pool chat (Supabase Realtime)
+- Pool matchday recap (auto-generated, shareable)
+- Pool admin controls (rename, remove members)
+- Social share buttons (WhatsApp, Telegram, Twitter)
+- Activity feed reactions (🔥 😂 🤡)
+- Post-match result display in activity feed
+
+### Phase 4: Profile & Gamification Depth
+- Prediction history (paginated, filterable by competition)
+- Accuracy breakdown (exact/GD/result/wrong visual bar)
+- Competition-specific stats
+- Loyalty badges (Opening Day, All-In, Marathon, Night Owl, Globe Trotter, Social Butterfly)
+- Rivals system (pick 1-3 rivals, side-by-side comparison)
+- Shareable profile card
+
+### Phase 5: Standings, Bracket & Watch
+- "If season ended today" banner on standings
+- Points-to-safety / points-to-title calculator
+- Sortable standings columns
+- User predictions overlay on bracket
+- "Path to the final" bracket highlight
+- Watch page: broadcaster lookup by country
+
+### Phase 6: AI-Powered News
+- Cloudflare Workers AI (Llama 3.1 8B) rewrites RSS articles
+- 18+ sources: BBC, Guardian, ESPN, Al Jazeera, Kooora, beIN, Marca, Kicker, Gazzetta, L'Equipe, and more
+- Arabic sources: Al Jazeera Sport, beIN Arabic, Kooora, Yalla Kora, FilGoal, Goal.com Arabic, Arryadia, SSC
+- Auto-curated team news pages (articles tagged by team ID)
+- Competition-filtered news tabs
+- Article pages with source attribution
+- Worker cron fetches RSS every 4 hours, AI rewrites, stores in Supabase `yc_articles`
 
 ## Multi-competition architecture
 
@@ -129,10 +195,13 @@ Routes are competition-scoped:
 /:competition/leaderboard   → Per-competition leaderboard
 /:competition/pools         → Pool management
 /:competition/match/:id     → Match detail (tabs: Overview/Stats/Lineup/H2H)
-/:competition/team/:teamId  → Team profile (squad, form, fixtures)
+/:competition/team/:teamId  → Team profile (squad, form, fixtures, news)
 /:competition/bracket       → Knockout bracket (tournaments only)
+/:competition/news          → Competition news feed
+/news                       → Global news feed
+/news/:slug                 → Article page
 /watch                      → Broadcast finder (global)
-/profile                    → Own profile (badges, stats, rank)
+/profile                    → Own profile (badges, stats, rank, history)
 /profile/:userId            → Public profile
 /sign-in                    → Auth
 /admin                      → Admin panel
@@ -146,27 +215,31 @@ Routes are competition-scoped:
 - **Live scores**: Worker cron polls `/v4/matches` (all competitions, 1 call) every 60s, writes per-competition KV entries
 - **Predictions**: Stored in `yc_predictions` with `competition_id` column, using football-data.org API match IDs
 - **Leaderboards**: Per-competition aggregation from `yc_predictions`
+- **News articles**: Worker cron fetches RSS every 4h, AI rewrites, stores in `yc_articles` with team/competition tags
 
 ### Pools (private leagues)
 
 - `yc_pools` table scoped by `competition_id`
 - Join via code or shareable deeplink
 - Pool-specific leaderboard
+- Pool chat via `yc_pool_messages` (Supabase Realtime)
+- Pool matchday recaps (client-side generated)
 - Custom scoring config (JSONB)
 
 ### Scoring
 
 Base: 10 (exact) / 5 (GD) / 3 (result) / 0 (wrong)
+Quick-predict (1X2): 2 (correct result) / 0 (wrong) — leagues only
 Modifiers: upset bonus (+3, tournaments), knockout multipliers (1.5x-3x), joker (2x, one per matchday), streak bonuses (+2/+5/+10)
-Leagues also support quick-predict (1X2 only, max 2 pts)
 
 ### League prediction fatigue mitigation
 
 - Matchday-based UI (one matchday at a time)
 - Per-match deadlines (not per-round)
-- Quick-predict mode (home/draw/away, faster input)
+- Quick-predict mode (home/draw/away, faster input, max 2 pts)
 - Missed predictions = 0 pts (no penalty)
 - Joker pick adds strategic depth
+- "Copy last matchday" for repeat predictions
 
 ## Workflow rules
 
@@ -185,11 +258,35 @@ IMPORTANT: These rules are non-negotiable.
 - Frontend NEVER calls external APIs directly (keys would leak in client JS).
 - All external API calls go through the Cloudflare Worker.
 - Worker endpoint pattern: `/api/:competition/scores`, `/api/:competition/standings`, `/api/:competition/match/:id`, `/api/:competition/teams`, `/api/match/:id/detail`, `/api/h2h/:id`
+- **News endpoints**: `/api/news`, `/api/news/:slug`, `/api/:comp/news`, `/api/team/:teamId/news`
 - **Cron Trigger architecture**: Worker polls `/v4/matches` (ALL competitions, one call) every 60s, writes per-competition KV entries. User requests read from KV only. This decouples user traffic from API rate limits entirely.
+- **News cron**: Worker fetches RSS feeds every 4 hours, rewrites via Workers AI, stores in Supabase `yc_articles`.
 - Static data (WC schedule, groups, teams): in `src/data/`. League data: from Worker.
 - Match IDs: use football-data.org API IDs as canonical across all competitions.
 - Supabase is the exception — the Supabase JS client uses the public anon key (safe for client-side).
 - **Scoring is client-side.** No Edge Functions. When user loads leaderboard, client checks for unscored finished matches and calculates points.
+- **Badges and streaks are client-side calculated** (same pattern as scoring).
+
+## Database tables
+
+### Existing (V1)
+- `yc_predictions` — user predictions per match per competition
+- `yc_pools` — competition-scoped private leagues
+- `yc_pool_members` — pool membership
+- `yc_badges` — badge catalog
+- `yc_user_badges` — earned badges per user
+- `yc_streaks` — consecutive correct prediction tracking
+- `profiles_public` — user display info (handle, avatar, name)
+
+### New (V2)
+- `yc_articles` — AI-rewritten news articles with team/competition tags
+- `yc_pool_messages` — pool chat messages (Supabase Realtime)
+- `yc_reactions` — activity feed reactions (fire/laugh/clown)
+
+### V2 Migrations
+- `yc_predictions`: add `quick_pick TEXT` column for 1X2 mode
+- `profiles_public`: add `rivals UUID[]` column for rivals system
+- `yc_pools`: add `allow_late_joins BOOLEAN` column
 
 ## Environment variables (.env, gitignored)
 
@@ -199,6 +296,14 @@ VITE_SUPABASE_ANON_KEY=...
 VITE_ADMIN_USER_ID=<comma-separated Supabase user IDs>
 VITE_SENTRY_DSN=<Sentry DSN>
 VITE_WORKER_URL=https://yancocup-api.catbyte1985.workers.dev (optional, has default)
+```
+
+Worker secrets (Cloudflare dashboard):
+```
+FOOTBALL_DATA_API_KEY=...
+API_FOOTBALL_KEY=...
+SUPABASE_URL=...
+SUPABASE_SERVICE_KEY=...   (for news article inserts from Worker)
 ```
 
 ## What Claude gets wrong on this project (fix these)
@@ -226,3 +331,11 @@ VITE_WORKER_URL=https://yancocup-api.catbyte1985.workers.dev (optional, has defa
 - Over-engineering gamification with server-side triggers. Badges and streaks are client-side calculated (same pattern as scoring).
 - Making the bracket visualization a heavy library dependency. Use CSS Grid, not D3 or other charting libs.
 - Forgetting zone config is per-competition. PL has 4 CL spots, BL1 has 3. Don't hardcode.
+- Scraping news sites directly. Use RSS feeds only — they're public, legal, and intended for consumption.
+- Copying articles verbatim. AI must rewrite, not copy. Always attribute the original source with a link.
+- Hosting news images locally. Hotlink from RSS `<media:content>` URL or use gradient placeholders.
+- Making the news cron too aggressive. Every 4 hours is enough (6 runs/day). More frequent wastes Workers AI quota.
+- Forgetting Arabic RSS feeds use UTF-8 with Arabic chars. Worker XML parser must handle this.
+- Using paid AI APIs for news. Cloudflare Workers AI free tier (10K neurons/day) is sufficient. Groq and Gemini free tiers are backups.
+- Building a CMS for news. Articles are auto-generated from RSS + AI. No manual editorial workflow.
+- Showing AI-generated content without source attribution. Every article MUST link back to original source.
