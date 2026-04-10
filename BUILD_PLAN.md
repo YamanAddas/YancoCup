@@ -94,7 +94,7 @@ These enhance the experience but won't break anything if delayed.
 23. ~~Post-match result display in activity feed~~ DONE
 24. ~~Standings: sortable columns + "if season ended today" banner~~ DONE
 25. ~~User predictions overlay on bracket~~ DONE
-26. Watch page: broadcaster lookup by country
+26. ~~Watch page: broadcaster lookup by country~~ DONE (already implemented in V1)
 
 ### NICE TO HAVE (post-launch or during tournament)
 
