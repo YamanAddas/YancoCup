@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Lock, Check, Loader2, Users as UsersIcon, Share2, Sparkles } from "lucide-react";
 import { upsertPrediction, upsertQuickPrediction, canPredict } from "../../hooks/usePredictions";
 import { useConsensus } from "../../hooks/useConsensus";
@@ -63,6 +63,18 @@ export default function PredictionCard({
   const [error, setError] = useState<string | null>(null);
 
   const hasPrediction = prediction !== undefined;
+  const prevScoredRef = useRef(prediction?.scored_at);
+  const [justScored, setJustScored] = useState(false);
+
+  useEffect(() => {
+    if (prevScoredRef.current === null && prediction?.scored_at) {
+      setJustScored(true);
+      const timer = setTimeout(() => setJustScored(false), 1500);
+      return () => clearTimeout(timer);
+    }
+    prevScoredRef.current = prediction?.scored_at ?? null;
+  }, [prediction?.scored_at]);
+
   const consensus = useConsensus(match.id, hasPrediction, competitionId);
   const hasChanged =
     homeScore !== (prediction?.home_score != null ? String(prediction.home_score) : "") ||
@@ -342,7 +354,9 @@ export default function PredictionCard({
             </span>
             {prediction.points !== null ? (
               <span
-                className={`font-mono text-xs font-bold px-1.5 py-0.5 rounded ${
+                className={`font-mono text-xs font-bold px-1.5 py-0.5 rounded transition-all duration-500 ${
+                  justScored ? "animate-points-reveal scale-125" : ""
+                } ${
                   prediction.points >= 10
                     ? "text-yc-green bg-yc-green/10"
                     : prediction.points > 0
