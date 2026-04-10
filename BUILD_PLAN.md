@@ -76,11 +76,11 @@ These directly impact the core prediction loop that friends will use during the 
 12. ~~Rank movement arrows~~ DONE
 13. ~~Pool leaderboard filter~~ DONE
 
-**Track D: Critical fixes**
+**Track D: Critical fixes** — ALL DONE
 14. ~~Add React error boundary around globe component~~ DONE
-15. Fix `/api/:comp/matches` cache-miss → upstream call (should read KV only)
-16. Verify cron schedule is appropriate for current match windows
-17. Verify broadcaster data covers at least 15 countries
+15. ~~Fix `/api/:comp/matches` cache-miss → upstream call (should read KV only)~~ DONE
+16. ~~Verify cron schedule is appropriate for current match windows~~ DONE (*/5 pre-tournament)
+17. ~~Verify broadcaster data covers at least 15 countries~~ DONE (18 countries)
 
 ### SHOULD SHIP (before or during group stage)
 

@@ -29,6 +29,7 @@
   "home.allPredicted": "تم التوقع بالكامل!",
   "home.predictionsRemaining": "{count} مباريات متبقية للتوقع",
   "home.allPredictedDesc": "لقد توقعت جميع مباريات اليوم. بالتوفيق!",
+  "home.greeting": "أهلاً بعودتك، {name}!",
 
   "matches.title": "جدول المباريات",
   "matches.count": "{count} مباراة",
@@ -68,6 +69,7 @@
   "predictions.title": "التوقعات",
   "predictions.predicted": "{count} توقّع",
   "predictions.remaining": "{count} متبقّي",
+  "predictions.bestStreak": "أفضل سلسلة: {count}",
   "predictions.signInTitle": "سجّل الدخول للتوقّع",
   "predictions.signInDesc": "توقّع نتائج المباريات وتنافس مع أصدقائك على الترتيب.",
   "predictions.nudge": "لديك {count} مباراة قادمة بدون توقّع.",

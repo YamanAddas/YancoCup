@@ -29,6 +29,7 @@
   "home.allPredicted": "¡Todo predicho!",
   "home.predictionsRemaining": "{count} partidos por predecir",
   "home.allPredictedDesc": "Has predicho todos los partidos de hoy. ¡Buena suerte!",
+  "home.greeting": "¡Bienvenido, {name}!",
 
   "matches.title": "Calendario de partidos",
   "matches.count": "{count} partido",
@@ -68,6 +69,7 @@
   "predictions.title": "Predicciones",
   "predictions.predicted": "{count} predicho",
   "predictions.remaining": "{count} restante",
+  "predictions.bestStreak": "Mejor racha: {count}",
   "predictions.signInTitle": "Inicia sesión para predecir",
   "predictions.signInDesc": "Predice resultados de partidos y compite con tus amigos en la clasificación.",
   "predictions.nudge": "Tienes {count} partido próximo sin predicción.",

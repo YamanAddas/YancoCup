@@ -29,6 +29,7 @@
   "home.allPredicted": "Alles getippt!",
   "home.predictionsRemaining": "{count} Spiele noch zu tippen",
   "home.allPredictedDesc": "Du hast alle heutigen Spiele getippt. Viel Glück!",
+  "home.greeting": "Willkommen zurück, {name}!",
 
   "matches.title": "Spielplan",
   "matches.count": "{count} Spiel",
@@ -68,6 +69,7 @@
   "predictions.title": "Tipps",
   "predictions.predicted": "{count} getippt",
   "predictions.remaining": "{count} übrig",
+  "predictions.bestStreak": "Beste Serie: {count}",
   "predictions.signInTitle": "Anmelden zum Tippen",
   "predictions.signInDesc": "Tippe Spielergebnisse und tritt gegen Freunde in der Rangliste an.",
   "predictions.nudge": "Du hast {count} bevorstehendes Spiel ohne Tipp.",

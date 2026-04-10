@@ -29,6 +29,7 @@
   "home.allPredicted": "Tudo previsto!",
   "home.predictionsRemaining": "{count} jogos restantes para prever",
   "home.allPredictedDesc": "Você previu todos os jogos de hoje. Boa sorte!",
+  "home.greeting": "Bem-vindo de volta, {name}!",
 
   "matches.title": "Calendário de Jogos",
   "matches.count": "{count} jogo",
@@ -68,6 +69,7 @@
   "predictions.title": "Palpites",
   "predictions.predicted": "{count} palpite dado",
   "predictions.remaining": "{count} restante",
+  "predictions.bestStreak": "Melhor sequência: {count}",
   "predictions.signInTitle": "Entre para dar palpites",
   "predictions.signInDesc": "Dê seus palpites nos placares e dispute com seus amigos na classificação.",
   "predictions.nudge": "Você tem {count} jogo próximo sem palpite.",

@@ -29,6 +29,7 @@
   "home.allPredicted": "Tout pronostiqué !",
   "home.predictionsRemaining": "{count} matchs restants à pronostiquer",
   "home.allPredictedDesc": "Vous avez pronostiqué tous les matchs du jour. Bonne chance !",
+  "home.greeting": "Bon retour, {name} !",
 
   "matches.title": "Calendrier des matchs",
   "matches.count": "{count} match",
@@ -68,6 +69,7 @@
   "predictions.title": "Pronostics",
   "predictions.predicted": "{count} pronostiqué(s)",
   "predictions.remaining": "{count} restant(s)",
+  "predictions.bestStreak": "Meilleure série: {count}",
   "predictions.signInTitle": "Connectez-vous pour pronostiquer",
   "predictions.signInDesc": "Pronostiquez les scores des matchs et affrontez vos amis au classement.",
   "predictions.nudge": "Vous avez {count} match à venir sans pronostic.",

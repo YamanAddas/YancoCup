@@ -13,7 +13,8 @@ import {
 import { useAutoScore } from "../hooks/useAutoScore";
 import PredictionCard from "../components/predictions/PredictionCard";
 import HowToPlay from "../components/predictions/HowToPlay";
-import { LogIn, AlertCircle, ChevronLeft, ChevronRight, CheckCircle, Clock } from "lucide-react";
+import { LogIn, AlertCircle, ChevronLeft, ChevronRight, CheckCircle, Clock, Flame } from "lucide-react";
+import { fetchStreak } from "../lib/badges";
 
 export default function PredictionsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -29,6 +30,13 @@ export default function PredictionsPage() {
     () => new Map(predictions.map((p) => [p.match_id, p])),
     [predictions],
   );
+
+  // Streak counter
+  const [streak, setStreak] = useState<{ current_streak: number; best_streak: number } | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    fetchStreak(user.id, comp.id).then((s) => setStreak(s));
+  }, [user, comp.id]);
 
   // For leagues: matchday-based navigation + quick mode toggle
   const isLeague = comp.type === "league";
@@ -150,6 +158,15 @@ export default function PredictionsPage() {
           <span className="text-yc-text-secondary">{t("predictions.predicted", { count: predictions.length })}</span>
           <span className="text-yc-text-tertiary">&middot;</span>
           <span className="text-yc-text-secondary">{t("predictions.remaining", { count: unpredicted.length })}</span>
+          {streak && streak.current_streak > 0 && (
+            <>
+              <span className="text-yc-text-tertiary">&middot;</span>
+              <span className="flex items-center gap-1 text-yc-warning" title={t("predictions.bestStreak", { count: streak.best_streak })}>
+                <Flame size={14} />
+                {streak.current_streak}
+              </span>
+            </>
+          )}
         </div>
 
         {isLeague && (

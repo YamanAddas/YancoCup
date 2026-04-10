@@ -12,6 +12,7 @@ import { usePredictedMatchIds } from "../hooks/usePredictions";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { COMPETITION_LIST } from "../lib/competitions";
+import { getRank, getRankStars } from "../lib/ranks";
 import ActivityFeed from "../components/activity/ActivityFeed";
 import type { Match } from "../types";
 import {
@@ -22,11 +23,47 @@ import {
   Activity,
   ChevronRight,
   Target,
+  Star,
 } from "lucide-react";
 
 const WORKER_URL =
   import.meta.env.VITE_WORKER_URL ??
   "https://yancocup-api.catbyte1985.workers.dev";
+
+function PersonalizedGreeting() {
+  const { user, profile } = useAuth();
+  const { t } = useI18n();
+  const { entries } = useLeaderboard("WC");
+
+  if (!user || !profile) return null;
+
+  const myEntry = entries.find((e) => e.userId === user.id);
+  const points = myEntry?.totalPoints ?? 0;
+  const rank = getRank(points);
+  const stars = getRankStars(points);
+  const displayName = profile.display_name ?? profile.handle;
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
+      <div className="flex items-center gap-3">
+        <p className="text-sm text-yc-text-secondary">
+          {t("home.greeting", { name: displayName })}
+        </p>
+        <span
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold ${rank.bgColor} ${rank.color} ${rank.borderColor} border`}
+        >
+          {rank.name}
+          <span className="flex gap-px">
+            {Array.from({ length: Math.min(stars, 5) }).map((_, i) => (
+              <Star key={i} size={8} fill="currentColor" />
+            ))}
+          </span>
+        </span>
+        <span className="text-xs font-mono text-yc-text-tertiary">{points} pts</span>
+      </div>
+    </section>
+  );
+}
 
 function CompetitionCards() {
   const { t } = useI18n();
@@ -433,6 +470,8 @@ export default function HomePage() {
           </a>
         </div>
       </section>
+
+      <PersonalizedGreeting />
 
       {/* Competition cards */}
       <CompetitionCards />
