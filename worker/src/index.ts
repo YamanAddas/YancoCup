@@ -922,11 +922,9 @@ async function translateArticleMissing(
   // Original language doesn't need translation
   translations[originalLang] = { title, summary, ...(fullContent ? { full_content: fullContent } : {}) };
 
-  // Find which languages are missing (no entry at all, or entry without full_content when we now have it)
+  // Find which languages are missing title+summary translation
   const missing = SUPPORTED_LANGS.filter((l) => {
     if (!translations[l]) return true;
-    // If we now have full_content but this language's translation doesn't, re-translate
-    if (fullContent && !translations[l].full_content && l !== originalLang) return true;
     return false;
   });
   if (missing.length === 0) return { translated: 0, failed: 0 };
@@ -939,27 +937,8 @@ async function translateArticleMissing(
     const result = await aiTranslate(env.AI, title, summary, lang, originalLang);
     if (result) {
       const entry: TranslationEntry = { title: result.title, summary: result.summary };
-
-      // Translate full_content if available (use m2m100 for speed — it handles long text)
-      if (fullContent) {
-        // Split into chunks of ~800 chars to stay within model limits
-        const chunks = splitTextChunks(fullContent, 800);
-        const translatedChunks: string[] = [];
-        let allOk = true;
-        for (const chunk of chunks) {
-          const tChunk = await m2m100Translate(env.AI, chunk, originalLang, lang, 1);
-          if (tChunk) {
-            translatedChunks.push(tChunk);
-          } else {
-            allOk = false;
-            break;
-          }
-        }
-        if (allOk && translatedChunks.length > 0) {
-          entry.full_content = translatedChunks.join("\n\n");
-        }
-      }
-
+      // Note: full_content translation skipped — too expensive (15KB × 19 chunks × 5 langs).
+      // Full article text displays in original language; title+summary are translated.
       translations[lang] = entry;
       translated++;
     } else {
