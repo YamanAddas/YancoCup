@@ -224,5 +224,6 @@
 
   "hub.overview": "Resumen",
   "profile.history": "Historial de predicciones",
-  "profile.accuracy": "Desglose de precisión"
+  "profile.accuracy": "Desglose de precisión",
+  "profile.compStats": "Estadísticas por competición"
 }

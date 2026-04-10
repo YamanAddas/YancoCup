@@ -224,5 +224,6 @@
 
   "hub.overview": "Visão geral",
   "profile.history": "Histórico de palpites",
-  "profile.accuracy": "Detalhamento da precisão"
+  "profile.accuracy": "Detalhamento da precisão",
+  "profile.compStats": "Estatísticas por competição"
 }

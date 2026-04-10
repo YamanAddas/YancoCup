@@ -224,5 +224,6 @@
 
   "hub.overview": "نظرة عامة",
   "profile.history": "سجل التوقعات",
-  "profile.accuracy": "تفصيل الدقة"
+  "profile.accuracy": "تفصيل الدقة",
+  "profile.compStats": "إحصائيات حسب المسابقة"
 }

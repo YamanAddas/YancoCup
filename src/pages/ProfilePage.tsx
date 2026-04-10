@@ -41,6 +41,16 @@ interface UserStats {
   competitions: number;
 }
 
+interface CompStats {
+  id: string;
+  name: string;
+  predictions: number;
+  scored: number;
+  points: number;
+  exact: number;
+  accuracy: number;
+}
+
 function RankBadge({ points }: { points: number }) {
   const rank = getRank(points);
   const stars = getRankStars(points);
@@ -305,6 +315,7 @@ export default function ProfilePage() {
   const [badges, setBadges] = useState<Badge[]>([]);
   const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
+  const [compStats, setCompStats] = useState<CompStats[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -357,6 +368,36 @@ export default function ProfilePage() {
         totalPoints,
         competitions: competitions.size,
       });
+
+      // Per-competition stats
+      const compAgg = new Map<string, { predictions: number; scored: number; points: number; exact: number; correct: number }>();
+      for (const p of predictions) {
+        const agg = compAgg.get(p.competition_id) ?? { predictions: 0, scored: 0, points: 0, exact: 0, correct: 0 };
+        agg.predictions++;
+        if (p.scored_at !== null) {
+          agg.scored++;
+          const pts = p.points ?? 0;
+          agg.points += pts;
+          if (pts >= 10) agg.exact++;
+          if (pts > 0) agg.correct++;
+        }
+        compAgg.set(p.competition_id, agg);
+      }
+      const csList: CompStats[] = [];
+      for (const [cid, agg] of compAgg) {
+        const config = COMPETITIONS[cid];
+        csList.push({
+          id: cid,
+          name: config?.name ?? cid,
+          predictions: agg.predictions,
+          scored: agg.scored,
+          points: agg.points,
+          exact: agg.exact,
+          accuracy: agg.scored > 0 ? Math.round((agg.correct / agg.scored) * 100) : 0,
+        });
+      }
+      csList.sort((a, b) => b.points - a.points);
+      setCompStats(csList);
 
       setLoading(false);
     }
@@ -441,6 +482,27 @@ export default function ProfilePage() {
 
       {/* Accuracy breakdown */}
       {stats && <AccuracyBar stats={stats} />}
+
+      {/* Competition stats */}
+      {compStats.length > 1 && (
+        <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-4 mb-8">
+          <h3 className="text-sm font-medium text-yc-text-tertiary uppercase tracking-wider mb-3">
+            {t("profile.compStats")}
+          </h3>
+          <div className="space-y-2">
+            {compStats.map((cs) => (
+              <div key={cs.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-yc-bg-elevated/50">
+                <span className="text-xs font-mono font-bold text-yc-green w-8">{cs.id}</span>
+                <span className="text-sm text-yc-text-primary flex-1 truncate">{cs.name}</span>
+                <span className="text-xs text-yc-text-secondary font-mono">{cs.predictions} pred</span>
+                <span className="text-xs text-yc-text-secondary font-mono">{cs.exact} exact</span>
+                <span className="text-xs text-yc-text-secondary font-mono">{cs.accuracy}%</span>
+                <span className="text-xs font-bold font-mono text-yc-green">{cs.points} pts</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Notifications toggle */}
       {"Notification" in window && (

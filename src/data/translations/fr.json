@@ -224,5 +224,6 @@
 
   "hub.overview": "Aperçu",
   "profile.history": "Historique des pronostics",
-  "profile.accuracy": "Répartition de la précision"
+  "profile.accuracy": "Répartition de la précision",
+  "profile.compStats": "Stats par compétition"
 }

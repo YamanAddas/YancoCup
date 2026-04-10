@@ -191,6 +191,7 @@
   "lang.title": "Language",
   "profile.history": "Prediction History",
   "profile.accuracy": "Accuracy Breakdown",
+  "profile.compStats": "Stats by Competition",
 
   "pools.title": "Pools",
   "pools.subtitle": "Compete with friends",
