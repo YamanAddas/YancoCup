@@ -97,6 +97,46 @@ export async function checkSkillBadges(
   return awarded;
 }
 
+/**
+ * Check and award loyalty badges.
+ * Call periodically (e.g., after saving a prediction or on profile load).
+ */
+export async function checkLoyaltyBadges(userId: string): Promise<string[]> {
+  const awarded: string[] = [];
+
+  // Night Owl: predicted after midnight local time
+  const hour = new Date().getHours();
+  if (hour >= 0 && hour < 5) {
+    await awardBadge(userId, "night_owl");
+    awarded.push("night_owl");
+  }
+
+  // Social Butterfly: joined 3+ pools
+  const { count: poolCount } = await supabase
+    .from("yc_pool_members")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
+  if ((poolCount ?? 0) >= 3) {
+    await awardBadge(userId, "social_butterfly");
+    awarded.push("social_butterfly");
+  }
+
+  // Globe Trotter: predicted in 3+ competitions
+  const { data: compData } = await supabase
+    .from("yc_predictions")
+    .select("competition_id")
+    .eq("user_id", userId);
+  if (compData) {
+    const comps = new Set(compData.map((r) => r.competition_id));
+    if (comps.size >= 3) {
+      await awardBadge(userId, "multi_comp");
+      awarded.push("multi_comp");
+    }
+  }
+
+  return awarded;
+}
+
 /** Fetch streak data for a user in a competition */
 export async function fetchStreak(
   userId: string,

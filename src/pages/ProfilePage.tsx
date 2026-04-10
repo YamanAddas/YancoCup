@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { getRank, getRankStars } from "../lib/ranks";
-import { fetchBadges, fetchUserBadges, type Badge, type UserBadge } from "../lib/badges";
+import { fetchBadges, fetchUserBadges, checkLoyaltyBadges, type Badge, type UserBadge } from "../lib/badges";
 import { requestNotificationPermission, notificationsEnabled } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
 import { COMPETITIONS } from "../lib/competitions";
@@ -322,9 +322,8 @@ export default function ProfilePage() {
     async function load() {
       if (!user) { setLoading(false); return; }
 
-      const [allBadges, earned, predictionData] = await Promise.all([
+      const [allBadges, predictionData] = await Promise.all([
         fetchBadges(),
-        fetchUserBadges(user.id),
         supabase
           .from("yc_predictions")
           .select("points, scored_at, competition_id")
@@ -332,6 +331,9 @@ export default function ProfilePage() {
       ]);
 
       setBadges(allBadges);
+      // Check & award loyalty badges on profile visit, then fetch earned
+      await checkLoyaltyBadges(user.id);
+      const earned = await fetchUserBadges(user.id);
       setUserBadges(earned);
 
       const predictions = predictionData.data ?? [];
