@@ -861,7 +861,7 @@ async function llamaTranslate(
   return null;
 }
 
-/** Hybrid translate: m2m100 for EU languages (fast), Llama for Arabic (better quality) */
+/** Hybrid translate: m2m100 for all languages (purpose-built translator), Llama as fallback */
 async function aiTranslate(
   ai: Ai,
   title: string,
@@ -869,11 +869,7 @@ async function aiTranslate(
   targetLang: string,
   sourceLang: string = "en",
 ): Promise<{ title: string; summary: string } | null> {
-  // Arabic gets Llama for higher quality
-  if (targetLang === "ar") {
-    return llamaTranslate(ai, title, summary, targetLang);
-  }
-  // European languages use m2m100 (faster, lower neuron cost)
+  // m2m100 for all languages — it's a dedicated translation model with better quality
   const [tTitle, tSummary] = await Promise.all([
     m2m100Translate(ai, title, sourceLang, targetLang),
     m2m100Translate(ai, summary, sourceLang, targetLang),
