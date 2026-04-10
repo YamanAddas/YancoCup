@@ -310,8 +310,8 @@ async function kvPut(
 ): Promise<void> {
   try {
     await kv.put(key, value, opts);
-  } catch {
-    // KV daily write limit exceeded — skip silently, data will refresh next cycle
+  } catch (err) {
+    console.error(`KV write failed for key "${key}":`, err);
   }
 }
 
@@ -1147,6 +1147,124 @@ app.get("/api/live", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// Admin routes — MUST be before /api/:comp/* to avoid wildcard match
+// ---------------------------------------------------------------------------
+
+app.get("/api/admin/trigger-news", async (c) => {
+  const key = c.req.query("key");
+  if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  try {
+    await handleNewsCron(c.env);
+    return c.json({ status: "ok", message: "News cron triggered" });
+  } catch (err) {
+    return c.json({ status: "error", message: String(err) }, 500);
+  }
+});
+
+app.get("/api/admin/populate", async (c) => {
+  const key = c.req.query("key");
+  if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const results: Record<string, string> = {};
+  const apiKey = c.env.FOOTBALL_DATA_API_KEY;
+  const nonWC = STANDINGS_COMPS.filter((comp) => comp !== "WC");
+
+  // 1. Fetch today's matches (all competitions, single call)
+  // NOTE: Skip individual match KV writes to conserve daily write quota
+  try {
+    const res = await fetchFromFootballData("/matches", apiKey);
+    if (res.ok) {
+      const data = (await res.json()) as { matches: FDMatch[] };
+      const byComp = new Map<string, MatchScore[]>();
+      for (const m of data.matches) {
+        const score = transformMatch(m);
+        if (!(score.competitionCode in COMPETITIONS)) continue;
+        if (!byComp.has(score.competitionCode)) byComp.set(score.competitionCode, []);
+        byComp.get(score.competitionCode)!.push(score);
+      }
+      for (const [code, scores] of byComp) {
+        await kvPut(c.env.SCORES_KV, kvScores(code), JSON.stringify(scores), { expirationTtl: 86400 });
+      }
+      results.todayMatches = `${data.matches.length} matches across ${byComp.size} competitions`;
+    } else {
+      results.todayMatches = `FAILED (${res.status})`;
+    }
+  } catch (e) { results.todayMatches = `ERROR: ${e}`; }
+
+  // 2. Fetch upcoming week (merge with today's scores)
+  try {
+    const today = new Date();
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+    const from = today.toISOString().slice(0, 10);
+    const to = nextWeek.toISOString().slice(0, 10);
+    const res = await fetchFromFootballData(`/matches?dateFrom=${from}&dateTo=${to}`, apiKey);
+    if (res.ok) {
+      const data = (await res.json()) as { matches: FDMatch[] };
+      const byComp = new Map<string, MatchScore[]>();
+      for (const m of data.matches) {
+        const score = transformMatch(m);
+        if (!(score.competitionCode in COMPETITIONS)) continue;
+        if (!byComp.has(score.competitionCode)) byComp.set(score.competitionCode, []);
+        byComp.get(score.competitionCode)!.push(score);
+      }
+      for (const [code, scores] of byComp) {
+        const existing = await c.env.SCORES_KV.get(kvScores(code));
+        let merged = scores;
+        if (existing) {
+          const prev = safeParse<MatchScore[]>(existing) ?? [];
+          const newIds = new Set(scores.map((s) => s.apiId));
+          merged = [...prev.filter((p) => !newIds.has(p.apiId)), ...scores];
+        }
+        await kvPut(c.env.SCORES_KV, kvScores(code), JSON.stringify(merged), { expirationTtl: 86400 });
+      }
+      results.upcomingWeek = `${data.matches.length} matches`;
+    } else {
+      results.upcomingWeek = `FAILED (${res.status})`;
+    }
+  } catch (e) { results.upcomingWeek = `ERROR: ${e}`; }
+
+  // 3. Fetch standings for competitions missing from KV
+  for (const comp of STANDINGS_COMPS) {
+    const cached = await c.env.SCORES_KV.get(kvStandings(comp));
+    if (cached) { results[`standings:${comp}`] = "CACHED"; continue; }
+    try {
+      const res = await fetchFromFootballData(`/competitions/${comp}/standings`, apiKey);
+      if (res.ok) {
+        const data = (await res.json()) as { standings: GroupStanding[] };
+        await kvPut(c.env.SCORES_KV, kvStandings(comp), JSON.stringify(data.standings), { expirationTtl: 86400 });
+        results[`standings:${comp}`] = "OK";
+      } else {
+        results[`standings:${comp}`] = `FAILED (${res.status})`;
+      }
+    } catch (e) { results[`standings:${comp}`] = `ERROR: ${e}`; }
+  }
+
+  // 4. Fetch full schedules for league competitions missing from KV
+  for (const comp of nonWC) {
+    const cached = await c.env.SCORES_KV.get(kvSchedule(comp));
+    if (cached) { results[`schedule:${comp}`] = "CACHED"; continue; }
+    try {
+      const res = await fetchFromFootballData(`/competitions/${comp}/matches`, apiKey);
+      if (res.ok) {
+        const data = (await res.json()) as { matches: FDMatch[] };
+        const matches = data.matches.map(transformMatch);
+        await kvPut(c.env.SCORES_KV, kvSchedule(comp), JSON.stringify(matches), { expirationTtl: 86400 });
+        results[`schedule:${comp}`] = `${matches.length} matches`;
+      } else {
+        results[`schedule:${comp}`] = `FAILED (${res.status})`;
+      }
+    } catch (e) { results[`schedule:${comp}`] = `ERROR: ${e}`; }
+  }
+
+  return c.json({ status: "ok", results });
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/:comp/scores — match scores for a competition (from KV)
 // ---------------------------------------------------------------------------
 
@@ -1157,14 +1275,24 @@ app.get("/api/:comp/scores", async (c) => {
   }
 
   const cached = await c.env.SCORES_KV.get(kvScores(comp));
-  if (!cached) {
-    return c.json({
-      matches: [],
-      message: `No score data for ${comp} yet.`,
-    });
-  }
+  let scores: MatchScore[];
 
-  const scores = safeParse<MatchScore[]>(cached) ?? [];
+  if (cached) {
+    scores = safeParse<MatchScore[]>(cached) ?? [];
+  } else {
+    // KV miss — fetch today's matches from upstream
+    try {
+      const res = await fetchFromFootballData("/matches", c.env.FOOTBALL_DATA_API_KEY);
+      if (res.ok) {
+        const data = (await res.json()) as { matches: FDMatch[] };
+        scores = data.matches.map(transformMatch).filter((s) => s.competitionCode === comp);
+      } else {
+        return c.json({ matches: [], message: `No score data for ${comp} yet.` });
+      }
+    } catch {
+      return c.json({ matches: [], message: `No score data for ${comp} yet.` });
+    }
+  }
 
   // Optional filters
   const status = c.req.query("status");
@@ -1197,13 +1325,22 @@ app.get("/api/:comp/standings", async (c) => {
   }
 
   const cached = await c.env.SCORES_KV.get(kvStandings(comp));
-  if (!cached) {
-    return c.json({
-      standings: [],
-      message: `No standings data for ${comp} yet.`,
-    });
+  if (cached) {
+    return c.json({ standings: safeParse(cached) ?? [] });
   }
-  return c.json({ standings: safeParse(cached) ?? [] });
+
+  // KV miss — fetch directly from upstream
+  try {
+    const res = await fetchFromFootballData(`/competitions/${comp}/standings`, c.env.FOOTBALL_DATA_API_KEY);
+    if (res.ok) {
+      const data = (await res.json()) as { standings: GroupStanding[] };
+      // Try to cache (may fail if write limit exceeded)
+      await kvPut(c.env.SCORES_KV, kvStandings(comp), JSON.stringify(data.standings), { expirationTtl: 86400 });
+      return c.json({ standings: data.standings });
+    }
+  } catch { /* fall through */ }
+
+  return c.json({ standings: [], message: `No standings data for ${comp} yet.` });
 });
 
 // ---------------------------------------------------------------------------
@@ -1213,13 +1350,22 @@ app.get("/api/:comp/standings", async (c) => {
 app.get("/api/:comp/match/:id", async (c) => {
   const apiId = c.req.param("id");
   const cached = await c.env.SCORES_KV.get(kvMatch(parseInt(apiId, 10)));
-  if (!cached) {
-    return c.json(
-      { error: "Match not found or data not yet available." },
-      404,
-    );
+  if (cached) {
+    return c.json({ match: safeParse(cached) ?? null });
   }
-  return c.json({ match: safeParse(cached) ?? null });
+
+  // KV miss — fetch from upstream
+  try {
+    const res = await fetchFromFootballData(`/matches/${apiId}`, c.env.FOOTBALL_DATA_API_KEY);
+    if (res.ok) {
+      const data = (await res.json()) as FDMatch;
+      const match = transformMatch(data);
+      await kvPut(c.env.SCORES_KV, kvMatch(parseInt(apiId, 10)), JSON.stringify(match), { expirationTtl: 86400 });
+      return c.json({ match });
+    }
+  } catch { /* fall through */ }
+
+  return c.json({ error: "Match not found or data not yet available." }, 404);
 });
 
 // ---------------------------------------------------------------------------
@@ -1238,12 +1384,26 @@ app.get("/api/:comp/matches", async (c) => {
     (await c.env.SCORES_KV.get(kvSchedule(comp))) ??
     (await c.env.SCORES_KV.get(kvScores(comp)));
 
-  if (!cached) {
-    // No cached data — cron hasn't populated yet. Return empty, don't hit upstream.
-    return c.json({ matches: [] });
-  }
+  let matches: MatchScore[];
 
-  const matches = safeParse<MatchScore[]>(cached) ?? [];
+  if (cached) {
+    matches = safeParse<MatchScore[]>(cached) ?? [];
+  } else {
+    // KV miss — fetch directly from upstream (WC uses static JSON on frontend)
+    if (comp === "WC") return c.json({ matches: [] });
+    try {
+      const res = await fetchFromFootballData(`/competitions/${comp}/matches`, c.env.FOOTBALL_DATA_API_KEY);
+      if (res.ok) {
+        const data = (await res.json()) as { matches: FDMatch[] };
+        matches = data.matches.map(transformMatch);
+        await kvPut(c.env.SCORES_KV, kvSchedule(comp), JSON.stringify(matches), { expirationTtl: 86400 });
+      } else {
+        return c.json({ matches: [] });
+      }
+    } catch {
+      return c.json({ matches: [] });
+    }
+  }
 
   // Apply optional matchday filter
   const matchday = c.req.query("matchday");
@@ -1668,24 +1828,6 @@ app.get("/api/team/:teamId/news", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
-// GET /api/admin/trigger-news — manually trigger news fetch (admin only)
-// ---------------------------------------------------------------------------
-
-app.get("/api/admin/trigger-news", async (c) => {
-  const key = c.req.query("key");
-  if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
-
-  try {
-    await handleNewsCron(c.env);
-    return c.json({ status: "ok", message: "News cron triggered" });
-  } catch (err) {
-    return c.json({ status: "error", message: String(err) }, 500);
-  }
-});
-
-// ---------------------------------------------------------------------------
 // GET /api/diag — temporary diagnostic endpoint
 // ---------------------------------------------------------------------------
 
@@ -1703,6 +1845,15 @@ app.get("/api/diag", async (c) => {
     kvData[k] = v ? `${v.length} chars` : null;
   }
   results.kv = kvData;
+
+  // Test KV write
+  try {
+    await c.env.SCORES_KV.put("diag:test", "ok", { expirationTtl: 60 });
+    const readBack = await c.env.SCORES_KV.get("diag:test");
+    results.kvWrite = readBack === "ok" ? "WORKING" : `READ_MISMATCH: ${readBack}`;
+  } catch (e) {
+    results.kvWrite = `FAILED: ${e}`;
+  }
 
   // Test upstream API
   try {
