@@ -17,25 +17,41 @@ function TeamBadge({
   crest,
   displayName,
   side,
+  teamUrl,
 }: {
   team: Team | undefined;
   tla: string | null;
   crest?: string | null;
   displayName?: string | null;
   side: "home" | "away";
+  teamUrl?: string | null;
 }) {
   const align = side === "home" ? "items-end text-right" : "items-start text-left";
   const code = team?.fifaCode ?? tla?.toUpperCase() ?? "?";
   const label = displayName ?? team?.name ?? code;
 
-  return (
+  const content = (
     <div className={`flex flex-col ${align} gap-1 min-w-0 flex-1`}>
       <TeamCrest tla={code} isoCode={team?.isoCode} crest={crest} size="lg" />
-      <span className="text-yc-text-primary text-sm font-semibold truncate w-full block">
+      <span className={`text-sm font-semibold truncate w-full block ${teamUrl ? "group-hover/team:text-yc-green transition-colors" : ""} text-yc-text-primary`}>
         {label}
       </span>
     </div>
   );
+
+  if (teamUrl) {
+    return (
+      <Link
+        to={teamUrl}
+        className="flex-1 min-w-0 group/team"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 }
 
 function Placeholder({ label, side }: { label: string; side: "home" | "away" }) {
@@ -105,6 +121,12 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
   const home = match.homeTeam ? teamMap.get(match.homeTeam) : undefined;
   const away = match.awayTeam ? teamMap.get(match.awayTeam) : undefined;
   const venue = venueMap.get(match.venueId);
+
+  // Compute team page URLs using numeric IDs (from match data or live score)
+  const homeTeamId = match.homeTeamId ?? liveScore?.homeTeamId;
+  const awayTeamId = match.awayTeamId ?? liveScore?.awayTeamId;
+  const homeTeamUrl = competitionId && homeTeamId ? `/${competitionId}/team/${homeTeamId}` : null;
+  const awayTeamUrl = competitionId && awayTeamId ? `/${competitionId}/team/${awayTeamId}` : null;
 
   const effectiveStatus = liveScore?.status ?? match.status;
   const isLive = effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED";
@@ -216,6 +238,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
                   crest={match.homeCrest ?? liveScore?.homeCrest}
                   displayName={match.homeTeamName ? tTeam(match.homeTeamName) : home ? tTeam(home.id) : liveScore?.homeTeamName}
                   side="home"
+                  teamUrl={homeTeamUrl}
                 />
               ) : (
                 <Placeholder label={match.homePlaceholder ?? tbd} side="home" />
@@ -253,6 +276,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
                   crest={match.awayCrest ?? liveScore?.awayCrest}
                   displayName={match.awayTeamName ? tTeam(match.awayTeamName) : away ? tTeam(away.id) : liveScore?.awayTeamName}
                   side="away"
+                  teamUrl={awayTeamUrl}
                 />
               ) : (
                 <Placeholder label={match.awayPlaceholder ?? tbd} side="away" />

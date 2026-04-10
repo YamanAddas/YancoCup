@@ -20,6 +20,8 @@ export interface LiveMatchScore {
   group: string | null;
   homeTeam: string | null; // TLA
   awayTeam: string | null;
+  homeTeamId: number | null;
+  awayTeamId: number | null;
   homeCrest: string | null;
   awayCrest: string | null;
   homeTeamName: string | null;

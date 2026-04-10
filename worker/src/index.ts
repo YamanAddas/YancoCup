@@ -64,6 +64,8 @@ interface MatchScore {
   group: string | null;
   homeTeam: string | null;
   awayTeam: string | null;
+  homeTeamId: number | null;
+  awayTeamId: number | null;
   homeCrest: string | null;
   awayCrest: string | null;
   homeTeamName: string | null;
@@ -289,6 +291,8 @@ function transformMatch(m: FDMatch): MatchScore {
     group: m.group,
     homeTeam: m.homeTeam?.tla ?? null,
     awayTeam: m.awayTeam?.tla ?? null,
+    homeTeamId: m.homeTeam?.id ?? null,
+    awayTeamId: m.awayTeam?.id ?? null,
     homeCrest: m.homeTeam?.crest ?? null,
     awayCrest: m.awayTeam?.crest ?? null,
     homeTeamName: m.homeTeam?.shortName ?? null,

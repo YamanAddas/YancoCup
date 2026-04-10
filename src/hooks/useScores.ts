@@ -8,6 +8,8 @@ export interface LocalLiveScore {
   status: string;
   homeTeam: string | null;
   awayTeam: string | null;
+  homeTeamId: number | null;
+  awayTeamId: number | null;
   homeCrest: string | null;
   awayCrest: string | null;
   homeTeamName: string | null;
@@ -52,6 +54,8 @@ export function useScores() {
         status: s.status,
         homeTeam: s.homeTeam,
         awayTeam: s.awayTeam,
+        homeTeamId: s.homeTeamId ?? null,
+        awayTeamId: s.awayTeamId ?? null,
         homeCrest: s.homeCrest ?? null,
         awayCrest: s.awayCrest ?? null,
         homeTeamName: s.homeTeamName ?? null,

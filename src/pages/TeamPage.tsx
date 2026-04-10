@@ -98,15 +98,48 @@ function NationalityFlag({ nationality }: { nationality: string }) {
   return <img src={`${FLAG_BASE}/${code}.svg`} alt={nationality} className="w-4 h-4 rounded-full" loading="lazy" />;
 }
 
+/** Normalize granular API positions to 4 broad groups */
+function normalizePosition(pos: string): string {
+  const p = pos.toLowerCase();
+  if (p === "goalkeeper") return "Goalkeeper";
+  if (p.includes("back") || p.includes("centre-back") || p.includes("defence")) return "Defence";
+  if (p.includes("midfield") || p.includes("midfielder")) return "Midfield";
+  if (p.includes("forward") || p.includes("winger") || p.includes("offence") || p.includes("striker")) return "Offence";
+  return "Unknown";
+}
+
 const POS_ORDER: Record<string, number> = {
-  Goalkeeper: 0, Defence: 1, Midfield: 2, Offence: 3,
+  Goalkeeper: 0, Defence: 1, Midfield: 2, Offence: 3, Unknown: 4,
 };
 const POS_LABELS: Record<string, string> = {
-  Goalkeeper: "Goalkeepers", Defence: "Defenders", Midfield: "Midfielders", Offence: "Forwards",
+  Goalkeeper: "Goalkeepers", Defence: "Defenders", Midfield: "Midfielders", Offence: "Forwards", Unknown: "Other",
 };
 const POS_COLORS: Record<string, string> = {
-  Goalkeeper: "text-amber-400", Defence: "text-sky-400", Midfield: "text-yc-green", Offence: "text-red-400",
+  Goalkeeper: "text-amber-400", Defence: "text-sky-400", Midfield: "text-yc-green", Offence: "text-red-400", Unknown: "text-yc-text-tertiary",
 };
+const POS_BG: Record<string, string> = {
+  Goalkeeper: "bg-amber-400/15 text-amber-400 border-amber-400/30",
+  Defence: "bg-sky-400/15 text-sky-400 border-sky-400/30",
+  Midfield: "bg-yc-green/15 text-yc-green border-yc-green/30",
+  Offence: "bg-red-400/15 text-red-400 border-red-400/30",
+  Unknown: "bg-yc-bg-elevated text-yc-text-tertiary border-yc-border",
+};
+
+function PlayerAvatar({ name, position }: { name: string; position: string }) {
+  const initials = name
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  const colors = POS_BG[position] ?? POS_BG.Unknown!;
+  return (
+    <div className={`w-9 h-9 rounded-full border flex items-center justify-center shrink-0 ${colors}`}>
+      <span className="text-[11px] font-bold font-mono leading-none">{initials}</span>
+    </div>
+  );
+}
 
 function FormDot({ result }: { result: "W" | "D" | "L" }) {
   const colors = { W: "bg-yc-green", D: "bg-yc-text-tertiary", L: "bg-red-500" };
@@ -428,12 +461,12 @@ export default function TeamPage() {
       .slice(0, 5);
   }, [team, matches]);
 
-  // Group squad by position
+  // Group squad by normalized position (4 broad groups)
   const squadByPosition = useMemo(() => {
     if (!team) return new Map<string, Player[]>();
     const map = new Map<string, Player[]>();
     for (const p of team.squad) {
-      const pos = p.position ?? "Unknown";
+      const pos = normalizePosition(p.position ?? "Unknown");
       if (!map.has(pos)) map.set(pos, []);
       map.get(pos)!.push(p);
     }
@@ -657,22 +690,28 @@ export default function TeamPage() {
               <p className={`text-xs font-medium uppercase tracking-wider mb-1.5 ${POS_COLORS[position] ?? "text-yc-text-tertiary"}`}>
                 {POS_LABELS[position] ?? position}
               </p>
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 {players.map((p) => (
                   <div
                     key={p.id}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-yc-bg-elevated/30 transition-colors"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-yc-bg-elevated/30 transition-colors"
                   >
+                    <PlayerAvatar name={p.name} position={position} />
                     <span className="text-xs font-mono text-yc-text-tertiary w-6 text-center shrink-0">
                       {p.shirtNumber ?? "—"}
                     </span>
-                    <NationalityFlag nationality={p.nationality} />
-                    <span className="text-sm text-yc-text-primary flex-1 truncate">{p.name}</span>
-                    {p.dateOfBirth && (
-                      <span className="text-xs text-yc-text-tertiary shrink-0">
-                        {new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()} yrs
-                      </span>
-                    )}
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-yc-text-primary font-medium truncate block">{p.name}</span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <NationalityFlag nationality={p.nationality} />
+                        <span className="text-[11px] text-yc-text-tertiary">{p.nationality}</span>
+                        {p.dateOfBirth && (
+                          <span className="text-[11px] text-yc-text-tertiary">
+                            · {new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()} yrs
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

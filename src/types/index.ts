@@ -29,6 +29,10 @@ export interface Match {
   time: string;
   homeTeam: string | null;
   awayTeam: string | null;
+  /** football-data.org numeric team ID (for linking to team pages) */
+  homeTeamId?: number | null;
+  /** football-data.org numeric team ID (for linking to team pages) */
+  awayTeamId?: number | null;
   homePlaceholder?: string;
   awayPlaceholder?: string;
   /** football-data.org crest URL for home team (clubs only) */

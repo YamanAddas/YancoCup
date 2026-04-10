@@ -1,4 +1,6 @@
+import { Link } from "react-router-dom";
 import { useI18n } from "../../lib/i18n";
+import { useCompetition } from "../../lib/CompetitionProvider";
 import TeamCrest from "./TeamCrest";
 import type { Team } from "../../types";
 import type { StandingTeam } from "../../lib/api";
@@ -11,6 +13,7 @@ interface GroupTableProps {
 
 export default function GroupTable({ groupId, teams, standings }: GroupTableProps) {
   const { t, tTeam } = useI18n();
+  const comp = useCompetition();
 
   // Build a lookup from TLA → standing row
   const standingMap = new Map<string, StandingTeam>();
@@ -54,6 +57,23 @@ export default function GroupTable({ groupId, teams, standings }: GroupTableProp
         <tbody>
           {sorted.map((team, i) => {
             const s = standingMap.get(team.fifaCode);
+            // Use numeric ID from standings for team page link (works with TeamPage)
+            const teamPageId = s?.team.id;
+            const teamUrl = teamPageId ? `/${comp.id}/team/${teamPageId}` : null;
+
+            const row = (
+              <div className="flex items-center gap-2">
+                <TeamCrest
+                  tla={team.fifaCode}
+                  isoCode={team.isoCode}
+                  size="sm"
+                />
+                <span className="text-yc-text-primary font-medium truncate">
+                  {tTeam(team.id)}
+                </span>
+              </div>
+            );
+
             return (
               <tr
                 key={team.id}
@@ -61,16 +81,13 @@ export default function GroupTable({ groupId, teams, standings }: GroupTableProp
                 style={i < 2 ? { borderLeft: "3px solid rgba(0, 255, 136, 0.3)" } : undefined}
               >
                 <td className="pl-4 pr-2 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <TeamCrest
-                      tla={team.fifaCode}
-                      isoCode={team.isoCode}
-                      size="sm"
-                    />
-                    <span className="text-yc-text-primary font-medium truncate">
-                      {tTeam(team.id)}
-                    </span>
-                  </div>
+                  {teamUrl ? (
+                    <Link to={teamUrl} className="hover:text-yc-green transition-colors">
+                      {row}
+                    </Link>
+                  ) : (
+                    row
+                  )}
                 </td>
                 <td className="text-center text-yc-text-secondary">{s?.playedGames ?? 0}</td>
                 <td className="text-center text-yc-text-secondary">{s?.won ?? 0}</td>

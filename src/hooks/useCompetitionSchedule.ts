@@ -44,6 +44,8 @@ export function useCompetitionSchedule(matchday?: number) {
             group: string | null;
             homeTeam: string | null;
             awayTeam: string | null;
+            homeTeamId: number | null;
+            awayTeamId: number | null;
             homeCrest: string | null;
             awayCrest: string | null;
             homeTeamName: string | null;
@@ -64,6 +66,8 @@ export function useCompetitionSchedule(matchday?: number) {
             time: d.toISOString().slice(11, 16),
             homeTeam: m.homeTeam?.toLowerCase() ?? null,
             awayTeam: m.awayTeam?.toLowerCase() ?? null,
+            homeTeamId: m.homeTeamId ?? null,
+            awayTeamId: m.awayTeamId ?? null,
             homeCrest: m.homeCrest ?? null,
             awayCrest: m.awayCrest ?? null,
             homeTeamName: m.homeTeamName ?? null,
