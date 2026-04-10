@@ -25,6 +25,10 @@
   "home.fullStandings": "الترتيب الكامل",
   "home.recentActivity": "آخر النشاطات",
   "home.noPlayers": "لا يوجد لاعبون بعد",
+  "home.predictionsToday": "توقعاتك اليوم",
+  "home.allPredicted": "تم التوقع بالكامل!",
+  "home.predictionsRemaining": "{count} مباريات متبقية للتوقع",
+  "home.allPredictedDesc": "لقد توقعت جميع مباريات اليوم. بالتوفيق!",
 
   "matches.title": "جدول المباريات",
   "matches.count": "{count} مباراة",

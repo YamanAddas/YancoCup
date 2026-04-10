@@ -26,6 +26,10 @@
   "home.fullStandings": "Full standings",
   "home.recentActivity": "Recent Activity",
   "home.noPlayers": "No players yet",
+  "home.predictionsToday": "Your Predictions Today",
+  "home.allPredicted": "All Predicted!",
+  "home.predictionsRemaining": "{count} matches left to predict",
+  "home.allPredictedDesc": "You've predicted all of today's matches. Good luck!",
 
   "matches.title": "Match Schedule",
   "matches.count": "{count} match",

@@ -25,6 +25,10 @@
   "home.fullStandings": "Classement complet",
   "home.recentActivity": "Activité récente",
   "home.noPlayers": "Aucun joueur pour le moment",
+  "home.predictionsToday": "Vos pronostics du jour",
+  "home.allPredicted": "Tout pronostiqué !",
+  "home.predictionsRemaining": "{count} matchs restants à pronostiquer",
+  "home.allPredictedDesc": "Vous avez pronostiqué tous les matchs du jour. Bonne chance !",
 
   "matches.title": "Calendrier des matchs",
   "matches.count": "{count} match",

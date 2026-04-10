@@ -25,6 +25,10 @@
   "home.fullStandings": "Vollständige Tabelle",
   "home.recentActivity": "Letzte Aktivität",
   "home.noPlayers": "Noch keine Spieler",
+  "home.predictionsToday": "Deine Tipps heute",
+  "home.allPredicted": "Alles getippt!",
+  "home.predictionsRemaining": "{count} Spiele noch zu tippen",
+  "home.allPredictedDesc": "Du hast alle heutigen Spiele getippt. Viel Glück!",
 
   "matches.title": "Spielplan",
   "matches.count": "{count} Spiel",

@@ -9,6 +9,7 @@ import { useVenueMap } from "../hooks/useVenues";
 import { useScores } from "../hooks/useScores";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { usePredictedMatchIds } from "../hooks/usePredictions";
+import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { COMPETITION_LIST } from "../lib/competitions";
 import ActivityFeed from "../components/activity/ActivityFeed";
@@ -20,6 +21,7 @@ import {
   BarChart3,
   Activity,
   ChevronRight,
+  Target,
 } from "lucide-react";
 
 const WORKER_URL =
@@ -271,6 +273,68 @@ function TodaysMatches() {
   );
 }
 
+function MyPredictionsToday() {
+  const { user } = useAuth();
+  const { t } = useI18n();
+  const wcMatches = useSchedule();
+  const predictedIds = usePredictedMatchIds();
+
+  const today = new Date().toISOString().slice(0, 10);
+  const todaysMatches = useMemo(
+    () => wcMatches.filter((m) => m.date === today && m.homeTeam && m.awayTeam),
+    [wcMatches, today],
+  );
+
+  if (!user || todaysMatches.length === 0) return null;
+
+  const predicted = todaysMatches.filter((m) => predictedIds.has(m.id)).length;
+  const total = todaysMatches.length;
+  const allDone = predicted === total;
+  const pct = total > 0 ? Math.round((predicted / total) * 100) : 0;
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+      <div className={`yc-card rounded-xl p-4 flex items-center gap-4 ${allDone ? "border-yc-green-muted/30" : ""}`}>
+        <div className="relative w-12 h-12 shrink-0">
+          <svg className="w-12 h-12 -rotate-90" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--color-yc-bg-elevated)" strokeWidth="3" />
+            <circle
+              cx="18" cy="18" r="15.5" fill="none"
+              stroke={allDone ? "var(--color-yc-green)" : "var(--color-yc-green-muted)"}
+              strokeWidth="3"
+              strokeDasharray={`${pct} ${100 - pct}`}
+              strokeLinecap="round"
+              className="transition-all duration-500"
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-xs font-mono font-bold text-yc-text-primary">
+            {predicted}/{total}
+          </span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-yc-text-primary">
+            {allDone ? t("home.allPredicted") : t("home.predictionsToday")}
+          </p>
+          <p className="text-xs text-yc-text-tertiary">
+            {allDone
+              ? t("home.allPredictedDesc")
+              : t("home.predictionsRemaining", { count: total - predicted })}
+          </p>
+        </div>
+        {!allDone && (
+          <NavLink
+            to="/WC/predictions"
+            className="flex items-center gap-1 px-3 py-2 bg-yc-green text-yc-bg-deep text-xs font-semibold rounded-lg hover:brightness-110 active:scale-[0.97] transition-all shrink-0"
+          >
+            <Target size={14} />
+            Predict
+          </NavLink>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function LeaderboardSnippetInner() {
   const { entries, loading } = useLeaderboard();
   const { t } = useI18n();
@@ -379,6 +443,8 @@ export default function HomePage() {
       </div>
 
       <TodaysMatches />
+
+      <MyPredictionsToday />
 
       {/* Divider */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
