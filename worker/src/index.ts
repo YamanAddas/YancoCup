@@ -2184,25 +2184,36 @@ app.get("/api/team/:teamId/photos", async (c) => {
   }
 
   // 3. Search API-Football for this team to get their AF team ID
+  // Try multiple name variants: full name, then stripped suffixes
+  const nameVariants = [teamName];
+  const stripped = teamName.replace(/\s+(FC|CF|SC|AC|AS|SS|SV|BSC|1\..*|SK|FK|RC|SE|SL)$/i, "").trim();
+  if (stripped !== teamName) nameVariants.push(stripped);
+
   let afTeamId: number | null = null;
-  try {
-    const searchRes = await fetchFromApiFootball(
-      `/teams?search=${encodeURIComponent(teamName)}`,
-      c.env.API_FOOTBALL_KEY,
-    );
-    if (searchRes.ok) {
-      const searchData = (await searchRes.json()) as {
-        response: Array<{ team: { id: number; name: string } }>;
-      };
-      // Pick best match (first result or exact name match)
-      const exact = searchData.response?.find(
-        (r) => r.team.name.toLowerCase() === teamName.toLowerCase(),
+  for (const searchName of nameVariants) {
+    if (afTeamId) break;
+    try {
+      const searchRes = await fetchFromApiFootball(
+        `/teams?search=${encodeURIComponent(searchName)}`,
+        c.env.API_FOOTBALL_KEY,
       );
-      afTeamId = exact?.team.id ?? searchData.response?.[0]?.team.id ?? null;
-    }
-  } catch { /* */ }
+      if (searchRes.ok) {
+        const searchData = (await searchRes.json()) as {
+          response: Array<{ team: { id: number; name: string } }>;
+        };
+        if (searchData.response?.length > 0) {
+          // Pick best match (exact name match or first result)
+          const exact = searchData.response.find(
+            (r) => r.team.name.toLowerCase() === searchName.toLowerCase(),
+          );
+          afTeamId = exact?.team.id ?? searchData.response[0]?.team.id ?? null;
+        }
+      }
+    } catch { /* */ }
+  }
 
   if (!afTeamId) {
+    console.log(`[photos] No AF team found for "${teamName}" (fd:${fdTeamId}), tried: ${nameVariants.join(", ")}`);
     // Cache empty result for 1 day to avoid re-searching
     const empty = { photos: {} };
     await kvPut(c.env.SCORES_KV, cacheKey, JSON.stringify(empty), { expirationTtl: 86400 });
@@ -2231,6 +2242,7 @@ app.get("/api/team/:teamId/photos", async (c) => {
     }
   } catch { /* */ }
 
+  console.log(`[photos] Found ${Object.keys(photos).length} photos for "${teamName}" (fd:${fdTeamId}, af:${afTeamId})`);
   const result = { photos };
 
   // Cache for 30 days (squad photos rarely change)

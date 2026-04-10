@@ -154,22 +154,40 @@ function PlayerAvatar({ name, position, photoUrl }: { name: string; position: st
   );
 }
 
-/** Find a player photo by fuzzy name matching (last name fallback) */
+/**
+ * Find a player photo by fuzzy name matching.
+ * API-Football uses short names ("B. Saka", "Kepa") while football-data.org
+ * uses full names ("Bukayo Saka", "Kepa Arrizabalaga"). We try multiple strategies.
+ */
 function findPhoto(name: string, photos: Record<string, string>): string | undefined {
   if (!name || Object.keys(photos).length === 0) return undefined;
   // Exact match
   if (photos[name]) return photos[name];
-  // Case-insensitive match
   const lower = name.toLowerCase();
-  for (const [k, v] of Object.entries(photos)) {
+  const entries = Object.entries(photos);
+  // Case-insensitive exact
+  for (const [k, v] of entries) {
     if (k.toLowerCase() === lower) return v;
   }
-  // Last name match (most reliable for cross-API matching)
-  const lastName = name.split(" ").pop()?.toLowerCase();
-  if (lastName && lastName.length > 2) {
-    for (const [k, v] of Object.entries(photos)) {
-      const afLast = k.split(" ").pop()?.toLowerCase();
-      if (afLast === lastName) return v;
+  const fdParts = lower.split(" ").filter(Boolean);
+  if (fdParts.length === 0) return undefined;
+  const fdLast = fdParts[fdParts.length - 1]!;
+  const fdFirst = fdParts[0]!;
+  for (const [k, v] of entries) {
+    const afLower = k.toLowerCase();
+    const afParts = afLower.split(" ").filter(Boolean);
+    if (afParts.length === 0) continue;
+    const afLast = afParts[afParts.length - 1]!;
+    const afFirst = afParts[0]!;
+    // Last name match: "Bukayo Saka" ↔ "B. Saka"
+    if (fdLast.length > 2 && afLast === fdLast) return v;
+    // AF single name is fd first name: "Kepa" ↔ "Kepa Arrizabalaga"
+    if (afParts.length === 1 && afLower === fdFirst) return v;
+    // FD single name is AF first name: "Gabriel" ↔ "Gabriel Magalhães"
+    if (fdParts.length === 1 && lower === afFirst) return v;
+    // AF "X. LastName" pattern: check initial matches fd first name
+    if (afParts.length >= 2 && afFirst.length <= 2 && afFirst.endsWith(".")) {
+      if (afLast === fdLast && fdFirst[0] === afFirst[0]) return v;
     }
   }
   return undefined;
