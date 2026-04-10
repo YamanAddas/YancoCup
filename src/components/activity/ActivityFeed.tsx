@@ -1,10 +1,19 @@
+import { useMemo } from "react";
 import { useActivityFeed } from "../../hooks/useActivityFeed";
 import { useTeamMap } from "../../hooks/useTeams";
 import { useSchedule } from "../../hooks/useSchedule";
 import { canPredict } from "../../hooks/usePredictions";
+import { useReactions, type ReactionType } from "../../hooks/useReactions";
+import { useAuth } from "../../lib/auth";
 import { useI18n } from "../../lib/i18n";
 import TeamCrest from "../match/TeamCrest";
 import type { Match } from "../../types";
+
+const REACTION_EMOJI: Record<ReactionType, string> = {
+  fire: "🔥",
+  laugh: "😂",
+  clown: "🤡",
+};
 
 function useTimeAgo() {
   const { t } = useI18n();
@@ -26,6 +35,10 @@ export default function ActivityFeed() {
   const allMatches = useSchedule();
   const { t } = useI18n();
   const timeAgo = useTimeAgo();
+
+  const { user } = useAuth();
+  const predictionIds = useMemo(() => items.map((i) => i.id), [items]);
+  const { counts, mine, toggle } = useReactions(predictionIds);
 
   const matchMap = new Map<number, Match>(allMatches.map((m) => [m.id, m]));
 
@@ -101,8 +114,24 @@ export default function ActivityFeed() {
               </p>
             </div>
 
-            {/* Flags + time */}
+            {/* Result + Flags + time */}
             <div className="flex items-center gap-1.5 shrink-0">
+              {/* Post-match actual result */}
+              {match && match.status === "FINISHED" && match.homeScore !== null && match.awayScore !== null && (
+                <span className="text-[10px] font-mono text-yc-text-tertiary bg-yc-bg-elevated px-1.5 py-0.5 rounded">
+                  {match.homeScore}-{match.awayScore}
+                </span>
+              )}
+              {/* Points earned */}
+              {matchStarted && item.points !== undefined && item.points !== null && (
+                <span className={`text-[10px] font-mono font-bold px-1 py-0.5 rounded ${
+                  item.points >= 10 ? "text-yc-green bg-yc-green/10" :
+                  item.points > 0 ? "text-yc-warning bg-yc-warning/10" :
+                  "text-yc-text-tertiary bg-yc-bg-elevated"
+                }`}>
+                  +{item.points}
+                </span>
+              )}
               {home && (
                 <TeamCrest tla={home.fifaCode} isoCode={home.isoCode} size="xs" />
               )}
@@ -113,6 +142,35 @@ export default function ActivityFeed() {
                 {timeAgo(item.createdAt)}
               </span>
             </div>
+
+            {/* Reactions */}
+            {user && (
+              <div className="flex items-center gap-0.5 shrink-0 ml-1">
+                {(["fire", "laugh", "clown"] as ReactionType[]).map((r) => {
+                  const c = counts.get(item.id)?.[r] ?? 0;
+                  const active = mine.get(item.id)?.[r] ?? false;
+                  return (
+                    <button
+                      key={r}
+                      onClick={() => toggle(item.id, r)}
+                      className={`text-[11px] px-1 py-0.5 rounded transition-colors ${
+                        active
+                          ? "bg-yc-bg-elevated ring-1 ring-yc-green/30"
+                          : "hover:bg-yc-bg-elevated/50"
+                      }`}
+                      title={r}
+                    >
+                      {REACTION_EMOJI[r]}
+                      {c > 0 && (
+                        <span className="text-[9px] ml-0.5 text-yc-text-secondary">
+                          {c}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
       })}

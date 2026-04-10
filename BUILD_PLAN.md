@@ -86,12 +86,12 @@ These directly impact the core prediction loop that friends will use during the 
 
 These enhance the experience but won't break anything if delayed.
 
-18. Personalized greeting with rank
-19. Prediction streak counter
-20. "Bold Prediction" tag for upset picks
-21. "Copy last matchday" button for leagues
-22. Activity feed reactions (🔥 😂 🤡)
-23. Post-match result display in activity feed
+18. ~~Personalized greeting with rank~~ DONE
+19. ~~Prediction streak counter~~ DONE
+20. ~~"Bold Prediction" tag for upset picks~~ DONE
+21. ~~"Copy last matchday" button for leagues~~ DONE
+22. ~~Activity feed reactions (🔥 😂 🤡)~~ DONE
+23. ~~Post-match result display in activity feed~~ DONE
 24. Standings: sortable columns + "if season ended today" banner
 25. User predictions overlay on bracket
 26. Watch page: broadcaster lookup by country
