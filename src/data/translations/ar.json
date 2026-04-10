@@ -384,5 +384,32 @@
 
   "pools.noPredictions": "لا توجد توقعات بعد",
   "pools.recentActivity": "آخر النشاطات",
-  "pools.predicted": "توقّع"
+  "pools.predicted": "توقّع",
+
+  "comments.title": "التعليقات",
+  "comments.empty": "لا توجد تعليقات بعد. كن أول من يشارك رأيه!",
+  "comments.placeholder": "شاركنا رأيك...",
+  "comments.replyPlaceholder": "اكتب ردًا...",
+  "comments.post": "نشر",
+  "comments.posting": "جارٍ النشر...",
+  "comments.cancel": "إلغاء",
+  "comments.reply": "رد",
+  "comments.edit": "تعديل",
+  "comments.save": "حفظ",
+  "comments.delete": "حذف",
+  "comments.report": "إبلاغ",
+  "comments.reported": "تم الإبلاغ",
+  "comments.you": "أنت",
+  "comments.edited": "معدّل",
+  "comments.confirmDelete": "حذف هذا التعليق؟",
+  "comments.signInToComment": "سجّل دخولك للمشاركة في النقاش.",
+  "comments.loadMore": "تحميل المزيد",
+  "comments.showReplies": "عرض {count} ردود أخرى",
+  "comments.sort_newest": "الأحدث",
+  "comments.sort_top": "الأعلى",
+  "comments.sort_oldest": "الأقدم",
+  "comments.reason_spam": "محتوى مزعج",
+  "comments.reason_abuse": "إساءة",
+  "comments.reason_off-topic": "خارج الموضوع",
+  "comments.reason_harassment": "تحرش"
 }

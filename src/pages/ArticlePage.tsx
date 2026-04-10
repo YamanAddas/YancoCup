@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, ExternalLink, Clock, Star, Languages, Newspaper } from "lucide-react";
 import { useI18n } from "../lib/i18n";
 import { fetchArticle, type NewsArticle } from "../lib/api";
+import CommentsSection from "../components/comments/CommentsSection";
 
 const LANG_NAMES: Record<string, string> = {
   en: "English", ar: "العربية", es: "Español",
@@ -141,6 +142,9 @@ export default function ArticlePage() {
         <ExternalLink size={16} />
         {t("news.readOriginal")} — {article.source_name}
       </a>
+
+      {/* Comments */}
+      <CommentsSection articleSlug={article.slug} />
 
       {/* Attribution */}
       <p className="text-[11px] text-yc-text-tertiary">

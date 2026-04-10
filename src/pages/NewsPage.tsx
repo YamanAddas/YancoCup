@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Newspaper, Star, Languages, Clock, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { Newspaper, Star, Languages, Clock, ExternalLink, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 import { useI18n } from "../lib/i18n";
 import { fetchNews, fetchCompetitionNews, type NewsArticle } from "../lib/api";
 import { COMPETITIONS } from "../lib/competitions";
+import { supabase } from "../lib/supabase";
 
 const PAGE_SIZE = 20;
 
@@ -13,7 +14,7 @@ const LANG_LABELS: Record<string, string> = {
 
 // timeAgo removed — use relTime from useI18n() instead
 
-function NewsCard({ article }: { article: NewsArticle }) {
+function NewsCard({ article, commentCount }: { article: NewsArticle; commentCount: number }) {
   const { relTime } = useI18n();
   const localTitle = article.title;
   const localSummary = article.summary;
@@ -78,10 +79,18 @@ function NewsCard({ article }: { article: NewsArticle }) {
           {/* Meta */}
           <div className="flex items-center justify-between text-xs text-yc-text-tertiary pt-1">
             <span>{article.source_name}</span>
-            <span className="flex items-center gap-1">
-              <Clock size={12} />
-              {relTime(article.published_at)}
-            </span>
+            <div className="flex items-center gap-3">
+              {commentCount > 0 && (
+                <span className="flex items-center gap-1">
+                  <MessageCircle size={12} />
+                  {commentCount}
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <Clock size={12} />
+                {relTime(article.published_at)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -97,6 +106,7 @@ export default function NewsPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [featuredOnly, setFeaturedOnly] = useState(false);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   const loadArticles = useCallback(async () => {
     setLoading(true);
@@ -113,6 +123,21 @@ export default function NewsPage() {
 
       setArticles(result.articles);
       setTotal(result.total);
+
+      // Fetch comment counts for these articles
+      const slugs = result.articles.map((a) => a.slug);
+      if (slugs.length > 0) {
+        const { data: rows } = await supabase
+          .from("yc_comments")
+          .select("article_slug")
+          .in("article_slug", slugs)
+          .eq("is_deleted", false);
+        const counts: Record<string, number> = {};
+        for (const r of rows ?? []) {
+          counts[r.article_slug] = (counts[r.article_slug] ?? 0) + 1;
+        }
+        setCommentCounts(counts);
+      }
     } catch {
       setArticles([]);
     } finally {
@@ -192,7 +217,7 @@ export default function NewsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {articles.map((article) => (
-            <NewsCard key={article.id} article={article} />
+            <NewsCard key={article.id} article={article} commentCount={commentCounts[article.slug] ?? 0} />
           ))}
         </div>
       )}

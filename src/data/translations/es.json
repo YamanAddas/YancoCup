@@ -384,5 +384,32 @@
 
   "pools.noPredictions": "Sin predicciones aún",
   "pools.recentActivity": "Actividad reciente",
-  "pools.predicted": "predijo"
+  "pools.predicted": "predijo",
+
+  "comments.title": "Comentarios",
+  "comments.empty": "Sin comentarios aún. ¡Sé el primero en opinar!",
+  "comments.placeholder": "Comparte tu opinión...",
+  "comments.replyPlaceholder": "Escribe una respuesta...",
+  "comments.post": "Publicar",
+  "comments.posting": "Publicando...",
+  "comments.cancel": "Cancelar",
+  "comments.reply": "Responder",
+  "comments.edit": "Editar",
+  "comments.save": "Guardar",
+  "comments.delete": "Eliminar",
+  "comments.report": "Reportar",
+  "comments.reported": "Reportado",
+  "comments.you": "Tú",
+  "comments.edited": "editado",
+  "comments.confirmDelete": "¿Eliminar este comentario?",
+  "comments.signInToComment": "Inicia sesión para comentar.",
+  "comments.loadMore": "Cargar más comentarios",
+  "comments.showReplies": "Mostrar {count} respuestas más",
+  "comments.sort_newest": "Recientes",
+  "comments.sort_top": "Populares",
+  "comments.sort_oldest": "Antiguos",
+  "comments.reason_spam": "Spam",
+  "comments.reason_abuse": "Abuso",
+  "comments.reason_off-topic": "Fuera de tema",
+  "comments.reason_harassment": "Acoso"
 }

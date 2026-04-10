@@ -385,5 +385,32 @@
 
   "pools.noPredictions": "No predictions yet",
   "pools.recentActivity": "Recent Activity",
-  "pools.predicted": "predicted"
+  "pools.predicted": "predicted",
+
+  "comments.title": "Comments",
+  "comments.empty": "No comments yet. Be the first to share your thoughts!",
+  "comments.placeholder": "Share your thoughts...",
+  "comments.replyPlaceholder": "Write a reply...",
+  "comments.post": "Post",
+  "comments.posting": "Posting...",
+  "comments.cancel": "Cancel",
+  "comments.reply": "Reply",
+  "comments.edit": "Edit",
+  "comments.save": "Save",
+  "comments.delete": "Delete",
+  "comments.report": "Report",
+  "comments.reported": "Reported",
+  "comments.you": "You",
+  "comments.edited": "edited",
+  "comments.confirmDelete": "Delete this comment?",
+  "comments.signInToComment": "Sign in to join the conversation.",
+  "comments.loadMore": "Load more comments",
+  "comments.showReplies": "Show {count} more replies",
+  "comments.sort_newest": "Newest",
+  "comments.sort_top": "Top",
+  "comments.sort_oldest": "Oldest",
+  "comments.reason_spam": "Spam",
+  "comments.reason_abuse": "Abuse",
+  "comments.reason_off-topic": "Off-topic",
+  "comments.reason_harassment": "Harassment"
 }

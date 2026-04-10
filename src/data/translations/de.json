@@ -384,5 +384,32 @@
 
   "pools.noPredictions": "Noch keine Tipps",
   "pools.recentActivity": "Letzte Aktivität",
-  "pools.predicted": "getippt"
+  "pools.predicted": "getippt",
+
+  "comments.title": "Kommentare",
+  "comments.empty": "Noch keine Kommentare. Sei der Erste!",
+  "comments.placeholder": "Teile deine Meinung...",
+  "comments.replyPlaceholder": "Antwort schreiben...",
+  "comments.post": "Posten",
+  "comments.posting": "Wird gepostet...",
+  "comments.cancel": "Abbrechen",
+  "comments.reply": "Antworten",
+  "comments.edit": "Bearbeiten",
+  "comments.save": "Speichern",
+  "comments.delete": "Löschen",
+  "comments.report": "Melden",
+  "comments.reported": "Gemeldet",
+  "comments.you": "Du",
+  "comments.edited": "bearbeitet",
+  "comments.confirmDelete": "Diesen Kommentar löschen?",
+  "comments.signInToComment": "Melde dich an, um zu kommentieren.",
+  "comments.loadMore": "Mehr Kommentare laden",
+  "comments.showReplies": "{count} weitere Antworten anzeigen",
+  "comments.sort_newest": "Neueste",
+  "comments.sort_top": "Beliebteste",
+  "comments.sort_oldest": "Älteste",
+  "comments.reason_spam": "Spam",
+  "comments.reason_abuse": "Missbrauch",
+  "comments.reason_off-topic": "Off-Topic",
+  "comments.reason_harassment": "Belästigung"
 }
