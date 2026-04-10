@@ -125,11 +125,28 @@ export default function ArticlePage() {
         </div>
       )}
 
-      {/* Summary */}
+      {/* Article content */}
       <div className="yc-card p-6">
-        <p className="text-yc-text-primary leading-relaxed text-base whitespace-pre-line break-words">
-          {article.summary}
-        </p>
+        {article.full_content ? (
+          <div className="space-y-4">
+            {/* AI Summary badge */}
+            {article.is_featured && (
+              <div className="pb-3 mb-3 border-b border-yc-border/30">
+                <p className="text-sm text-yc-text-secondary italic leading-relaxed">
+                  {article.summary}
+                </p>
+              </div>
+            )}
+            {/* Full article text */}
+            <div className="text-yc-text-primary leading-relaxed text-base whitespace-pre-line break-words">
+              {article.full_content}
+            </div>
+          </div>
+        ) : (
+          <p className="text-yc-text-primary leading-relaxed text-base whitespace-pre-line break-words">
+            {article.summary}
+          </p>
+        )}
       </div>
 
       {/* Source link */}

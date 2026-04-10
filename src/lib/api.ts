@@ -120,6 +120,7 @@ export interface NewsArticle {
   slug: string;
   title: string;
   summary: string;
+  full_content: string | null;
   source_name: string;
   source_url: string;
   image_url: string | null;

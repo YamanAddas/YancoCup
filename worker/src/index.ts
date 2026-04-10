@@ -668,6 +668,121 @@ async function fetchAllFeeds(): Promise<RSSArticle[]> {
   return all;
 }
 
+// ---------------------------------------------------------------------------
+// Article full-text scraper — fetch source URL, extract article body
+// ---------------------------------------------------------------------------
+
+/** Fetch a URL and extract the main article text from HTML */
+async function scrapeArticleText(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; YancoCup/1.0; +https://yamanaddas.github.io/YancoCup/)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+      signal: AbortSignal.timeout(10000),
+      redirect: "follow",
+    });
+    if (!res.ok) return null;
+
+    const html = await res.text();
+
+    // Strategy 1: Find <article> tag content
+    let articleHtml = extractTag(html, "article");
+
+    // Strategy 2: Find common article body containers
+    if (!articleHtml) {
+      for (const cls of [
+        "article-body", "article__body", "article-content", "article__content",
+        "story-body", "story__body", "story-content",
+        "entry-content", "post-content", "post-body",
+        "ssrcss-", // BBC uses ssrcss- prefixed classes
+        "article_body", "text--article",
+      ]) {
+        const match = html.match(new RegExp(`<div[^>]*class="[^"]*${cls}[^"]*"[^>]*>([\\s\\S]*?)</div>\\s*(?:<div|</article|</section|</main)`, "i"));
+        if (match?.[1] && match[1].length > 200) {
+          articleHtml = match[1];
+          break;
+        }
+      }
+    }
+
+    // Strategy 3: Find all <p> tags within <main> or <article>
+    if (!articleHtml) {
+      const mainContent = extractTag(html, "main") ?? html;
+      const paragraphs = extractParagraphs(mainContent);
+      if (paragraphs.length >= 3) {
+        return paragraphs.join("\n\n");
+      }
+    }
+
+    if (!articleHtml) return null;
+
+    // Clean up the extracted HTML into plain text
+    return htmlToText(articleHtml);
+  } catch {
+    return null;
+  }
+}
+
+/** Extract content between an opening and closing tag */
+function extractTag(html: string, tag: string): string | null {
+  const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i");
+  const match = html.match(regex);
+  return match?.[1] && match[1].length > 100 ? match[1] : null;
+}
+
+/** Extract all <p> text content from HTML */
+function extractParagraphs(html: string): string[] {
+  const paragraphs: string[] = [];
+  const pRegex = /<p[^>]*>([\s\S]*?)<\/p>/gi;
+  let match;
+  while ((match = pRegex.exec(html)) !== null) {
+    const text = stripHtml(match[1]!).trim();
+    // Skip short paragraphs (likely UI text, captions, etc.)
+    if (text.length > 40) {
+      paragraphs.push(text);
+    }
+  }
+  return paragraphs;
+}
+
+/** Convert HTML fragment to clean plain text */
+function htmlToText(html: string): string {
+  // Remove script, style, nav, aside, figure, figcaption tags entirely
+  let text = html.replace(/<(script|style|nav|aside|figure|figcaption|header|footer|button|form|iframe|noscript)[^>]*>[\s\S]*?<\/\1>/gi, "");
+
+  // Extract paragraphs for proper formatting
+  const paragraphs = extractParagraphs(text);
+  if (paragraphs.length >= 2) {
+    return paragraphs.join("\n\n");
+  }
+
+  // Fallback: strip all HTML and clean up
+  text = stripHtml(text);
+  // Collapse multiple newlines/spaces
+  text = text.replace(/\n{3,}/g, "\n\n").replace(/ {2,}/g, " ").trim();
+
+  return text.length > 100 ? text : "";
+}
+
+/** Strip HTML tags and decode entities */
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#0*39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, "/")
+    .trim();
+}
+
 const SUPPORTED_LANGS = ["en", "ar", "es", "fr", "de", "pt"] as const;
 
 const LANG_NAMES: Record<string, string> = {
@@ -769,32 +884,68 @@ async function aiTranslate(
 }
 
 /** Translate an article into missing languages and merge with existing translations */
+/** Translation entry — title + summary always, full_content when available */
+interface TranslationEntry {
+  title: string;
+  summary: string;
+  full_content?: string;
+}
+
 async function translateArticleMissing(
   env: Env,
   articleId: string,
   title: string,
   summary: string,
   originalLang: string,
-  existingTranslations: Record<string, { title: string; summary: string }> | null,
+  existingTranslations: Record<string, TranslationEntry> | null,
+  fullContent?: string | null,
 ): Promise<{ translated: number; failed: number }> {
-  const translations: Record<string, { title: string; summary: string }> = {
+  const translations: Record<string, TranslationEntry> = {
     ...(existingTranslations ?? {}),
   };
 
   // Original language doesn't need translation
-  translations[originalLang] = { title, summary };
+  translations[originalLang] = { title, summary, ...(fullContent ? { full_content: fullContent } : {}) };
 
-  // Find which languages are missing
-  const missing = SUPPORTED_LANGS.filter((l) => !translations[l]);
+  // Find which languages are missing (no entry at all, or entry without full_content when we now have it)
+  const missing = SUPPORTED_LANGS.filter((l) => {
+    if (!translations[l]) return true;
+    // If we now have full_content but this language's translation doesn't, re-translate
+    if (fullContent && !translations[l].full_content && l !== originalLang) return true;
+    return false;
+  });
   if (missing.length === 0) return { translated: 0, failed: 0 };
 
   // Translate missing languages — sequentially for reliability, with delay between calls
   let translated = 0;
   let failed = 0;
   for (const lang of missing) {
+    // Translate title + summary
     const result = await aiTranslate(env.AI, title, summary, lang, originalLang);
     if (result) {
-      translations[lang] = result;
+      const entry: TranslationEntry = { title: result.title, summary: result.summary };
+
+      // Translate full_content if available (use m2m100 for speed — it handles long text)
+      if (fullContent) {
+        // Split into chunks of ~800 chars to stay within model limits
+        const chunks = splitTextChunks(fullContent, 800);
+        const translatedChunks: string[] = [];
+        let allOk = true;
+        for (const chunk of chunks) {
+          const tChunk = await m2m100Translate(env.AI, chunk, originalLang, lang, 1);
+          if (tChunk) {
+            translatedChunks.push(tChunk);
+          } else {
+            allOk = false;
+            break;
+          }
+        }
+        if (allOk && translatedChunks.length > 0) {
+          entry.full_content = translatedChunks.join("\n\n");
+        }
+      }
+
+      translations[lang] = entry;
       translated++;
     } else {
       failed++;
@@ -821,6 +972,23 @@ async function translateArticleMissing(
   }
 
   return { translated, failed };
+}
+
+/** Split text into chunks at paragraph boundaries, staying under maxLen chars */
+function splitTextChunks(text: string, maxLen: number): string[] {
+  const paragraphs = text.split(/\n\n+/);
+  const chunks: string[] = [];
+  let current = "";
+  for (const p of paragraphs) {
+    if (current.length + p.length + 2 > maxLen && current.length > 0) {
+      chunks.push(current.trim());
+      current = p;
+    } else {
+      current += (current ? "\n\n" : "") + p;
+    }
+  }
+  if (current.trim()) chunks.push(current.trim());
+  return chunks;
 }
 
 /** Insert articles into Supabase yc_articles table. Returns inserted rows (with IDs). */
@@ -913,10 +1081,43 @@ async function handleNewsCron(env: Env): Promise<void> {
     }
     console.log(`News cron: inserted ${rawArticles.length} raw articles`);
 
+    // 4b. Scrape full article content for articles that don't have it yet
+    const scrapeRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/yc_articles?full_content=is.null&order=published_at.desc&limit=15&select=id,source_url`,
+      {
+        headers: {
+          apikey: env.SUPABASE_SERVICE_KEY,
+          Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+        },
+      },
+    );
+
+    if (scrapeRes.ok) {
+      const toScrape = (await scrapeRes.json()) as Array<{ id: string; source_url: string }>;
+      console.log(`News cron: ${toScrape.length} articles need full content scraping`);
+
+      let scraped = 0;
+      for (const row of toScrape) {
+        const fullText = await scrapeArticleText(row.source_url);
+        // Save full_content (even empty string to mark as attempted, so we don't retry)
+        await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${row.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: env.SUPABASE_SERVICE_KEY,
+            Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+          },
+          body: JSON.stringify({ full_content: fullText ?? "" }),
+        });
+        if (fullText && fullText.length > 100) scraped++;
+      }
+      console.log(`News cron: scraped ${scraped}/${toScrape.length} full articles`);
+    }
+
     // 5. Translate articles — both brand-new (NULL) and incomplete (missing languages)
     // Phase A: articles with no translations at all
     const nullRes = await fetch(
-      `${env.SUPABASE_URL}/rest/v1/yc_articles?translations=is.null&order=published_at.desc&limit=50&select=id,title,summary,language,is_featured,translations`,
+      `${env.SUPABASE_URL}/rest/v1/yc_articles?translations=is.null&order=published_at.desc&limit=50&select=id,title,summary,language,is_featured,translations,full_content`,
       {
         headers: {
           apikey: env.SUPABASE_SERVICE_KEY,
@@ -928,7 +1129,7 @@ async function handleNewsCron(env: Env): Promise<void> {
     // Phase B: articles with partial translations (have translations but less than 6 keys)
     // Use RPC or filter for articles that exist but aren't complete
     const partialRes = await fetch(
-      `${env.SUPABASE_URL}/rest/v1/yc_articles?translations=not.is.null&order=published_at.desc&limit=200&select=id,title,summary,language,is_featured,translations`,
+      `${env.SUPABASE_URL}/rest/v1/yc_articles?translations=not.is.null&order=published_at.desc&limit=200&select=id,title,summary,language,is_featured,translations,full_content`,
       {
         headers: {
           apikey: env.SUPABASE_SERVICE_KEY,
@@ -940,13 +1141,15 @@ async function handleNewsCron(env: Env): Promise<void> {
     const nullArticles = nullRes.ok ? ((await nullRes.json()) as Array<{
       id: string; title: string; summary: string;
       language: string; is_featured: boolean;
-      translations: Record<string, { title: string; summary: string }> | null;
+      translations: Record<string, TranslationEntry> | null;
+      full_content: string | null;
     }>) : [];
 
     const partialArticlesRaw = partialRes.ok ? ((await partialRes.json()) as Array<{
       id: string; title: string; summary: string;
       language: string; is_featured: boolean;
-      translations: Record<string, { title: string; summary: string }> | null;
+      translations: Record<string, TranslationEntry> | null;
+      full_content: string | null;
     }>) : [];
 
     // Filter to only articles missing at least one language
@@ -988,7 +1191,7 @@ async function handleNewsCron(env: Env): Promise<void> {
         }
 
         const { translated, failed } = await translateArticleMissing(
-          env, row.id, row.title, row.summary, row.language, row.translations,
+          env, row.id, row.title, row.summary, row.language, row.translations, row.full_content,
         );
         totalTranslated += translated;
         totalFailed += failed;
@@ -1308,7 +1511,7 @@ app.get("/api/admin/backfill-translations", async (c) => {
 
   // Fetch articles (up to limit) — use offset for paging through older articles
   const res = await fetch(
-    `${c.env.SUPABASE_URL}/rest/v1/yc_articles?order=published_at.desc&limit=${limit}&offset=${offset}&select=id,title,summary,language,translations`,
+    `${c.env.SUPABASE_URL}/rest/v1/yc_articles?order=published_at.desc&limit=${limit}&offset=${offset}&select=id,title,summary,language,translations,full_content`,
     {
       headers: {
         apikey: c.env.SUPABASE_SERVICE_KEY,
@@ -1321,7 +1524,8 @@ app.get("/api/admin/backfill-translations", async (c) => {
 
   const articles = (await res.json()) as Array<{
     id: string; title: string; summary: string; language: string;
-    translations: Record<string, { title: string; summary: string }> | null;
+    translations: Record<string, TranslationEntry> | null;
+    full_content: string | null;
   }>;
 
   // Filter to articles missing at least one language
@@ -1338,7 +1542,7 @@ app.get("/api/admin/backfill-translations", async (c) => {
 
   for (const row of toProcess) {
     const { translated, failed } = await translateArticleMissing(
-      c.env, row.id, row.title, row.summary, row.language, row.translations,
+      c.env, row.id, row.title, row.summary, row.language, row.translations, row.full_content,
     );
     totalTranslated += translated;
     totalFailed += failed;
@@ -1827,6 +2031,7 @@ interface ArticleRow {
   slug: string;
   title: string;
   summary: string;
+  full_content: string | null;
   source_name: string;
   source_url: string;
   image_url: string | null;
@@ -1836,7 +2041,7 @@ interface ArticleRow {
   is_featured: boolean;
   published_at: string;
   created_at: string;
-  translations: Record<string, { title: string; summary: string }> | null;
+  translations: Record<string, TranslationEntry> | null;
 }
 
 /** Overlay translation onto an article if available for the target language */
@@ -1849,7 +2054,14 @@ function applyTranslation(article: ArticleRow, targetLang: string): ArticleRow &
   // Check if translation exists
   const t = article.translations?.[targetLang];
   if (t) {
-    return { ...article, title: t.title, summary: t.summary, translated: true, original_language };
+    return {
+      ...article,
+      title: t.title,
+      summary: t.summary,
+      full_content: t.full_content ?? article.full_content,
+      translated: true,
+      original_language,
+    };
   }
   // No translation available — return original
   return { ...article, translated: false, original_language };
