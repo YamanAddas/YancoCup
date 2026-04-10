@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Clock, MapPin } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
+import { formatTimeWithTZ } from "../lib/formatDate";
 import TeamCrest from "../components/match/TeamCrest";
 
 const WORKER_URL =
@@ -631,10 +632,7 @@ export default function MatchDetailPage() {
     day: "numeric",
     year: "numeric",
   });
-  const timeStr = kickoff.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const timeStr = formatTimeWithTZ(kickoff);
   const mainRef = (match.referees ?? []).find((r) => r.type === "REFEREE");
 
   return (

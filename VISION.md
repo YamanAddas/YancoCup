@@ -14,21 +14,23 @@ Built by Yaman as part of the YancoVerse family of projects. Published on GitHub
 
 ## Core experience
 
-When someone opens YancoCup, they see a slowly rotating 3D globe with 16 glowing green pins marking the host cities. The background is deep black with subtle floating particles. It feels like looking at a command center, not a sports page.
+When someone opens YancoCup, they see a slowly rotating 3D globe with 16 glowing green pins marking the host cities. The background is deep navy with subtle floating particles. It feels like looking at a command center, not a sports page.
 
 They can:
 1. **Explore the globe** — spin, click cities, see what matches are happening where
 2. **Check live scores** — clean, real-time match cards with minute-by-minute updates
 3. **Browse the full schedule** — all 104 matches, filterable by group, team, date, venue
 4. **Predict matches** — place friendly bets (no money) on match outcomes, compete on a leaderboard
-5. **Find broadcasts** — links to official broadcasters in their country + YouTube embeds where available
-6. **Read news** — aggregated World Cup news from top sources
-7. **Switch languages** — English, Arabic, Spanish, French, German, Portuguese, Japanese, Korean, Turkish
+5. **Join pools** — create private leagues with friends, share join codes, compete with a custom leaderboard
+6. **Find broadcasts** — links to official broadcasters in their country
+7. **Read news** — AI-curated football news from 18+ sources in multiple languages
+8. **Switch languages** — English, Arabic, Spanish, French, German, Portuguese
 
 ## Design identity
 
-YancoCup inherits the YancoVerse aesthetic:
-- Deep blacks (#0a0a0a) as the foundation
+YancoCup inherits the YancoVerse aesthetic. **Canonical tokens are in `src/styles/globals.css`.**
+
+- Deep navy (#060b14) as the foundation — NOT pure black
 - Signature green (#00ff88) as the accent that makes everything pop
 - Atmospheric: subtle particles, gentle glows, smooth transitions
 - Premium but not pretentious: it should feel cool, not corporate
@@ -46,14 +48,16 @@ YancoCup inherits the YancoVerse aesthetic:
 
 - Not a streaming platform (we link to broadcasters, we don't host streams)
 - Not a betting site (predictions are for fun, zero real money)
-- Not a news site (we aggregate, not produce)
+- Not a news site (we summarize and link to sources, we don't produce original journalism)
 - Not a Wikipedia clone (we curate, not dump everything)
+- Not a fantasy football platform (no transfers, budgets, or player ownership)
 
 ## Technical philosophy
 
 - Static-first: the core experience works without any backend (schedule, groups, teams are all static data)
 - Progressive enhancement: live scores layer on top of static data when available
 - Performance-conscious: the globe must not tank mobile performance
+- Free-tier only: entire stack runs at $0/month
 - Open source: the repo is public, friends can contribute
 
 ## Success criteria

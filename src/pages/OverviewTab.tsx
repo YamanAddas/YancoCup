@@ -72,6 +72,11 @@ export default function OverviewTab() {
     fetchScorers(comp.id).then((s) => setScorers(s));
   }, [comp.id]);
 
+  const predictedIds = useMemo(
+    () => new Set(predictions.map((p) => p.match_id)),
+    [predictions],
+  );
+
   // Matches with teams assigned
   const confirmedMatches = useMemo(
     () => matches.filter((m) => m.homeTeam && m.awayTeam),
@@ -265,6 +270,7 @@ export default function OverviewTab() {
                 venueMap={venueMap}
                 liveScore={scoreMap.get(m.id)}
                 competitionId={comp.id}
+                predicted={predictedIds.has(m.id)}
                 compact
               />
             ))}

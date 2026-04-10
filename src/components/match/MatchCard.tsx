@@ -1,8 +1,9 @@
 import { useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Clock } from "lucide-react";
+import { MapPin, Clock, Check } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
 import TeamCrest from "./TeamCrest";
+import { formatTimeWithTZ } from "../../lib/formatDate";
 import type { Match, Team, Venue } from "../../types";
 import type { LocalLiveScore } from "../../hooks/useScores";
 
@@ -52,8 +53,7 @@ function Placeholder({ label, side }: { label: string; side: "home" | "away" }) 
 }
 
 function formatMatchTime(date: string, time: string): string {
-  const dt = new Date(`${date}T${time}:00Z`);
-  return dt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return formatTimeWithTZ(new Date(`${date}T${time}:00Z`));
 }
 
 function formatMatchDate(date: string): string {
@@ -98,9 +98,10 @@ interface MatchCardProps {
   liveScore?: LocalLiveScore;
   compact?: boolean;
   competitionId?: string;
+  predicted?: boolean;
 }
 
-export default function MatchCard({ match, teamMap, venueMap, liveScore, compact, competitionId }: MatchCardProps) {
+export default function MatchCard({ match, teamMap, venueMap, liveScore, compact, competitionId, predicted }: MatchCardProps) {
   const { t } = useI18n();
   const wrapRef = useRef<HTMLDivElement>(null);
   const specRef = useRef<HTMLDivElement>(null);
@@ -194,8 +195,13 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
           <div className="relative z-10">
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
-              <span className="text-yc-text-tertiary text-xs uppercase tracking-wider">
+              <span className="flex items-center gap-1.5 text-yc-text-tertiary text-xs uppercase tracking-wider">
                 {headerLabel}
+                {predicted && (
+                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-yc-green/15 text-yc-green" title="Predicted">
+                    <Check size={10} strokeWidth={3} />
+                  </span>
+                )}
               </span>
               {effectiveStatus && (effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED" || effectiveStatus === "FINISHED") ? (
                 <StatusBadge status={effectiveStatus} />

@@ -393,7 +393,9 @@ Polish existing features with high-value additions.
 
 ---
 
-## Phase 6: AI-Powered News Section
+## Phase 6: AI-Powered News Section (DEFERRED — post World Cup launch)
+
+> **Priority:** Ship after WC launch is stable. This is the most complex feature and has the least impact on the core prediction game. See BUILD_PLAN.md for priority ordering.
 
 The big differentiator. Turns YancoCup from a prediction game into a daily football destination.
 
@@ -413,7 +415,7 @@ Frontend: /news, /:competition/news, team news tabs
 
 | Provider | Free Tier | Role |
 |----------|-----------|------|
-| **Cloudflare Workers AI** | 10,000 neurons/day (~50-100 articles/day) | Primary — already on CF, zero latency |
+| **Cloudflare Workers AI** | 10,000 neurons/day (~15 articles/run × 6 runs = ~90/day) | Primary — already on CF, zero latency |
 | **Google Gemini API** | 15 RPM, 1M tokens/day | Backup if CF quota hit |
 | **Groq** | 14,400 req/day (Llama 3.3 70B) | Secondary backup, fastest inference |
 
@@ -467,7 +469,7 @@ CREATE TABLE yc_articles (
   title TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
   summary TEXT NOT NULL,              -- AI-generated 2-3 sentence summary
-  body TEXT NOT NULL,                 -- AI-rewritten article (200-400 words)
+  body TEXT NOT NULL,                 -- AI-generated short summary (3-5 sentences, 60-100 words)
   source_url TEXT NOT NULL,           -- original article link (attribution)
   source_name TEXT NOT NULL,          -- "BBC Sport", "Al Jazeera", etc.
   source_lang TEXT NOT NULL,          -- "en", "ar", "es", "de", "fr", "pt"
@@ -514,7 +516,7 @@ New cron job in existing worker. Runs every 4 hours (6 times/day).
    Keep all facts accurate. Output JSON with these fields:
    - title: rewritten headline (max 80 chars)
    - summary: 2-3 sentence summary
-   - body: 200-300 word article
+   - body: 3-5 sentence summary (60-100 words). NOT a full article rewrite.
    - competition: one of [WC, CL, PL, PD, BL1, SA, FL1, EL] or null
    - teams: array of team names mentioned
    - tags: array from [transfer, injury, preview, result, analysis, breaking]
@@ -534,7 +536,7 @@ New cron job in existing worker. Runs every 4 hours (6 times/day).
 6. **Insert into Supabase** `yc_articles`
 
 **Rate limit management:**
-- Workers AI: 10K neurons/day ≈ ~100 short articles. 6 cron runs × 20 articles = 120 max → stay within budget by capping at 15 articles per run
+- Workers AI: 10K neurons/day. Cap at 15 articles per cron run × 6 runs/day = ~90 articles/day max. Test actual neuron consumption before launch.
 - RSS fetches: no rate limit (public feeds)
 - Supabase inserts: negligible
 

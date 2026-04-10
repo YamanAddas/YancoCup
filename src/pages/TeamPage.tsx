@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, User, MapPin, Calendar, Shield, TrendingUp, Home, Plane } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
+import { formatTimeWithTZ } from "../lib/formatDate";
 import TeamCrest from "../components/match/TeamCrest";
 
 const WORKER_URL =
@@ -455,7 +456,7 @@ export default function TeamPage() {
                     <span className="text-yc-text-primary truncate">{opName ?? opTla}</span>
                   </div>
                   <span className="text-xs text-yc-text-tertiary">
-                    {date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                    {formatTimeWithTZ(date)}
                   </span>
                 </div>
               );

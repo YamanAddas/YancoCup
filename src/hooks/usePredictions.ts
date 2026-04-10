@@ -95,6 +95,27 @@ export function usePredictionCounts(competitionId = "WC") {
   return counts;
 }
 
+/** Set of match IDs the signed-in user has predicted (for checkmark indicators).
+ *  Pass competitionId to scope, or omit for all competitions. */
+export function usePredictedMatchIds(competitionId?: string) {
+  const { user } = useAuth();
+  const [ids, setIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!user) { setIds(new Set()); return; }
+    let query = supabase
+      .from("yc_predictions")
+      .select("match_id")
+      .eq("user_id", user.id);
+    if (competitionId) query = query.eq("competition_id", competitionId);
+    query.then(({ data }) => {
+      setIds(new Set((data ?? []).map((r: { match_id: number }) => r.match_id)));
+    });
+  }, [user, competitionId]);
+
+  return ids;
+}
+
 /** Check if a match can still be predicted (before kickoff) */
 export function canPredict(matchDate: string, matchTime: string): boolean {
   const kickoff = new Date(`${matchDate}T${matchTime}:00Z`);

@@ -8,6 +8,7 @@ import { useTeamMap } from "../hooks/useTeams";
 import { useVenueMap } from "../hooks/useVenues";
 import { useScores } from "../hooks/useScores";
 import { useLeaderboard } from "../hooks/useLeaderboard";
+import { usePredictedMatchIds } from "../hooks/usePredictions";
 import { useI18n } from "../lib/i18n";
 import { COMPETITION_LIST } from "../lib/competitions";
 import ActivityFeed from "../components/activity/ActivityFeed";
@@ -116,6 +117,7 @@ function TodaysMatches() {
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
   const { scoreMap } = useScores();
+  const predictedIds = usePredictedMatchIds();
   const { t } = useI18n();
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
   const [upcomingLeague, setUpcomingLeague] = useState<Match[]>([]);
@@ -259,6 +261,7 @@ function TodaysMatches() {
               venueMap={venueMap}
               liveScore={scoreMap.get(m.id)}
               competitionId={getMatchComp(m.id)}
+              predicted={predictedIds.has(m.id)}
               compact
             />
           ))}

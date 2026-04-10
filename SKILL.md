@@ -5,35 +5,46 @@ description: Applies the YancoVerse design language to UI components. Use when b
 
 # YancoVerse design system for YancoCup
 
-YancoCup is not a generic sports site. It belongs to the YancoVerse family — a design language defined by deep blacks, signature green (#00ff88) accents, atmospheric particle effects, and a premium gaming-lounge feel. Every component must feel like it belongs in this universe.
+YancoCup is not a generic sports site. It belongs to the YancoVerse family — a design language defined by deep navy backgrounds, signature green (#00ff88) accents, atmospheric particle effects, and a premium gaming-lounge feel. Every component must feel like it belongs in this universe.
+
+**The single source of truth for design tokens is `src/styles/globals.css`.** If anything in this document conflicts with globals.css, globals.css wins.
 
 ## Color tokens
 
-Define these in `src/styles/tokens.css` as CSS variables and in `tailwind.config.ts` as extended theme colors.
+These are defined in `src/styles/globals.css` using Tailwind 4 `@theme` and `:root` CSS variables.
+
+### @theme tokens (Tailwind classes: `bg-yc-bg-deep`, `text-yc-green`, etc.)
 
 ```
---yc-bg-deep:       #0a0a0a    /* page background */
---yc-bg-surface:    #1a1a1a    /* cards, panels */
---yc-bg-elevated:   #222222    /* hover states, modals */
---yc-bg-glass:      rgba(26, 26, 26, 0.85)  /* glassmorphism panels */
+--color-yc-bg-deep:       #060b14    /* page background (deep navy, NOT black) */
+--color-yc-bg-surface:    #0c1620    /* cards, panels */
+--color-yc-bg-elevated:   #121e30    /* hover states, modals */
 
---yc-green:         #00ff88    /* primary accent — highlights, CTAs, active states */
---yc-green-muted:   #00cc6a    /* secondary accent — borders, subtle indicators */
---yc-green-glow:    rgba(0, 255, 136, 0.15) /* glow behind interactive elements */
---yc-green-dark:    #004d29    /* green used on dark fills for contrast */
+--color-yc-green:         #00ff88    /* primary accent — highlights, CTAs, active states */
+--color-yc-green-muted:   #00cc6a    /* secondary accent — borders, subtle indicators */
+--color-yc-green-dark:    #004d29    /* green used on dark fills for contrast */
 
---yc-text-primary:  #ffffff
---yc-text-secondary:#a0a0a0
---yc-text-tertiary: #666666
---yc-text-accent:   #00ff88    /* when text needs to pop — scores, live indicators */
+--color-yc-text-primary:  #dde5f0
+--color-yc-text-secondary:#8a9bb0
+--color-yc-text-tertiary: #3d4f63
 
---yc-border:        #2a2a2a
---yc-border-hover:  #3a3a3a
---yc-border-accent: #00ff8833  /* green border with low opacity */
+--color-yc-border:        #142035
+--color-yc-border-hover:  #1e3050
 
---yc-danger:        #ff4444    /* red card, loss indicator */
---yc-warning:       #ffaa00    /* yellow card, draw indicator */
---yc-info:          #4488ff    /* informational badges */
+--color-yc-danger:        #ff4757    /* red card, loss indicator */
+--color-yc-warning:       #ffc800    /* yellow card, draw indicator */
+--color-yc-info:          #4488ff    /* informational badges */
+```
+
+### :root CSS variables (for rgba values that can't go in @theme)
+
+```
+--yc-bg-glass:              rgba(8, 16, 28, 0.88)     /* glassmorphism panels */
+--yc-bg-glass-light:        rgba(12, 22, 40, 0.75)
+--yc-accent-glow:           rgba(0, 255, 136, 0.35)   /* glow behind interactive elements */
+--yc-accent-dim:            rgba(0, 255, 136, 0.08)
+--yc-border-accent:         rgba(0, 255, 136, 0.12)
+--yc-border-accent-bright:  rgba(0, 255, 136, 0.25)
 ```
 
 ## Typography
@@ -49,20 +60,19 @@ Load via Google Fonts link in `index.html`. Do NOT use `@import` in CSS (render-
 
 ## Component patterns
 
-### Cards
+### Cards (`.yc-card`)
 ```
-bg: var(--yc-bg-surface)
-border: 1px solid var(--yc-border)
+background: linear-gradient(170deg, rgba(12, 22, 40, 0.9) 0%, rgba(8, 14, 26, 0.95) 100%)
+border: 1px solid var(--yc-accent-dim)
 border-radius: 12px
-padding: 20px
-transition: border-color 300ms ease, box-shadow 300ms ease
-hover: border-color var(--yc-border-hover), box-shadow 0 0 20px var(--yc-green-glow)
+transition: border-color 0.3s ease, box-shadow 0.3s ease
+hover: border-color var(--yc-border-accent-bright), box-shadow with accent glow
 ```
 
 ### Buttons (primary)
 ```
-bg: var(--yc-green)
-color: #0a0a0a (dark text on green)
+bg: #00ff88
+color: #060b14 (dark text on green)
 border-radius: 8px
 font-weight: 600
 hover: brightness(1.1), subtle scale(1.02)
@@ -72,17 +82,18 @@ active: scale(0.98)
 ### Live indicators
 Pulsing green dot (CSS animation, no JS):
 ```css
-@keyframes pulse-live {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,255,136,0.4); }
-  50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(0,255,136,0); }
+@keyframes yc-pulse-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
 }
 ```
 
-### Glass panels (for overlays, modals, navigation)
+### Glass panels (`.yc-glass`)
 ```
-bg: var(--yc-bg-glass)
-backdrop-filter: blur(12px)
-border: 1px solid var(--yc-border)
+background: var(--yc-bg-glass)
+backdrop-filter: blur(16px)
+-webkit-backdrop-filter: blur(16px)
+border: 1px solid var(--yc-accent-dim)
 ```
 
 ## Animation principles
@@ -91,16 +102,16 @@ border: 1px solid var(--yc-border)
 - Stagger children by 50ms for list reveals.
 - Use `transform` and `opacity` only — never animate layout properties.
 - Globe interactions: use spring physics via R3F/drei `useSpring`.
-- Page transitions: fade + subtle translateY(10px).
+- Page transitions: fade + subtle translateY(8px) (`animate-fade-in` class).
+- Entry animations: 3D materialize effect (`yc-hex-materialize` keyframes).
 - `@media (prefers-reduced-motion: reduce)` — disable all non-essential animation.
 
-## Particle background
-
-A subtle floating particle field behind the globe and hero sections. Implementation:
-- Use `@react-three/fiber` Canvas with transparent background
-- OR a lightweight 2D canvas with ~50 small green dots drifting slowly
-- Particles: 1-2px circles, color #00ff88 at 10-20% opacity, speed ~0.2px/frame
-- Do NOT use heavy particle libraries (tsparticles). Keep it minimal.
+### Available animation classes
+- `.animate-breathe` — breathing glow on live elements (3s infinite)
+- `.animate-shimmer` — shimmer overlay sweep (4s infinite)
+- `.animate-fade-in` — fade + translateY entrance (0.35s)
+- `.animate-slide-up` — slide up with elastic ease (0.4s)
+- `.yc-hex-enter` — 3D materialize for hex cards (0.7s)
 
 ## Responsive breakpoints
 
@@ -114,7 +125,7 @@ A subtle floating particle field behind the globe and hero sections. Implementat
 Use Lucide React (`lucide-react`) for all UI icons. Open source, consistent, dark-theme friendly.
 - Import individually: `import { Search, Filter, Share2, HelpCircle } from 'lucide-react'`
 - Default size: 20px for inline, 24px for standalone
-- Color: inherit from parent (usually --yc-text-secondary or --yc-green)
+- Color: inherit from parent (usually yc-text-secondary or yc-green)
 - Do NOT use FontAwesome, Heroicons, or other icon libraries
 
 ## Flags
@@ -129,6 +140,7 @@ Use circle-flags (https://github.com/HatScripts/circle-flags) for all country fl
 ## Anti-patterns (things that break the vibe)
 
 - White or light backgrounds anywhere
+- Pure black (#000000 or #0a0a0a) backgrounds — use #060b14 (deep navy)
 - Generic blue/red sports color schemes
 - Stock photo aesthetics
 - Rounded-everything bubbly UI (this is sharp and atmospheric, not cute)
@@ -137,3 +149,4 @@ Use circle-flags (https://github.com/HatScripts/circle-flags) for all country fl
 - Emoji flags (render differently per OS, look cheap)
 - Full-screen globe blocking content (globe is a hero element, not the entire page)
 - Generic loading spinners — use skeleton screens with YancoVerse dark tones
+- Using #00e5c1 or #00b89a as the primary accent — the accent is #00ff88

@@ -6,6 +6,7 @@ import { checkActivityBadges } from "../../lib/badges";
 import { buildShareText, sharePrediction } from "../../lib/share";
 import { sharePredictionCard } from "../../lib/shareCard";
 import { useI18n } from "../../lib/i18n";
+import { formatTimeWithTZ } from "../../lib/formatDate";
 import TeamCrest from "../match/TeamCrest";
 import type { Match, Team, Venue } from "../../types";
 import type { Prediction } from "../../hooks/usePredictions";
@@ -131,10 +132,7 @@ export default function PredictionCard({
     month: "short",
     day: "numeric",
   });
-  const kickoffTime = kickoff.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const kickoffTime = formatTimeWithTZ(kickoff);
 
   const roundLabel = match.group
     ? t("match.group", { id: match.group })

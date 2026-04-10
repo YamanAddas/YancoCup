@@ -4,9 +4,11 @@ Multi-competition soccer prediction platform with AI-powered news. World Cup 202
 
 **Current phase:** V2 Upgrade — UX polish, quick-predict, social features (pool chat/recaps), gamification depth (loyalty badges/rivals), AI-powered news section with Arabic + European sources. See `docs/V2_UPGRADE_PLAN.md` for full plan.
 
+**World Cup 2026 launch target:** June 11, 2026. All 48 teams are finalized — qualifying completed March 31, 2026. Static data (groups.json, teams.json, schedule.json) is up to date. Group stage matches have resolved team IDs; knockout matches correctly have null teams with placeholders.
+
 ## Stack
 
-- **Frontend**: Vite + React 18 + Tailwind CSS 4
+- **Frontend**: Vite 8 + React 19 + Tailwind CSS 4
 - **Globe**: r3f-globe (by Vasturiano) + React Three Fiber + Three.js — NOT custom globe from scratch
 - **Backend proxy**: Cloudflare Workers with Hono (API key vault + caching)
 - **Database**: Supabase free tier (auth, predictions, pools, leaderboard, news articles, unlimited realtime)
@@ -20,6 +22,7 @@ Multi-competition soccer prediction platform with AI-powered news. World Cup 202
 - **Flags**: circle-flags (circular SVG country flags, open source)
 - **Club crests**: football-data.org API `crest` URLs (hotlinked, never bundled) — see copyright strategy below
 - **Icons**: Lucide React (open source, dark-theme friendly)
+- **State**: React hooks for component-local state (no global state library currently in use)
 - **Error monitoring**: Sentry free tier (5K errors/month) — active
 - **Analytics**: Cloudflare Web Analytics (free, unlimited, no cookies) — active
 - **Deploy**: GitHub Pages via `gh-pages` branch
@@ -47,8 +50,9 @@ src/
   hooks/            # Custom React hooks (competition-aware)
   lib/              # Utilities, API clients, i18n, auth, scoring, competitions, ranks, badges
   data/             # Static JSON: teams, groups, venues, schedule, translations, broadcasters
-  styles/           # Global CSS, Tailwind config
+  styles/           # Global CSS (globals.css — single source of truth for design tokens)
   pages/            # Route-level components (incl. MatchDetailPage, TeamPage, ProfilePage, NewsPage, ArticlePage)
+  types/            # TypeScript type definitions
 worker/             # Cloudflare Worker source (separate deploy)
 docs/               # V2 upgrade plan
 ```
@@ -74,20 +78,26 @@ docs/               # V2 upgrade plan
 - Tailwind for styling. No CSS modules, no styled-components, no inline style objects.
 - Component files: PascalCase (`MatchCard.tsx`). Utilities: camelCase (`formatDate.ts`).
 - One component per file. Co-locate component-specific hooks and types in the same directory.
+- React Router v7 — currently using v6-compatible `<Routes>/<Route>` patterns. Do NOT introduce loader/action patterns or v7 data APIs without a planned migration.
 
 ## Design system — YancoVerse aesthetic
 
 IMPORTANT: This is not a generic sports site. It follows the YancoVerse design language.
 
-- **Background**: Deep navy (#060b14) with cosmic gradient — matches YancoHub
-- **Primary accent**: #00e5c1 (cyan-teal) — interactive elements, glow effects, active states
-- **Secondary accent**: #00b89a (muted teal) — borders, subtle indicators
+**The canonical design tokens live in `src/styles/globals.css`.** If anything below conflicts with globals.css, globals.css wins.
+
+- **Background**: Deep navy (#060b14) with cosmic gradient — NOT pure black, NOT #0a0a0a
+- **Surface**: #0c1620 (cards, panels)
+- **Elevated**: #121e30 (hover states, modals)
+- **Primary accent**: #00ff88 (signature green) — interactive elements, glow effects, active states, CTAs
+- **Muted accent**: #00cc6a — borders, subtle indicators
 - **Text**: #dde5f0 primary, #8a9bb0 secondary, #3d4f63 tertiary
-- **Cards/surfaces**: Glass panels with `backdrop-filter: blur(16px)`, crystal gradient borders (`yc-card` class)
+- **Borders**: #142035 default, #1e3050 hover
+- **Glass panels**: `var(--yc-bg-glass)` = `rgba(8, 16, 28, 0.88)` + `backdrop-filter: blur(16px)` + crystal gradient borders
 - **Typography**: "Space Grotesk" for headings, "Inter" for body, "JetBrains Mono" for scores/data
 - **Effects**: Glassmorphism panels, ambient orb glows, breathing animations on live elements, shimmer overlays, crystal borders, cosmic background gradient
 - **Layout utilities**: `.yc-glass` (glass panel), `.yc-card` (crystal card), `.yc-card-glow` (active glow), `.yc-hex` (hex clip-path), `.animate-breathe` (breathing glow)
-- **NO**: Bright backgrounds, generic sports-site blue/red schemes, stock photo vibes, flat corporate look, pure black backgrounds
+- **NO**: Bright backgrounds, generic sports-site blue/red schemes, stock photo vibes, flat corporate look, pure black backgrounds, #0a0a0a anywhere
 
 When in doubt about visual direction, think: "cinematic immersion with depth, glow, and smooth motion" — matching YancoHub's hexagonal-glass aesthetic.
 
@@ -183,11 +193,15 @@ Competitions are defined in `src/lib/competitions.ts` with a `CompetitionConfig`
 - `id` (e.g., `'WC'`), `fdCode`, `name`, `type` ('tournament' | 'league')
 - `hasGroups`, `staticSchedule`, `seasonLabel`
 
+**Note on Champions League:** Since 2024/25, the CL uses a Swiss-model league phase (36 teams in a single table) instead of traditional groups. `hasGroups: false` is correct. The bracket/knockout stage begins at the round of 16 (with a new "knockout round" play-off for teams finishing 9th-24th). Ensure bracket visualization handles this format.
+
 ### Routing
 
 Routes are competition-scoped:
 ```
 /                           → Home (competition cards, cross-competition matches)
+/:competition               → Competition hub (redirects to /overview)
+/:competition/overview      → Competition overview tab
 /:competition/matches       → Match schedule
 /:competition/groups        → Group tables (tournaments only)
 /:competition/standings     → League table (leagues only)
@@ -232,6 +246,8 @@ Base: 10 (exact) / 5 (GD) / 3 (result) / 0 (wrong)
 Quick-predict (1X2): 2 (correct result) / 0 (wrong) — leagues only
 Modifiers: upset bonus (+3, tournaments), knockout multipliers (1.5x-3x), joker (2x, one per matchday), streak bonuses (+2/+5/+10)
 
+**Known architecture concern:** Scoring is currently client-side (first user to load leaderboard triggers scoring for finished matches). This creates race conditions and is technically exploitable. Future improvement: move scoring to a Supabase RPC function (Postgres function) that computes points server-side. No Edge Functions needed — just an `rpc('score_predictions', { match_id, ... })` call. This is a V2+ improvement, not a blocker.
+
 ### League prediction fatigue mitigation
 
 - Matchday-based UI (one matchday at a time)
@@ -249,9 +265,10 @@ IMPORTANT: These rules are non-negotiable.
 2. **One task per session.** Do not scope-creep. If you discover related work, note it and move on.
 3. **Commit after every completed task.** Descriptive commit message. Separate commits per logical change.
 4. **Never commit secrets.** API keys go in `.env` (gitignored) or Cloudflare Workers secrets. Never hardcode.
-5. **Static export.** The React app MUST work as a static site on GitHub Pages. No SSR, no server-side routes. Use HashRouter or basename config.
+5. **Static export.** The React app MUST work as a static site on GitHub Pages. No SSR, no server-side routes. Uses HashRouter with `base: "/YancoCup/"` in vite.config.ts.
 6. **Test your build.** Run `npm run build` before committing UI changes. If it fails, fix it.
 7. **When compacting**, preserve: current task status, list of modified files, any unresolved bugs.
+8. **Verify changes via grep.** File reads can return stale cached content in long sessions. After editing, always `grep -n` the changed lines to verify the edit landed.
 
 ## API architecture
 
@@ -260,11 +277,12 @@ IMPORTANT: These rules are non-negotiable.
 - Worker endpoint pattern: `/api/:competition/scores`, `/api/:competition/standings`, `/api/:competition/match/:id`, `/api/:competition/teams`, `/api/match/:id/detail`, `/api/h2h/:id`
 - **News endpoints**: `/api/news`, `/api/news/:slug`, `/api/:comp/news`, `/api/team/:teamId/news`
 - **Cron Trigger architecture**: Worker polls `/v4/matches` (ALL competitions, one call) every 60s, writes per-competition KV entries. User requests read from KV only. This decouples user traffic from API rate limits entirely.
+- **IMPORTANT**: The `/api/:comp/matches` endpoint currently falls back to upstream on cache miss (user-triggered). This violates the "users never hit upstream" principle. Fix: pre-populate schedules via cron, or add a lock to prevent concurrent upstream fetches.
 - **News cron**: Worker fetches RSS feeds every 4 hours, rewrites via Workers AI, stores in Supabase `yc_articles`.
 - Static data (WC schedule, groups, teams): in `src/data/`. League data: from Worker.
 - Match IDs: use football-data.org API IDs as canonical across all competitions.
 - Supabase is the exception — the Supabase JS client uses the public anon key (safe for client-side).
-- **Scoring is client-side.** No Edge Functions. When user loads leaderboard, client checks for unscored finished matches and calculates points.
+- **Scoring is client-side** (see scoring architecture concern above).
 - **Badges and streaks are client-side calculated** (same pattern as scoring).
 
 ## Database tables
@@ -308,34 +326,63 @@ SUPABASE_SERVICE_KEY=...   (for news article inserts from Worker)
 
 ## What Claude gets wrong on this project (fix these)
 
+### Deployment & architecture mistakes
 - Forgetting that GitHub Pages is static — no server routes, no API routes in the React app.
-- Using dark mode media queries instead of always-dark. This site is ALWAYS dark. No light mode.
 - Putting API keys in `.env` files that get bundled by Vite. Use `VITE_` prefix only for public values.
+- Triggering upstream API calls on user requests. Use Cron Triggers to poll, KV to serve.
+- Over-engineering scoring with Edge Functions. Scoring is client-side, no server triggers.
+- Forgetting auth redirect issues with HashRouter. Handle Supabase auth token before HashRouter processes the URL.
+
+### Design system mistakes
+- Using dark mode media queries instead of always-dark. This site is ALWAYS dark. No light mode.
+- Using #0a0a0a or pure black for backgrounds. The actual background is #060b14 (deep navy). Check `globals.css`.
+- Using #00e5c1 or #00b89a as accent colors. The actual accent is #00ff88 (signature green). Check `globals.css`.
+- Making the globe full-screen on homepage. Content must be visible without scrolling.
+
+### Data & API mistakes
+- Using BALLDONTLIE as a football API. It's an NBA API — does not cover soccer.
+- Using API-Football without Cron Trigger + KV caching. 100 req/day works only with aggressive caching.
+- Polling per-competition endpoints separately. Use `/v4/matches` (no filter) — one call gets ALL competitions.
+- Creating separate static schedule files per competition. Only WC has static data. Leagues fetch from Worker.
+- Adding xG, heatmaps, or player ratings. football-data.org free tier does NOT provide these. Only show data the API actually returns.
+- Using BALLDONTLIE, worldfootballapi, or any unverified API. Stick to football-data.org + API-Football.
+
+### UI & component mistakes
 - Over-engineering i18n with heavy frameworks. We use a simple runtime translation layer, 6 languages only.
 - Making the globe a performance hog. Use `frameloop="demand"` in R3F. Render only when interacting.
 - Building custom globe components from scratch. Use r3f-globe by Vasturiano.
 - Using emoji flags. They look different on every OS. Use circle-flags SVGs.
-- Using BALLDONTLIE as a football API. It's an NBA API — does not cover soccer.
-- Using API-Football without Cron Trigger + KV caching. 100 req/day works only with aggressive caching.
-- Triggering upstream API calls on user requests. Use Cron Triggers to poll, KV to serve.
-- Over-engineering scoring with Edge Functions. Scoring is client-side, no server triggers.
-- Making the globe full-screen on homepage. Content must be visible without scrolling.
-- Forgetting auth redirect issues with HashRouter. Handle Supabase auth token before HashRouter processes the URL.
-- Polling per-competition endpoints separately. Use `/v4/matches` (no filter) — one call gets ALL competitions.
-- Creating separate static schedule files per competition. Only WC has static data. Leagues fetch from Worker.
+- Making the bracket visualization a heavy library dependency. Use CSS Grid, not D3 or other charting libs.
+- Using FontAwesome or Heroicons. Use Lucide React only.
+
+### Competition logic mistakes
 - Making pools global. Pools are competition-scoped — your PL pool ≠ your WC pool.
 - Showing friends' predictions before match kickoff. Predictions are hidden until deadline to prevent copying.
+- Forgetting zone config is per-competition. PL has 4 CL spots, BL1 has 4. Don't hardcode.
+- Treating CL as having traditional groups. Since 2024/25, CL uses a Swiss-model league phase (36 teams, single table). `hasGroups: false` is correct.
+
+### Crest & media mistakes
 - Downloading/bundling club crests into the repo. Use football-data.org API `crest` URLs (hotlink only). Never host crests locally.
 - Building a custom crest/logo system. Use the `<TeamCrest>` component which handles national flags (circle-flags), club crests (API URLs), and TLA fallback in one place.
-- Adding xG, heatmaps, or player ratings. football-data.org free tier does NOT provide these. Only show data the API actually returns.
-- Over-engineering gamification with server-side triggers. Badges and streaks are client-side calculated (same pattern as scoring).
-- Making the bracket visualization a heavy library dependency. Use CSS Grid, not D3 or other charting libs.
-- Forgetting zone config is per-competition. PL has 4 CL spots, BL1 has 3. Don't hardcode.
+
+### News pipeline mistakes
 - Scraping news sites directly. Use RSS feeds only — they're public, legal, and intended for consumption.
-- Copying articles verbatim. AI must rewrite, not copy. Always attribute the original source with a link.
+- Copying articles verbatim. AI must rewrite as SHORT SUMMARIES (3-5 sentences + link), not full rewrites. Always attribute the original source with a link.
 - Hosting news images locally. Hotlink from RSS `<media:content>` URL or use gradient placeholders.
 - Making the news cron too aggressive. Every 4 hours is enough (6 runs/day). More frequent wastes Workers AI quota.
 - Forgetting Arabic RSS feeds use UTF-8 with Arabic chars. Worker XML parser must handle this.
-- Using paid AI APIs for news. Cloudflare Workers AI free tier (10K neurons/day) is sufficient. Groq and Gemini free tiers are backups.
+- Using paid AI APIs for news. Cloudflare Workers AI free tier (10K neurons/day) is sufficient — budget is ~15 articles per cron run (6 runs/day = ~90 articles/day max). Test actual neuron consumption before committing.
 - Building a CMS for news. Articles are auto-generated from RSS + AI. No manual editorial workflow.
 - Showing AI-generated content without source attribution. Every article MUST link back to original source.
+
+### Globe safety
+- ~~Not wrapping the globe in a React error boundary.~~ **RESOLVED** — `GlobeErrorBoundary` added in `GlobeView.tsx`. WebGL crashes show a graceful fallback instead of white-screening the app.
+
+## Cron scheduling note
+
+The `wrangler.toml` currently runs `* * * * *` (every minute). This is fine during active match windows but wasteful otherwise. Before launch, consider:
+- `*/5 * * * *` during off-peak (no live matches)
+- `* * * * *` only during known match windows
+- Using the tick counter to short-circuit when no live matches exist (check `all:live` KV key)
+
+Cloudflare Workers free tier allows 100K requests/day and KV has write limits. Monitor usage.

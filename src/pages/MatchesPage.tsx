@@ -7,6 +7,7 @@ import { useVenueMap, useVenues } from "../hooks/useVenues";
 import { useGroups } from "../hooks/useGroups";
 import { useScores } from "../hooks/useScores";
 import { useI18n } from "../lib/i18n";
+import { usePredictedMatchIds } from "../hooks/usePredictions";
 import MatchCard from "../components/match/MatchCard";
 import type { Match } from "../types";
 import { ChevronLeft, ChevronRight, Filter, X } from "lucide-react";
@@ -195,6 +196,7 @@ function TournamentMatches() {
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
   const { scoreMap } = useScores();
+  const predictedIds = usePredictedMatchIds(comp.id);
 
   const filters = useMemo(() => {
     const f: Record<string, string> = {};
@@ -373,6 +375,7 @@ function TournamentMatches() {
               venueMap={venueMap}
               liveScore={scoreMap.get(m.id)}
               competitionId={comp.id}
+              predicted={predictedIds.has(m.id)}
             />
           ))}
         </div>
@@ -393,6 +396,7 @@ function LeagueMatches() {
   const { matches, matchdays, loading } = useCompetitionSchedule(selectedMatchday);
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
+  const predictedIds = usePredictedMatchIds(comp.id);
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeMdRef = useRef<HTMLButtonElement>(null);
 
@@ -543,6 +547,7 @@ function LeagueMatches() {
                         venueMap={venueMap}
                         liveScore={scoreMap.get(m.id)}
                         competitionId={comp.id}
+                        predicted={predictedIds.has(m.id)}
                       />
                     ))}
                   </div>
