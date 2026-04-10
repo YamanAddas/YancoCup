@@ -1,1 +1,0 @@
-function e(e){let t=e.toLocaleTimeString(void 0,{hour:`2-digit`,minute:`2-digit`}),n=Intl.DateTimeFormat(void 0,{timeZoneName:`short`}).formatToParts(e).find(e=>e.type===`timeZoneName`)?.value;return n?`${t} ${n}`:t}export{e as t};
