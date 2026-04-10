@@ -687,49 +687,55 @@ async function scrapeArticleText(url: string): Promise<string | null> {
 
     const html = await res.text();
 
-    // Strategy 1: Find <article> tag content
-    let articleHtml = extractTag(html, "article");
+    // Best strategy: extract <p> tags from narrowest container (article > main > body)
+    const articleHtml = extractTag(html, "article");
+    const mainHtml = extractTag(html, "main");
+    let container = articleHtml ?? mainHtml ?? html;
 
-    // Strategy 2: Find common article body containers
-    if (!articleHtml) {
-      for (const cls of [
-        "article-body", "article__body", "article-content", "article__content",
-        "story-body", "story__body", "story-content",
-        "entry-content", "post-content", "post-body",
-        "ssrcss-", // BBC uses ssrcss- prefixed classes
-        "article_body", "text--article",
-      ]) {
-        const match = html.match(new RegExp(`<div[^>]*class="[^"]*${cls}[^"]*"[^>]*>([\\s\\S]*?)</div>\\s*(?:<div|</article|</section|</main)`, "i"));
-        if (match?.[1] && match[1].length > 200) {
-          articleHtml = match[1];
-          break;
+    // Clean container: remove script, style, nav, aside, figure, iframe, noscript tags
+    container = container.replace(/<(script|style|nav|aside|figure|figcaption|header|footer|button|form|iframe|noscript|svg|video|audio)[^>]*>[\s\S]*?<\/\1>/gi, "");
+
+    const paragraphs = extractParagraphs(container);
+    if (paragraphs.length >= 3) {
+      const text = paragraphs.join("\n\n");
+      // Cap at 15KB to avoid storing entire page dumps
+      return text.length > 15000 ? text.slice(0, 15000) : text;
+    }
+
+    // Fallback: try common article body CSS class selectors
+    for (const cls of [
+      "article-body", "article__body", "article-content", "article__content",
+      "story-body", "story__body", "story-content",
+      "entry-content", "post-content", "post-body",
+      "ssrcss-", "article_body", "text--article",
+    ]) {
+      const match = html.match(new RegExp(`<div[^>]*class="[^"]*${cls}[^"]*"[^>]*>([\\s\\S]*?)</div>\\s*(?:<div|</article|</section|</main)`, "i"));
+      if (match?.[1] && match[1].length > 200) {
+        const fallbackParagraphs = extractParagraphs(match[1]);
+        if (fallbackParagraphs.length >= 2) {
+          return fallbackParagraphs.join("\n\n").slice(0, 15000);
         }
+        const cleaned = htmlToText(match[1]);
+        return cleaned ? cleaned.slice(0, 15000) : null;
       }
     }
 
-    // Strategy 3: Find all <p> tags within <main> or <article>
-    if (!articleHtml) {
-      const mainContent = extractTag(html, "main") ?? html;
-      const paragraphs = extractParagraphs(mainContent);
-      if (paragraphs.length >= 3) {
-        return paragraphs.join("\n\n");
-      }
-    }
-
-    if (!articleHtml) return null;
-
-    // Clean up the extracted HTML into plain text
-    return htmlToText(articleHtml);
+    return null;
   } catch {
     return null;
   }
 }
 
-/** Extract content between an opening and closing tag */
+/** Extract content between an opening and closing tag (greedy to capture nested content) */
 function extractTag(html: string, tag: string): string | null {
-  const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i");
-  const match = html.match(regex);
-  return match?.[1] && match[1].length > 100 ? match[1] : null;
+  const openIdx = html.search(new RegExp(`<${tag}[\\s>]`, "i"));
+  if (openIdx === -1) return null;
+  const afterOpen = html.indexOf(">", openIdx);
+  if (afterOpen === -1) return null;
+  const closeIdx = html.lastIndexOf(`</${tag}>`) ?? html.lastIndexOf(`</${tag.toUpperCase()}>`);
+  if (closeIdx === -1 || closeIdx <= afterOpen) return null;
+  const content = html.slice(afterOpen + 1, closeIdx);
+  return content.length > 100 ? content : null;
 }
 
 /** Extract all <p> text content from HTML */
@@ -740,9 +746,14 @@ function extractParagraphs(html: string): string[] {
   while ((match = pRegex.exec(html)) !== null) {
     const text = stripHtml(match[1]!).trim();
     // Skip short paragraphs (likely UI text, captions, etc.)
-    if (text.length > 40) {
-      paragraphs.push(text);
-    }
+    if (text.length < 40) continue;
+    // Skip junk: script imports, code, timestamps, navigation
+    if (/^(import |require\(|function |var |const |let |window\.|document\.)/.test(text)) continue;
+    if (/^(vor \d|il y a|hace \d|ago$|min\.$)/i.test(text)) continue;
+    // Skip paragraphs that are mostly non-letter (e.g. data attributes, URLs)
+    const letters = text.replace(/[^a-zA-ZÀ-ÿ\u0600-\u06FF]/g, "").length;
+    if (letters < text.length * 0.4) continue;
+    paragraphs.push(text);
   }
   return paragraphs;
 }
@@ -760,8 +771,14 @@ function htmlToText(html: string): string {
 
   // Fallback: strip all HTML and clean up
   text = stripHtml(text);
-  // Collapse multiple newlines/spaces
-  text = text.replace(/\n{3,}/g, "\n\n").replace(/ {2,}/g, " ").trim();
+  // Collapse multiple newlines/spaces and trim each line
+  text = text
+    .split("\n")
+    .map((l) => l.trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/ {2,}/g, " ")
+    .trim();
 
   return text.length > 100 ? text : "";
 }
@@ -773,13 +790,15 @@ function stripHtml(html: string): string {
     .replace(/<\/p>/gi, "\n\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/g, " ")
-    .replace(/&#0*39;/g, "'")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/&#x2F;/g, "/")
+    .replace(/&apos;/g, "'")
+    // Decode hex entities: &#xDF; → ß, &#xF6; → ö, etc.
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    // Decode decimal entities: &#39; → ', &#8217; → ', etc.
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
     .trim();
 }
 
@@ -1492,6 +1511,56 @@ app.get("/api/admin/trigger-news", async (c) => {
   } catch (err) {
     return c.json({ status: "error", message: String(err) }, 500);
   }
+});
+
+// Admin: backfill scrape full article content
+app.get("/api/admin/backfill-scrape", async (c) => {
+  const key = c.req.query("key");
+  if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const limit = parseInt(c.req.query("limit") ?? "20", 10);
+  const offset = parseInt(c.req.query("offset") ?? "0", 10);
+
+  // Fetch articles that still need scraping
+  const res = await fetch(
+    `${c.env.SUPABASE_URL}/rest/v1/yc_articles?full_content=is.null&order=published_at.desc&limit=${limit}&offset=${offset}&select=id,source_url,source_name`,
+    {
+      headers: {
+        apikey: c.env.SUPABASE_SERVICE_KEY,
+        Authorization: `Bearer ${c.env.SUPABASE_SERVICE_KEY}`,
+      },
+    },
+  );
+
+  if (!res.ok) return c.json({ error: "Failed to fetch articles" }, 500);
+
+  const articles = (await res.json()) as Array<{ id: string; source_url: string; source_name: string }>;
+  let scraped = 0;
+  let failed = 0;
+  const results: Array<{ source: string; len: number }> = [];
+
+  for (const row of articles) {
+    const fullText = await scrapeArticleText(row.source_url);
+    await fetch(`${c.env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${row.id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: c.env.SUPABASE_SERVICE_KEY,
+        Authorization: `Bearer ${c.env.SUPABASE_SERVICE_KEY}`,
+      },
+      body: JSON.stringify({ full_content: fullText ?? "" }),
+    });
+    if (fullText && fullText.length > 100) {
+      scraped++;
+      results.push({ source: row.source_name, len: fullText.length });
+    } else {
+      failed++;
+    }
+  }
+
+  return c.json({ status: "ok", checked: articles.length, scraped, failed, results });
 });
 
 // Admin: backfill missing translations for all articles
