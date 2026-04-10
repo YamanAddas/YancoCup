@@ -208,8 +208,16 @@ export default function LeaderboardPage() {
                           {i + 1}
                           {period !== "all" && entry.previousRank !== undefined && (() => {
                             const diff = entry.previousRank - (i + 1);
-                            if (diff > 0) return <ArrowUp size={10} className="text-yc-green" />;
-                            if (diff < 0) return <ArrowDown size={10} className="text-yc-danger" />;
+                            if (diff > 0) return (
+                              <span className="flex items-center gap-0.5 text-[10px] font-semibold text-yc-green">
+                                <ArrowUp size={10} />{diff}
+                              </span>
+                            );
+                            if (diff < 0) return (
+                              <span className="flex items-center gap-0.5 text-[10px] font-semibold text-yc-danger">
+                                <ArrowDown size={10} />{Math.abs(diff)}
+                              </span>
+                            );
                             return null;
                           })()}
                         </div>
