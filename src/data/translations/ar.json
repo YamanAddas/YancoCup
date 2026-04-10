@@ -70,6 +70,7 @@
   "predictions.predicted": "{count} توقّع",
   "predictions.remaining": "{count} متبقّي",
   "predictions.bestStreak": "أفضل سلسلة: {count}",
+  "predictions.bold": "جريء",
   "predictions.signInTitle": "سجّل الدخول للتوقّع",
   "predictions.signInDesc": "توقّع نتائج المباريات وتنافس مع أصدقائك على الترتيب.",
   "predictions.nudge": "لديك {count} مباراة قادمة بدون توقّع.",

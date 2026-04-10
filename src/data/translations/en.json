@@ -73,6 +73,7 @@
   "predictions.predicted": "{count} predicted",
   "predictions.remaining": "{count} remaining",
   "predictions.bestStreak": "Best streak: {count}",
+  "predictions.bold": "BOLD",
   "predictions.signInTitle": "Sign in to predict",
   "predictions.signInDesc": "Predict match scores and compete with friends on the leaderboard.",
   "predictions.nudge": "You have {count} upcoming match without a prediction.",

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Lock, Check, Loader2, Users as UsersIcon, Share2, Sparkles } from "lucide-react";
+import { Lock, Check, Loader2, Users as UsersIcon, Share2, Sparkles, Zap } from "lucide-react";
 import { upsertPrediction, upsertQuickPrediction, canPredict } from "../../hooks/usePredictions";
 import { useConsensus } from "../../hooks/useConsensus";
 import { checkActivityBadges } from "../../lib/badges";
@@ -185,6 +185,12 @@ export default function PredictionCard({
   const homeCode = home?.fifaCode ?? match.homeTeam.toUpperCase();
   const awayCode = away?.fifaCode ?? match.awayTeam.toUpperCase();
 
+  // Bold prediction: user picked away win (upset pick)
+  const isBold = hasPrediction && (
+    (prediction.quick_pick === "A") ||
+    (prediction.home_score !== null && prediction.away_score !== null && prediction.away_score > prediction.home_score)
+  );
+
   return (
     <div
       className={`yc-card p-4 transition-all duration-300 ${
@@ -197,9 +203,17 @@ export default function PredictionCard({
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-yc-text-tertiary text-xs uppercase tracking-wider">
-          {roundLabel}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-yc-text-tertiary text-xs uppercase tracking-wider">
+            {roundLabel}
+          </span>
+          {isBold && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-yc-warning/15 text-yc-warning border border-yc-warning/20">
+              <Zap size={8} />
+              {t("predictions.bold")}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2 text-yc-text-tertiary text-xs">
           <span>{kickoffLabel}, {kickoffTime}</span>
           {locked && <Lock size={12} />}
