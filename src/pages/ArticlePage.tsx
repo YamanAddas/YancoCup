@@ -129,8 +129,8 @@ export default function ArticlePage() {
       <div className="yc-card p-6">
         {article.full_content ? (
           <div className="space-y-4">
-            {/* AI Summary badge */}
-            {article.is_featured && (
+            {/* AI Summary header — always show when full_content exists */}
+            {article.summary && (
               <div className="pb-3 mb-3 border-b border-yc-border/30">
                 <p className="text-sm text-yc-text-secondary italic leading-relaxed">
                   {article.summary}

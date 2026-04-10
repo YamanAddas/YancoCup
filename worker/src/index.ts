@@ -622,8 +622,7 @@ async function fetchRSSFeed(feed: RSSFeedConfig): Promise<RSSArticle[]> {
       const desc = rawDesc
         .replace(/<!\[CDATA\[|\]\]>/g, "")
         .replace(/<[^>]+>/g, "") // strip HTML tags
-        .replace(/&#0*39;/g, "'").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
-        .slice(0, 500);
+        .replace(/&#0*39;/g, "'").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
 
       // Image URL
       const imageUrl =
@@ -815,6 +814,50 @@ const M2M100_LANG: Record<string, string> = {
   fr: "french", de: "german", pt: "portuguese", it: "italian",
 };
 
+// ---------------------------------------------------------------------------
+// Translation quality validation
+// ---------------------------------------------------------------------------
+
+/** Check if text has repetitive loops or known hallucination patterns */
+function hasRepetitionOrHallucination(text: string): boolean {
+  const words = text.split(/\s+/);
+  if (words.length >= 12) {
+    const seen = new Map<string, number>();
+    for (let i = 0; i <= words.length - 4; i++) {
+      const phrase = words.slice(i, i + 4).join(" ").toLowerCase();
+      const count = (seen.get(phrase) ?? 0) + 1;
+      seen.set(phrase, count);
+      if (count >= 3) return true;
+    }
+  }
+  const lower = text.toLowerCase();
+  if (/it is important to keep in mind/.test(lower)) return true;
+  if (/the quality of the product/.test(lower)) return true;
+  if (/as we can see/.test(lower)) return true;
+  return false;
+}
+
+/** Validate a translation: check length ratio + repetition + hallucination */
+function validateTranslation(input: string, output: string): boolean {
+  if (!output || !output.trim()) return false;
+  const inLen = input.length;
+  const outLen = output.length;
+  // Reject if output is suspiciously long or short relative to input
+  if (inLen > 10 && outLen > inLen * 5) return false;
+  if (inLen > 20 && outLen < inLen * 0.15) return false;
+  return !hasRepetitionOrHallucination(output);
+}
+
+/** Validate an AI summary: only check for repetition/hallucination, not length ratio */
+function validateSummary(text: string): boolean {
+  if (!text || text.trim().length < 50) return false;
+  return !hasRepetitionOrHallucination(text);
+}
+
+// ---------------------------------------------------------------------------
+// Translation AI functions
+// ---------------------------------------------------------------------------
+
 /** Translate a single text using m2m100 (fast, purpose-built translator) — with retry */
 async function m2m100Translate(
   ai: Ai,
@@ -841,7 +884,7 @@ async function m2m100Translate(
   return null;
 }
 
-/** Translate using Llama 3.1 8B (better quality for Arabic) — with retry */
+/** Translate using Llama 3.1 8B — with retry and JSON extraction */
 async function llamaTranslate(
   ai: Ai,
   title: string,
@@ -859,15 +902,12 @@ async function llamaTranslate(
           { role: "system", content: `You are a professional sports translator. Translate accurately into ${langName}. Output ONLY valid JSON.` },
           { role: "user", content: prompt },
         ],
-        max_tokens: 512,
+        max_tokens: 768,
       });
       const text = (result as { response?: string }).response?.trim();
       if (!text) { continue; }
-      // Try multiple JSON extraction strategies
       let jsonStr = text;
-      // Strip markdown fences
       jsonStr = jsonStr.replace(/^```json?\s*/i, "").replace(/\s*```$/, "");
-      // Try to find JSON object in the response
       const jsonMatch = jsonStr.match(/\{[\s\S]*"title"[\s\S]*"summary"[\s\S]*\}/);
       if (jsonMatch) jsonStr = jsonMatch[0];
       const parsed = JSON.parse(jsonStr) as { title: string; summary: string };
@@ -880,7 +920,7 @@ async function llamaTranslate(
   return null;
 }
 
-/** Hybrid translate: m2m100 for all languages (purpose-built translator), Llama as fallback */
+/** Hybrid translate with quality validation: m2m100 for longer text, Llama for short text or fallback */
 async function aiTranslate(
   ai: Ai,
   title: string,
@@ -888,24 +928,39 @@ async function aiTranslate(
   targetLang: string,
   sourceLang: string = "en",
 ): Promise<{ title: string; summary: string } | null> {
-  // m2m100 for all languages — it's a dedicated translation model with better quality
+  const wordCount = (title + " " + summary).split(/\s+/).length;
+
+  // Short text (<25 words): m2m100 hallucinates, use Llama directly
+  if (wordCount < 25) {
+    return llamaTranslate(ai, title, summary, targetLang);
+  }
+
+  // Normal: m2m100 first with quality validation, Llama fallback
   const [tTitle, tSummary] = await Promise.all([
     m2m100Translate(ai, title, sourceLang, targetLang),
     m2m100Translate(ai, summary, sourceLang, targetLang),
   ]);
-  if (tTitle && tSummary) return { title: tTitle, summary: tSummary };
-  // Fallback to Llama if m2m100 fails
+  if (tTitle && tSummary
+      && validateTranslation(title, tTitle)
+      && validateTranslation(summary, tSummary)) {
+    return { title: tTitle, summary: tSummary };
+  }
+
+  // m2m100 failed or produced garbage — fallback to Llama
   return llamaTranslate(ai, title, summary, targetLang);
 }
 
-/** Translate an article into missing languages and merge with existing translations */
-/** Translation entry — title + summary always, full_content when available */
+// ---------------------------------------------------------------------------
+// Translation entry & article translation
+// ---------------------------------------------------------------------------
+
 interface TranslationEntry {
   title: string;
   summary: string;
   full_content?: string;
 }
 
+/** Translate an article into missing languages and save to Supabase */
 async function translateArticleMissing(
   env: Env,
   articleId: string,
@@ -913,45 +968,39 @@ async function translateArticleMissing(
   summary: string,
   originalLang: string,
   existingTranslations: Record<string, TranslationEntry> | null,
-  fullContent?: string | null,
+  aiSummary?: string | null,
 ): Promise<{ translated: number; failed: number }> {
   const translations: Record<string, TranslationEntry> = {
     ...(existingTranslations ?? {}),
   };
 
-  // Original language doesn't need translation
-  translations[originalLang] = { title, summary, ...(fullContent ? { full_content: fullContent } : {}) };
+  // Use AI summary for translation when available (richer context = better translation)
+  const textToTranslate = aiSummary || summary;
 
-  // Find which languages are missing title+summary translation
-  const missing = SUPPORTED_LANGS.filter((l) => {
-    if (!translations[l]) return true;
-    return false;
-  });
+  // Original language entry
+  translations[originalLang] = { title, summary: textToTranslate };
+
+  const missing = SUPPORTED_LANGS.filter((l) => !translations[l]);
   if (missing.length === 0) return { translated: 0, failed: 0 };
 
-  // Translate missing languages — sequentially for reliability, with delay between calls
   let translated = 0;
   let failed = 0;
   for (const lang of missing) {
-    // Translate title + summary
-    const result = await aiTranslate(env.AI, title, summary, lang, originalLang);
+    const result = await aiTranslate(env.AI, title, textToTranslate, lang, originalLang);
     if (result) {
-      const entry: TranslationEntry = { title: result.title, summary: result.summary };
-      // Note: full_content translation skipped — too expensive (15KB × 19 chunks × 5 langs).
-      // Full article text displays in original language; title+summary are translated.
-      translations[lang] = entry;
+      translations[lang] = { title: result.title, summary: result.summary };
       translated++;
     } else {
       failed++;
       console.warn(`Translation failed: article=${articleId} lang=${lang}`);
     }
-    // Small delay between translations to avoid rate limiting
+    // Small delay between calls
     if (missing.indexOf(lang) < missing.length - 1) {
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 200));
     }
   }
 
-  // Save all translations (merged) to Supabase — always save even partial progress
+  // Save merged translations
   const res = await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${articleId}`, {
     method: "PATCH",
     headers: {
@@ -1031,173 +1080,245 @@ async function insertArticles(
   }
 }
 
-/** News cron: fetch RSS, store raw, AI-rewrite top picks */
-async function handleNewsCron(env: Env): Promise<void> {
+// ---------------------------------------------------------------------------
+// News pipeline — 4 phases, one per cron tick (each gets full 30s budget)
+// Phase 0: RSS fetch + insert + expire old articles
+// Phase 1: Scrape full_content for articles missing it
+// Phase 2: AI summarize (Llama generates 3-5 sentence summary from full_content)
+// Phase 3: Translate title + AI summary into 6 languages
+// ---------------------------------------------------------------------------
+
+/** Title similarity check — Jaccard on normalized words, threshold 0.65 */
+function isSimilarTitle(a: string, b: string): boolean {
+  const normalize = (s: string) => s.toLowerCase().replace(/[^\w\s]/g, "").split(/\s+/).filter((w) => w.length > 2);
+  const wordsA = new Set(normalize(a));
+  const wordsB = new Set(normalize(b));
+  if (wordsA.size === 0 || wordsB.size === 0) return false;
+  let intersection = 0;
+  for (const w of wordsA) { if (wordsB.has(w)) intersection++; }
+  const union = wordsA.size + wordsB.size - intersection;
+  return union > 0 && intersection / union > 0.65;
+}
+
+/** Supabase helper — common headers */
+function sbHeaders(key: string): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    apikey: key,
+    Authorization: `Bearer ${key}`,
+  };
+}
+
+/** Phase 0: Fetch RSS feeds, deduplicate, insert, expire old articles */
+async function newsPhaseRSS(env: Env): Promise<void> {
+  console.log("News phase 0: RSS fetch + insert");
+
+  const allArticles = await fetchAllFeeds();
+  if (!allArticles.length) return;
+  console.log(`News phase 0: fetched ${allArticles.length} articles from RSS`);
+
+  // Deduplicate by URL
+  const seen = new Set<string>();
+  const unique = allArticles.filter((a) => {
+    if (seen.has(a.link)) return false;
+    seen.add(a.link);
+    return true;
+  });
+
+  // Title-similarity dedup: fetch recent titles from DB
+  let recentTitles: string[] = [];
   try {
-    console.log("News cron: starting RSS fetch...");
-
-    // 1. Fetch all RSS feeds
-    const allArticles = await fetchAllFeeds();
-    console.log(`News cron: fetched ${allArticles.length} articles from RSS`);
-
-    if (!allArticles.length) return;
-
-    // 2. Deduplicate by link (source URL)
-    const seen = new Set<string>();
-    const unique = allArticles.filter((a) => {
-      if (seen.has(a.link)) return false;
-      seen.add(a.link);
-      return true;
-    });
-
-    // 3. Prepare raw articles for insert (not AI-rewritten)
-    const rawArticles = unique.map((a) => {
-      const combinedText = `${a.title} ${a.description}`;
-      return {
-        slug: slugify(a.title) + "-" + Date.now().toString(36).slice(-4),
-        title: a.title,
-        summary: a.description || a.title,
-        source_name: a.sourceName,
-        source_url: a.link,
-        image_url: a.imageUrl,
-        language: a.language,
-        competition_id: detectCompetition(combinedText) ?? SOURCE_COMPETITION_HINT[a.sourceName] ?? null,
-        team_tags: detectTeamTags(combinedText),
-        is_featured: false,
-        published_at: (() => { try { return new Date(a.pubDate).toISOString(); } catch { return new Date().toISOString(); } })(),
-      };
-    });
-
-    // 4. Insert all raw articles into Supabase
-    // Batch in groups of 25 to avoid payload limits
-    for (let i = 0; i < rawArticles.length; i += 25) {
-      await insertArticles(env, rawArticles.slice(i, i + 25));
+    const recentRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/yc_articles?order=published_at.desc&limit=200&select=title`,
+      { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}` } },
+    );
+    if (recentRes.ok) {
+      recentTitles = ((await recentRes.json()) as Array<{ title: string }>).map((r) => r.title);
     }
-    console.log(`News cron: inserted ${rawArticles.length} raw articles`);
+  } catch { /* ignore */ }
 
-    // 4b. Scrape full article content for articles that don't have it yet (limit 5 to leave CPU for translations)
-    const scrapeRes = await fetch(
-      `${env.SUPABASE_URL}/rest/v1/yc_articles?full_content=is.null&order=published_at.desc&limit=5&select=id,source_url`,
-      {
-        headers: {
-          apikey: env.SUPABASE_SERVICE_KEY,
-          Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
-        },
-      },
-    );
+  const deduped = unique.filter((a) => !recentTitles.some((t) => isSimilarTitle(a.title, t)));
+  console.log(`News phase 0: ${unique.length} unique, ${deduped.length} after title-dedup`);
 
-    if (scrapeRes.ok) {
-      const toScrape = (await scrapeRes.json()) as Array<{ id: string; source_url: string }>;
-      console.log(`News cron: ${toScrape.length} articles need full content scraping`);
+  // Prepare articles for insert
+  const rawArticles = deduped.map((a) => {
+    const combinedText = `${a.title} ${a.description}`;
+    return {
+      slug: slugify(a.title) + "-" + Date.now().toString(36).slice(-4),
+      title: a.title,
+      summary: a.description || "",
+      source_name: a.sourceName,
+      source_url: a.link,
+      image_url: a.imageUrl,
+      language: a.language,
+      competition_id: detectCompetition(combinedText) ?? SOURCE_COMPETITION_HINT[a.sourceName] ?? null,
+      team_tags: detectTeamTags(combinedText),
+      is_featured: false,
+      published_at: (() => { try { return new Date(a.pubDate).toISOString(); } catch { return new Date().toISOString(); } })(),
+    };
+  });
 
-      let scraped = 0;
-      for (const row of toScrape) {
-        const fullText = await scrapeArticleText(row.source_url);
-        // Save full_content (even empty string to mark as attempted, so we don't retry)
-        await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${row.id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: env.SUPABASE_SERVICE_KEY,
-            Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
-          },
-          body: JSON.stringify({ full_content: fullText ?? "" }),
-        });
-        if (fullText && fullText.length > 100) scraped++;
-      }
-      console.log(`News cron: scraped ${scraped}/${toScrape.length} full articles`);
+  // Insert in batches of 25
+  for (let i = 0; i < rawArticles.length; i += 25) {
+    await insertArticles(env, rawArticles.slice(i, i + 25));
+  }
+  console.log(`News phase 0: inserted up to ${rawArticles.length} articles`);
+
+  // Expire articles older than 30 days
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+  await fetch(
+    `${env.SUPABASE_URL}/rest/v1/yc_articles?published_at=lt.${thirtyDaysAgo}`,
+    { method: "DELETE", headers: sbHeaders(env.SUPABASE_SERVICE_KEY) },
+  );
+}
+
+/** Phase 1: Scrape full_content for articles that don't have it yet */
+async function newsPhaseScrape(env: Env): Promise<void> {
+  console.log("News phase 1: scrape full content");
+
+  const res = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/yc_articles?full_content=is.null&scrape_failures=lt.3&order=published_at.desc&limit=10&select=id,source_url,scrape_failures`,
+    { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}` } },
+  );
+  if (!res.ok) return;
+
+  const toScrape = (await res.json()) as Array<{ id: string; source_url: string; scrape_failures: number }>;
+  console.log(`News phase 1: ${toScrape.length} articles to scrape`);
+
+  let scraped = 0;
+  for (const row of toScrape) {
+    const fullText = await scrapeArticleText(row.source_url);
+    if (fullText && fullText.length > 100) {
+      // Success: save content
+      await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${row.id}`, {
+        method: "PATCH",
+        headers: sbHeaders(env.SUPABASE_SERVICE_KEY),
+        body: JSON.stringify({ full_content: fullText }),
+      });
+      scraped++;
+    } else {
+      // Failure: increment counter (will retry until 3 failures)
+      await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${row.id}`, {
+        method: "PATCH",
+        headers: sbHeaders(env.SUPABASE_SERVICE_KEY),
+        body: JSON.stringify({ scrape_failures: (row.scrape_failures ?? 0) + 1 }),
+      });
     }
+  }
+  console.log(`News phase 1: scraped ${scraped}/${toScrape.length}`);
+}
 
-    // 5. Translate articles — both brand-new (NULL) and incomplete (missing languages)
-    // Phase A: articles with no translations at all
-    const nullRes = await fetch(
-      `${env.SUPABASE_URL}/rest/v1/yc_articles?translations=is.null&order=published_at.desc&limit=50&select=id,title,summary,language,is_featured,translations,full_content`,
-      {
-        headers: {
-          apikey: env.SUPABASE_SERVICE_KEY,
-          Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
-        },
-      },
-    );
+/** Phase 2: AI summarize — use Llama to generate 3-5 sentence summary from full_content */
+async function newsPhaseSummarize(env: Env): Promise<void> {
+  console.log("News phase 2: AI summarize");
 
-    // Phase B: articles with partial translations (have translations but less than 6 keys)
-    // Use RPC or filter for articles that exist but aren't complete
-    const partialRes = await fetch(
-      `${env.SUPABASE_URL}/rest/v1/yc_articles?translations=not.is.null&order=published_at.desc&limit=200&select=id,title,summary,language,is_featured,translations,full_content`,
-      {
-        headers: {
-          apikey: env.SUPABASE_SERVICE_KEY,
-          Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
-        },
-      },
-    );
+  const res = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/yc_articles?full_content=not.is.null&full_content=neq.&ai_summary=is.null&order=published_at.desc&limit=3&select=id,title,full_content,language`,
+    { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}` } },
+  );
+  if (!res.ok) return;
 
-    const nullArticles = nullRes.ok ? ((await nullRes.json()) as Array<{
-      id: string; title: string; summary: string;
-      language: string; is_featured: boolean;
-      translations: Record<string, TranslationEntry> | null;
-      full_content: string | null;
-    }>) : [];
+  const articles = (await res.json()) as Array<{ id: string; title: string; full_content: string; language: string }>;
+  console.log(`News phase 2: ${articles.length} articles to summarize`);
 
-    const partialArticlesRaw = partialRes.ok ? ((await partialRes.json()) as Array<{
-      id: string; title: string; summary: string;
-      language: string; is_featured: boolean;
-      translations: Record<string, TranslationEntry> | null;
-      full_content: string | null;
-    }>) : [];
+  let summarized = 0;
+  for (const article of articles) {
+    const excerpt = article.full_content.slice(0, 3000);
+    const langName = LANG_NAMES[article.language] ?? "English";
 
-    // Filter to only articles missing at least one language
-    const partialArticles = partialArticlesRaw.filter((a) => {
-      const langCount = a.translations ? Object.keys(a.translations).length : 0;
-      return langCount < SUPPORTED_LANGS.length;
-    });
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (env.AI as any).run("@cf/meta/llama-3.1-8b-instruct", {
+        messages: [
+          { role: "system", content: `You are a sports journalist. Write a concise summary in ${langName}. Output ONLY the summary text, no commentary or labels.` },
+          { role: "user", content: `Summarize this football article in 3-5 sentences. Be factual and specific. Include key names, scores, and events.\n\nTitle: ${article.title}\n\nArticle:\n${excerpt}` },
+        ],
+        max_tokens: 400,
+      });
 
-    // Cap per cron run to avoid CPU timeout (Worker free tier = 30s).
-    // Prioritize new (null) articles, then oldest partial ones.
-    const MAX_PER_CRON = 10;
-    const allNeedWork = [...nullArticles, ...partialArticles].slice(0, MAX_PER_CRON);
-    console.log(`News cron: ${nullArticles.length} untranslated + ${partialArticles.length} partial — processing ${allNeedWork.length} this run`);
-
-    if (allNeedWork.length > 0) {
-      // Mark top 8 new articles (by recency with description) as featured
-      const featuredIds = new Set(
-        nullArticles
-          .filter((a) => a.summary.length > 80)
-          .slice(0, 8)
-          .map((a) => a.id),
-      );
-
-      let totalTranslated = 0;
-      let totalFailed = 0;
-
-      for (const row of allNeedWork) {
-        // Mark as featured if in top 8
-        if (featuredIds.has(row.id) && !row.is_featured) {
-          await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${row.id}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              apikey: env.SUPABASE_SERVICE_KEY,
-              Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
-            },
-            body: JSON.stringify({ is_featured: true }),
-          });
-        }
-
-        const { translated, failed } = await translateArticleMissing(
-          env, row.id, row.title, row.summary, row.language, row.translations, row.full_content,
-        );
-        totalTranslated += translated;
-        totalFailed += failed;
-
-        const existing = row.translations ? Object.keys(row.translations).length : 0;
-        console.log(`News cron: ${row.id} — had ${existing} langs, added ${translated}, failed ${failed} — "${row.title.slice(0, 40)}..."`);
+      const summary = (result as { response?: string }).response?.trim();
+      if (!summary || summary.length < 50 || summary.length > 800) {
+        console.warn(`News phase 2: bad summary length for ${article.id}: ${summary?.length ?? 0}`);
+        continue;
       }
 
-      console.log(`News cron: translation complete — ${totalTranslated} succeeded, ${totalFailed} failed across ${allNeedWork.length} articles`);
+      // Validate: check for repetition and hallucination
+      if (!validateSummary(summary)) {
+        console.warn(`News phase 2: summary failed validation for ${article.id}`);
+        continue;
+      }
+
+      await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${article.id}`, {
+        method: "PATCH",
+        headers: sbHeaders(env.SUPABASE_SERVICE_KEY),
+        body: JSON.stringify({ ai_summary: summary, is_featured: true }),
+      });
+      summarized++;
+      console.log(`News phase 2: summarized ${article.id} — "${article.title.slice(0, 40)}..."`);
+    } catch (err) {
+      console.warn(`News phase 2: Llama failed for ${article.id}: ${err}`);
+    }
+  }
+  console.log(`News phase 2: summarized ${summarized}/${articles.length}`);
+}
+
+/** Phase 3: Translate title + AI summary into all supported languages */
+async function newsPhaseTranslate(env: Env): Promise<void> {
+  console.log("News phase 3: translate");
+
+  // Fetch untranslated articles (NULL translations)
+  const nullRes = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/yc_articles?translations=is.null&order=published_at.desc&limit=50&select=id,title,summary,ai_summary,language,translations`,
+    { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}` } },
+  );
+
+  // Fetch partially translated articles
+  const partialRes = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/yc_articles?translations=not.is.null&order=published_at.desc&limit=200&select=id,title,summary,ai_summary,language,translations`,
+    { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}` } },
+  );
+
+  type TranslateRow = {
+    id: string; title: string; summary: string; ai_summary: string | null;
+    language: string; translations: Record<string, TranslationEntry> | null;
+  };
+
+  const nullArticles = nullRes.ok ? ((await nullRes.json()) as TranslateRow[]) : [];
+  const partialRaw = partialRes.ok ? ((await partialRes.json()) as TranslateRow[]) : [];
+  const partialArticles = partialRaw.filter((a) => {
+    const langCount = a.translations ? Object.keys(a.translations).length : 0;
+    return langCount < SUPPORTED_LANGS.length;
+  });
+
+  const allNeedWork = [...nullArticles, ...partialArticles].slice(0, 8);
+  console.log(`News phase 3: ${nullArticles.length} untranslated + ${partialArticles.length} partial — processing ${allNeedWork.length}`);
+
+  let totalTranslated = 0;
+  let totalFailed = 0;
+
+  for (const row of allNeedWork) {
+    const { translated, failed } = await translateArticleMissing(
+      env, row.id, row.title, row.summary, row.language, row.translations, row.ai_summary,
+    );
+    totalTranslated += translated;
+    totalFailed += failed;
+  }
+
+  console.log(`News phase 3: ${totalTranslated} translated, ${totalFailed} failed across ${allNeedWork.length} articles`);
+}
+
+/** News phase dispatcher */
+async function handleNewsPhase(env: Env, phase: number): Promise<void> {
+  try {
+    switch (phase) {
+      case 0: return await newsPhaseRSS(env);
+      case 1: return await newsPhaseScrape(env);
+      case 2: return await newsPhaseSummarize(env);
+      case 3: return await newsPhaseTranslate(env);
+      default: return await newsPhaseRSS(env);
     }
   } catch (err) {
-    console.error("News cron failed:", err);
+    console.error(`News phase ${phase} failed:`, err);
   }
 }
 
@@ -1379,10 +1500,15 @@ async function handleCron(env: Env): Promise<void> {
     }
 
     // -----------------------------------------------------------------------
-    // Every 48th tick (~4 hours): fetch RSS news, AI-rewrite top picks
+    // Every 12th tick (~1 hour): run one news phase (cycles 0-3)
+    // Full cycle = 48 ticks = ~4 hours (same cadence, 4x CPU per phase)
     // -----------------------------------------------------------------------
-    if (tick % 48 === 0) {
-      await handleNewsCron(env);
+    if (tick % 12 === 0) {
+      const phaseStr = await env.SCORES_KV.get("news:phase");
+      const phase = phaseStr ? parseInt(phaseStr, 10) : 0;
+      console.log(`Cron: running news phase ${phase}`);
+      await handleNewsPhase(env, phase % 4);
+      await kvPut(env.SCORES_KV, "news:phase", String((phase + 1) % 4));
     }
 
     // Record last successful poll
@@ -1484,9 +1610,17 @@ app.get("/api/admin/trigger-news", async (c) => {
   if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
     return c.json({ error: "Unauthorized" }, 401);
   }
+  const phase = c.req.query("phase");
   try {
-    await handleNewsCron(c.env);
-    return c.json({ status: "ok", message: "News cron triggered" });
+    if (phase !== undefined) {
+      await handleNewsPhase(c.env, parseInt(phase, 10));
+      return c.json({ status: "ok", message: `News phase ${phase} triggered` });
+    }
+    // Run all 4 phases sequentially
+    for (let p = 0; p < 4; p++) {
+      await handleNewsPhase(c.env, p);
+    }
+    return c.json({ status: "ok", message: "All 4 news phases completed" });
   } catch (err) {
     return c.json({ status: "error", message: String(err) }, 500);
   }
@@ -1502,39 +1636,33 @@ app.get("/api/admin/backfill-scrape", async (c) => {
   const limit = parseInt(c.req.query("limit") ?? "20", 10);
   const offset = parseInt(c.req.query("offset") ?? "0", 10);
 
-  // Fetch articles that still need scraping
   const res = await fetch(
-    `${c.env.SUPABASE_URL}/rest/v1/yc_articles?full_content=is.null&order=published_at.desc&limit=${limit}&offset=${offset}&select=id,source_url,source_name`,
-    {
-      headers: {
-        apikey: c.env.SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${c.env.SUPABASE_SERVICE_KEY}`,
-      },
-    },
+    `${c.env.SUPABASE_URL}/rest/v1/yc_articles?full_content=is.null&scrape_failures=lt.3&order=published_at.desc&limit=${limit}&offset=${offset}&select=id,source_url,source_name,scrape_failures`,
+    { headers: { apikey: c.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${c.env.SUPABASE_SERVICE_KEY}` } },
   );
-
   if (!res.ok) return c.json({ error: "Failed to fetch articles" }, 500);
 
-  const articles = (await res.json()) as Array<{ id: string; source_url: string; source_name: string }>;
+  const articles = (await res.json()) as Array<{ id: string; source_url: string; source_name: string; scrape_failures: number }>;
   let scraped = 0;
   let failed = 0;
   const results: Array<{ source: string; len: number }> = [];
 
   for (const row of articles) {
     const fullText = await scrapeArticleText(row.source_url);
-    await fetch(`${c.env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${row.id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: c.env.SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${c.env.SUPABASE_SERVICE_KEY}`,
-      },
-      body: JSON.stringify({ full_content: fullText ?? "" }),
-    });
     if (fullText && fullText.length > 100) {
+      await fetch(`${c.env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${row.id}`, {
+        method: "PATCH",
+        headers: sbHeaders(c.env.SUPABASE_SERVICE_KEY),
+        body: JSON.stringify({ full_content: fullText }),
+      });
       scraped++;
       results.push({ source: row.source_name, len: fullText.length });
     } else {
+      await fetch(`${c.env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${row.id}`, {
+        method: "PATCH",
+        headers: sbHeaders(c.env.SUPABASE_SERVICE_KEY),
+        body: JSON.stringify({ scrape_failures: (row.scrape_failures ?? 0) + 1 }),
+      });
       failed++;
     }
   }
@@ -1542,51 +1670,91 @@ app.get("/api/admin/backfill-scrape", async (c) => {
   return c.json({ status: "ok", checked: articles.length, scraped, failed, results });
 });
 
-// Admin: backfill missing translations for all articles
-app.get("/api/admin/backfill-translations", async (c) => {
+// Admin: backfill AI summaries
+app.get("/api/admin/backfill-summarize", async (c) => {
+  const key = c.req.query("key");
+  if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const limit = parseInt(c.req.query("limit") ?? "10", 10);
+  const offset = parseInt(c.req.query("offset") ?? "0", 10);
+
+  const res = await fetch(
+    `${c.env.SUPABASE_URL}/rest/v1/yc_articles?full_content=not.is.null&full_content=neq.&ai_summary=is.null&order=published_at.desc&limit=${limit}&offset=${offset}&select=id,title,full_content,language`,
+    { headers: { apikey: c.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${c.env.SUPABASE_SERVICE_KEY}` } },
+  );
+  if (!res.ok) return c.json({ error: "Failed to fetch articles" }, 500);
+
+  const articles = (await res.json()) as Array<{ id: string; title: string; full_content: string; language: string }>;
+  let summarized = 0;
+  let failed = 0;
+
+  for (const article of articles) {
+    const excerpt = article.full_content.slice(0, 3000);
+    const langName = LANG_NAMES[article.language] ?? "English";
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (c.env.AI as any).run("@cf/meta/llama-3.1-8b-instruct", {
+        messages: [
+          { role: "system", content: `You are a sports journalist. Write a concise summary in ${langName}. Output ONLY the summary text, no commentary or labels.` },
+          { role: "user", content: `Summarize this football article in 3-5 sentences. Be factual and specific. Include key names, scores, and events.\n\nTitle: ${article.title}\n\nArticle:\n${excerpt}` },
+        ],
+        max_tokens: 400,
+      });
+      const summary = (result as { response?: string }).response?.trim();
+      if (summary && summary.length >= 50 && summary.length <= 800 && validateSummary(summary)) {
+        await fetch(`${c.env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${article.id}`, {
+          method: "PATCH",
+          headers: sbHeaders(c.env.SUPABASE_SERVICE_KEY),
+          body: JSON.stringify({ ai_summary: summary, is_featured: true }),
+        });
+        summarized++;
+      } else {
+        failed++;
+      }
+    } catch {
+      failed++;
+    }
+  }
+
+  return c.json({ status: "ok", checked: articles.length, summarized, failed });
+});
+
+// Admin: backfill missing translations
+app.get("/api/admin/backfill-translate", async (c) => {
   const key = c.req.query("key");
   if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
   const limit = parseInt(c.req.query("limit") ?? "200", 10);
-  const maxTranslate = parseInt(c.req.query("max") ?? "5", 10); // cap actual translations to avoid CPU timeout
+  const maxTranslate = parseInt(c.req.query("max") ?? "5", 10);
   const offset = parseInt(c.req.query("offset") ?? "0", 10);
 
-  // Fetch articles (up to limit) — use offset for paging through older articles
   const res = await fetch(
-    `${c.env.SUPABASE_URL}/rest/v1/yc_articles?order=published_at.desc&limit=${limit}&offset=${offset}&select=id,title,summary,language,translations,full_content`,
-    {
-      headers: {
-        apikey: c.env.SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${c.env.SUPABASE_SERVICE_KEY}`,
-      },
-    },
+    `${c.env.SUPABASE_URL}/rest/v1/yc_articles?order=published_at.desc&limit=${limit}&offset=${offset}&select=id,title,summary,ai_summary,language,translations`,
+    { headers: { apikey: c.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${c.env.SUPABASE_SERVICE_KEY}` } },
   );
-
   if (!res.ok) return c.json({ error: "Failed to fetch articles" }, 500);
 
   const articles = (await res.json()) as Array<{
-    id: string; title: string; summary: string; language: string;
-    translations: Record<string, TranslationEntry> | null;
-    full_content: string | null;
+    id: string; title: string; summary: string; ai_summary: string | null;
+    language: string; translations: Record<string, TranslationEntry> | null;
   }>;
 
-  // Filter to articles missing at least one language
   const incomplete = articles.filter((a) => {
     const langCount = a.translations ? Object.keys(a.translations).length : 0;
     return langCount < SUPPORTED_LANGS.length;
   });
 
-  // Only translate up to maxTranslate to stay within Worker CPU limits
   const toProcess = incomplete.slice(0, maxTranslate);
-
   let totalTranslated = 0;
   let totalFailed = 0;
 
   for (const row of toProcess) {
     const { translated, failed } = await translateArticleMissing(
-      c.env, row.id, row.title, row.summary, row.language, row.translations, row.full_content,
+      c.env, row.id, row.title, row.summary, row.language, row.translations, row.ai_summary,
     );
     totalTranslated += translated;
     totalFailed += failed;
@@ -2075,7 +2243,9 @@ interface ArticleRow {
   slug: string;
   title: string;
   summary: string;
+  ai_summary: string | null;
   full_content: string | null;
+  scrape_failures: number;
   source_name: string;
   source_url: string;
   image_url: string | null;
@@ -2165,11 +2335,14 @@ async function fetchArticles(
   const countHeader = res.headers.get("content-range");
   const count = countHeader ? parseInt(countHeader.split("/")[1] ?? "0", 10) : rows.length;
 
+  // Enrich: prefer ai_summary over raw RSS summary for display
+  const enriched = rows.map((r) => ({ ...r, summary: r.ai_summary || r.summary }));
+
   // Apply translations if target language specified
   const targetLang = params.targetLang;
   const data = targetLang
-    ? rows.map((r) => applyTranslation(r, targetLang))
-    : rows.map((r) => ({ ...r, translated: false, original_language: r.language }));
+    ? enriched.map((r) => applyTranslation(r, targetLang))
+    : enriched.map((r) => ({ ...r, translated: false, original_language: r.language }));
 
   return { data, count };
 }
@@ -2222,8 +2395,9 @@ app.get("/api/news/:slug/translate", async (c) => {
     return c.json({ title: existing.title, summary: existing.summary, cached: true });
   }
 
-  // Translate on demand (hybrid: m2m100 for EU, Llama for Arabic)
-  const translated = await aiTranslate(c.env.AI, article.title, article.summary, lang, article.language);
+  // Translate on demand — use ai_summary when available for richer translation
+  const summaryText = (article as ArticleRow).ai_summary || article.summary;
+  const translated = await aiTranslate(c.env.AI, article.title, summaryText, lang, article.language);
   if (!translated) {
     return c.json({ error: "Translation failed" }, 500);
   }
