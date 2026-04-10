@@ -71,6 +71,8 @@
   "predictions.remaining": "{count} restante",
   "predictions.bestStreak": "Mejor racha: {count}",
   "predictions.bold": "AUDAZ",
+  "predictions.copyLastMd": "Copiar de la jornada anterior",
+  "predictions.copying": "Copiando...",
   "predictions.signInTitle": "Inicia sesión para predecir",
   "predictions.signInDesc": "Predice resultados de partidos y compite con tus amigos en la clasificación.",
   "predictions.nudge": "Tienes {count} partido próximo sin predicción.",

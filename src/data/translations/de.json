@@ -71,6 +71,8 @@
   "predictions.remaining": "{count} übrig",
   "predictions.bestStreak": "Beste Serie: {count}",
   "predictions.bold": "MUTIG",
+  "predictions.copyLastMd": "Vom letzten Spieltag kopieren",
+  "predictions.copying": "Kopiere...",
   "predictions.signInTitle": "Anmelden zum Tippen",
   "predictions.signInDesc": "Tippe Spielergebnisse und tritt gegen Freunde in der Rangliste an.",
   "predictions.nudge": "Du hast {count} bevorstehendes Spiel ohne Tipp.",

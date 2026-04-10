@@ -71,6 +71,8 @@
   "predictions.remaining": "{count} restante",
   "predictions.bestStreak": "Melhor sequência: {count}",
   "predictions.bold": "OUSADO",
+  "predictions.copyLastMd": "Copiar da rodada anterior",
+  "predictions.copying": "Copiando...",
   "predictions.signInTitle": "Entre para dar palpites",
   "predictions.signInDesc": "Dê seus palpites nos placares e dispute com seus amigos na classificação.",
   "predictions.nudge": "Você tem {count} jogo próximo sem palpite.",

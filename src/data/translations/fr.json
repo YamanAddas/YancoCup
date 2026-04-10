@@ -71,6 +71,8 @@
   "predictions.remaining": "{count} restant(s)",
   "predictions.bestStreak": "Meilleure série: {count}",
   "predictions.bold": "AUDACE",
+  "predictions.copyLastMd": "Copier la journée précédente",
+  "predictions.copying": "Copie en cours...",
   "predictions.signInTitle": "Connectez-vous pour pronostiquer",
   "predictions.signInDesc": "Pronostiquez les scores des matchs et affrontez vos amis au classement.",
   "predictions.nudge": "Vous avez {count} match à venir sans pronostic.",

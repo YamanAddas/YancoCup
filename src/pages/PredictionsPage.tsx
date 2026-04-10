@@ -9,11 +9,14 @@ import { useVenueMap } from "../hooks/useVenues";
 import {
   usePredictionCounts,
   canPredict,
+  upsertPrediction,
+  upsertQuickPrediction,
 } from "../hooks/usePredictions";
+import { supabase } from "../lib/supabase";
 import { useAutoScore } from "../hooks/useAutoScore";
 import PredictionCard from "../components/predictions/PredictionCard";
 import HowToPlay from "../components/predictions/HowToPlay";
-import { LogIn, AlertCircle, ChevronLeft, ChevronRight, CheckCircle, Clock, Flame } from "lucide-react";
+import { LogIn, AlertCircle, ChevronLeft, ChevronRight, CheckCircle, Clock, Flame, Copy } from "lucide-react";
 import { fetchStreak } from "../lib/badges";
 
 export default function PredictionsPage() {
@@ -30,13 +33,6 @@ export default function PredictionsPage() {
     () => new Map(predictions.map((p) => [p.match_id, p])),
     [predictions],
   );
-
-  // Streak counter
-  const [streak, setStreak] = useState<{ current_streak: number; best_streak: number } | null>(null);
-  useEffect(() => {
-    if (!user) return;
-    fetchStreak(user.id, comp.id).then((s) => setStreak(s));
-  }, [user, comp.id]);
 
   // For leagues: matchday-based navigation + quick mode toggle
   const isLeague = comp.type === "league";
@@ -110,6 +106,59 @@ export default function PredictionsPage() {
     },
     [allMatches, predictionMap],
   );
+
+  // Streak counter
+  const [streak, setStreak] = useState<{ current_streak: number; best_streak: number } | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    fetchStreak(user.id, comp.id).then((s) => setStreak(s));
+  }, [user, comp.id]);
+
+  // Copy last matchday
+  const [copying, setCopying] = useState(false);
+  const handleCopyLastMd = useCallback(async () => {
+    if (!user || !isLeague || selectedMatchday === undefined || copying) return;
+    const prevMd = matchdays[matchdays.indexOf(selectedMatchday) - 1];
+    if (prevMd === undefined) return;
+
+    setCopying(true);
+    const prevMatches = allMatches.filter((m) => m.matchday === prevMd && m.homeTeam && m.awayTeam);
+    const prevIds = prevMatches.map((m) => m.id);
+
+    const { data: prevPreds } = await supabase
+      .from("yc_predictions")
+      .select("match_id, home_score, away_score, quick_pick")
+      .eq("user_id", user.id)
+      .eq("competition_id", comp.id)
+      .in("match_id", prevIds);
+
+    if (!prevPreds || prevPreds.length === 0) { setCopying(false); return; }
+
+    const currentMatches = allMatches.filter(
+      (m) => m.matchday === selectedMatchday && m.homeTeam && m.awayTeam && canPredict(m.date, m.time),
+    );
+
+    let copied = 0;
+    for (const currMatch of currentMatches) {
+      if (predictionMap.has(currMatch.id)) continue;
+      const prevMatch = prevMatches.find(
+        (pm) => pm.homeTeam === currMatch.homeTeam && pm.awayTeam === currMatch.awayTeam,
+      );
+      if (!prevMatch) continue;
+      const pred = prevPreds.find((p) => p.match_id === prevMatch.id);
+      if (!pred) continue;
+
+      if (pred.quick_pick) {
+        await upsertQuickPrediction(user.id, currMatch.id, pred.quick_pick as "H" | "D" | "A", comp.id);
+      } else if (pred.home_score !== null && pred.away_score !== null) {
+        await upsertPrediction(user.id, currMatch.id, pred.home_score, pred.away_score, comp.id);
+      }
+      copied++;
+    }
+
+    if (copied > 0) refresh();
+    setCopying(false);
+  }, [user, isLeague, selectedMatchday, matchdays, allMatches, comp.id, predictionMap, refresh, copying]);
 
   if (authLoading) {
     return (
@@ -236,6 +285,20 @@ export default function PredictionsPage() {
             className="shrink-0 p-1.5 rounded-lg text-yc-text-tertiary hover:text-yc-text-primary hover:bg-yc-bg-elevated transition-colors"
           >
             <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* Copy last matchday button */}
+      {isLeague && selectedMatchday !== undefined && matchdays.indexOf(selectedMatchday) > 0 && unpredicted.length > 0 && (
+        <div className="mb-4">
+          <button
+            onClick={handleCopyLastMd}
+            disabled={copying}
+            className="flex items-center gap-1.5 text-xs text-yc-text-secondary hover:text-yc-green transition-colors disabled:opacity-40"
+          >
+            <Copy size={12} />
+            {copying ? t("predictions.copying") : t("predictions.copyLastMd")}
           </button>
         </div>
       )}
