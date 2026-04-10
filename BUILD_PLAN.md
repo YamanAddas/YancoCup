@@ -92,8 +92,8 @@ These enhance the experience but won't break anything if delayed.
 21. ~~"Copy last matchday" button for leagues~~ DONE
 22. ~~Activity feed reactions (🔥 😂 🤡)~~ DONE
 23. ~~Post-match result display in activity feed~~ DONE
-24. Standings: sortable columns + "if season ended today" banner
-25. User predictions overlay on bracket
+24. ~~Standings: sortable columns + "if season ended today" banner~~ DONE
+25. ~~User predictions overlay on bracket~~ DONE
 26. Watch page: broadcaster lookup by country
 
 ### NICE TO HAVE (post-launch or during tournament)

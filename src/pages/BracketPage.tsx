@@ -5,6 +5,7 @@ import { useCompetition } from "../lib/CompetitionProvider";
 import { useCompetitionSchedule } from "../hooks/useCompetitionSchedule";
 import { useTeamMap } from "../hooks/useTeams";
 import { useScores } from "../hooks/useScores";
+import { useMyPredictions, type Prediction } from "../hooks/usePredictions";
 import TeamCrest from "../components/match/TeamCrest";
 import type { Match, Team } from "../types";
 
@@ -40,11 +41,13 @@ function BracketNode({
   teamMap,
   competitionId,
   liveScore,
+  prediction,
 }: {
   bm: BracketMatch;
   teamMap: Map<string, Team>;
   competitionId: string;
   liveScore?: { status: string; homeScore: number | null; awayScore: number | null };
+  prediction?: Prediction;
 }) {
   const m = bm.match;
   const effectiveStatus = liveScore?.status ?? m.status;
@@ -103,6 +106,32 @@ function BracketNode({
             </span>
           )}
         </div>
+        {/* User prediction overlay */}
+        {prediction && prediction.home_score !== null && prediction.away_score !== null && (
+          <div className="relative z-2 flex items-center justify-center gap-1 py-0.5 bg-yc-green/[0.06] border-t border-yc-green/10">
+            <span className="text-[9px] text-yc-text-tertiary">You:</span>
+            <span className="text-[10px] font-mono font-bold text-yc-green">
+              {prediction.home_score}-{prediction.away_score}
+            </span>
+            {prediction.points !== null && prediction.points !== undefined && (
+              <span className={`text-[9px] font-mono font-bold ${
+                prediction.points >= 10 ? "text-yc-green" :
+                prediction.points > 0 ? "text-yc-warning" :
+                "text-yc-text-tertiary"
+              }`}>
+                +{prediction.points}
+              </span>
+            )}
+          </div>
+        )}
+        {prediction && prediction.quick_pick && prediction.home_score === null && (
+          <div className="relative z-2 flex items-center justify-center gap-1 py-0.5 bg-yc-green/[0.06] border-t border-yc-green/10">
+            <span className="text-[9px] text-yc-text-tertiary">You:</span>
+            <span className="text-[10px] font-mono font-bold text-yc-green">
+              {prediction.quick_pick === "H" ? "Home" : prediction.quick_pick === "A" ? "Away" : "Draw"}
+            </span>
+          </div>
+        )}
       </div>
     </Link>
   );
@@ -166,12 +195,14 @@ function RoundColumn({
   teamMap,
   competitionId,
   scoreMap,
+  predMap,
 }: {
   roundId: RoundId;
   matches: BracketMatch[];
   teamMap: Map<string, Team>;
   competitionId: string;
   scoreMap: Map<number, { status: string; homeScore: number | null; awayScore: number | null }>;
+  predMap: Map<number, Prediction>;
 }) {
   const pairs = groupIntoPairs(matches);
 
@@ -195,6 +226,7 @@ function RoundColumn({
                 teamMap={teamMap}
                 competitionId={competitionId}
                 liveScore={scoreMap.get(bm.match.id)}
+                prediction={predMap.get(bm.match.id)}
               />
             ))}
           </div>
@@ -213,6 +245,12 @@ export default function BracketPage() {
   const { matches } = useCompetitionSchedule();
   const teamMap = useTeamMap();
   const { scoreMap } = useScores();
+  const { predictions } = useMyPredictions(comp.id);
+
+  const predMap = useMemo(
+    () => new Map(predictions.map((p) => [p.match_id, p])),
+    [predictions],
+  );
 
   const roundOrder: RoundId[] = ["playoff", "round-of-32", "round-of-16", "quarterfinal", "semifinal", "final"];
 
@@ -285,6 +323,7 @@ export default function BracketPage() {
                   teamMap={teamMap}
                   competitionId={comp.id}
                   scoreMap={scoreMap}
+                  predMap={predMap}
                 />
 
                 {/* Connector lines to next round */}
