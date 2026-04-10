@@ -244,6 +244,7 @@
   "news.notFound": "Article not found",
   "news.translate": "Translate to English",
   "news.translating": "Translating...",
+  "news.translateError": "Translation failed. Please try again.",
   "news.translatedFrom": "Translated from",
   "news.attribution": "Articles sourced from RSS feeds. AI summaries are auto-generated. Always verify with the original source.",
   "news.aiSummary": "AI Summary",

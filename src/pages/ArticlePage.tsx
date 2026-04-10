@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ExternalLink, Clock, Star, Languages, Newspaper } from "lucide-react";
+import { ArrowLeft, ExternalLink, Clock, Star, Languages, Newspaper, Globe } from "lucide-react";
 import { useI18n } from "../lib/i18n";
-import { fetchArticle, type NewsArticle } from "../lib/api";
+import { fetchArticle, translateArticleOnDemand, type NewsArticle } from "../lib/api";
 import CommentsSection from "../components/comments/CommentsSection";
 
 const LANG_NAMES: Record<string, string> = {
@@ -10,21 +10,57 @@ const LANG_NAMES: Record<string, string> = {
   de: "Deutsch", it: "Italiano", fr: "Français", pt: "Português",
 };
 
-// timeAgo removed — use relTime from useI18n() instead
-
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
   const { t, lang, relTime } = useI18n();
   const [article, setArticle] = useState<NewsArticle | null>(null);
   const [loading, setLoading] = useState(true);
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
+    setTranslateError(false);
     fetchArticle(slug, lang)
       .then((a) => setArticle(a))
       .finally(() => setLoading(false));
   }, [slug, lang]);
+
+  // Show translate button when:
+  // 1. Article is in a different language from user's language
+  // 2. AND either: article has full_content that isn't translated yet, OR article isn't translated at all
+  const isDifferentLang = article && article.original_language !== lang;
+  const hasUntranslatedBody = isDifferentLang && article.has_full_content && !article.full_content;
+  const notTranslatedAtAll = isDifferentLang && !article.translated;
+  const showTranslateButton = hasUntranslatedBody || notTranslatedAtAll;
+
+  async function handleTranslate() {
+    if (!article || !slug) return;
+    setTranslating(true);
+    setTranslateError(false);
+    try {
+      const result = await translateArticleOnDemand(slug, lang);
+      if (result) {
+        setArticle({
+          ...article,
+          title: result.title,
+          summary: result.summary,
+          full_content: result.full_content,
+          translated: true,
+          // If full_content came back null despite existing, AI quota may be exhausted
+          // Mark has_full_content false so button doesn't re-appear in a loop
+          has_full_content: !!result.full_content,
+        });
+      } else {
+        setTranslateError(true);
+      }
+    } catch {
+      setTranslateError(true);
+    } finally {
+      setTranslating(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -111,6 +147,21 @@ export default function ArticlePage() {
         </span>
       </div>
 
+      {/* Translate button — shown when article needs translation */}
+      {showTranslateButton && (
+        <button
+          onClick={handleTranslate}
+          disabled={translating}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--yc-accent-dim)] border border-yc-green-muted text-sm text-yc-green hover:bg-yc-green/10 transition-colors disabled:opacity-50 disabled:cursor-wait"
+        >
+          <Globe size={16} className={translating ? "animate-spin" : ""} />
+          {translating ? t("news.translating") : t("news.translate")}
+        </button>
+      )}
+      {translateError && (
+        <p className="text-sm text-red-400">{t("news.translateError")}</p>
+      )}
+
       {/* Image */}
       {article.image_url && (
         <div className="rounded-xl overflow-hidden">
@@ -129,7 +180,7 @@ export default function ArticlePage() {
       <div className="yc-card p-6">
         {article.full_content ? (
           <div className="space-y-4">
-            {/* AI Summary header — always show when full_content exists */}
+            {/* AI Summary header */}
             {article.summary && (
               <div className="pb-3 mb-3 border-b border-yc-border/30">
                 <p className="text-sm text-yc-text-secondary italic leading-relaxed">

@@ -243,6 +243,7 @@
   "news.notFound": "Artikel nicht gefunden",
   "news.translate": "Auf Deutsch übersetzen",
   "news.translating": "Wird übersetzt...",
+  "news.translateError": "Übersetzung fehlgeschlagen. Bitte versuche es erneut.",
   "news.translatedFrom": "Übersetzt aus",
   "news.attribution": "Artikel aus RSS-Feeds. KI-Zusammenfassungen sind automatisch generiert. Überprüfe immer die Originalquelle.",
   "news.aiSummary": "KI-Zusammenfassung",

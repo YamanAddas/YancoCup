@@ -130,6 +130,7 @@ export interface NewsArticle {
   team_tags: string[];
   is_featured: boolean;
   translated: boolean;
+  has_full_content: boolean;
   published_at: string;
   created_at: string;
 }
@@ -191,12 +192,12 @@ export async function fetchTeamNews(
   return data ?? { articles: [], total: 0 };
 }
 
-/** Request on-demand translation for an article. Returns translated title + summary. */
+/** Request on-demand full article translation. Returns translated title + summary + full_content. */
 export async function translateArticleOnDemand(
   slug: string,
   lang: string,
-): Promise<{ title: string; summary: string } | null> {
-  const data = await apiFetch<{ title: string; summary: string }>(
+): Promise<{ title: string; summary: string; full_content: string | null } | null> {
+  const data = await apiFetch<{ title: string; summary: string; full_content: string | null }>(
     `/api/news/${slug}/translate?lang=${lang}`,
   );
   return data ?? null;

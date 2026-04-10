@@ -243,6 +243,7 @@
   "news.notFound": "Artículo no encontrado",
   "news.translate": "Traducir al español",
   "news.translating": "Traduciendo...",
+  "news.translateError": "La traducción falló. Inténtalo de nuevo.",
   "news.translatedFrom": "Traducido de",
   "news.attribution": "Artículos obtenidos de feeds RSS. Los resúmenes son generados por IA. Siempre verifica con la fuente original.",
   "news.aiSummary": "Resumen IA",

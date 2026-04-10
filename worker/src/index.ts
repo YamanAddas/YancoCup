@@ -884,6 +884,34 @@ async function m2m100Translate(
   return null;
 }
 
+/** Translate a single paragraph using Llama 3.1 8B — returns plain text */
+async function llamaTranslateParagraph(
+  ai: Ai,
+  text: string,
+  targetLang: string,
+  retries = 1,
+): Promise<string | null> {
+  const langName = LANG_NAMES[targetLang] ?? "English";
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (ai as any).run("@cf/meta/llama-3.1-8b-instruct", {
+        messages: [
+          { role: "system", content: `You are a professional sports translator. Translate the text into ${langName}. Output ONLY the translated text, nothing else.` },
+          { role: "user", content: text },
+        ],
+        max_tokens: 512,
+      });
+      const output = (result as { response?: string }).response?.trim();
+      if (output && output.length > 0) return output;
+    } catch (err) {
+      console.warn(`Llama paragraph translate attempt ${attempt + 1} failed: ${err}`);
+      if (attempt < retries) await new Promise((r) => setTimeout(r, 800));
+    }
+  }
+  return null;
+}
+
 /** Translate using Llama 3.1 8B — with retry and JSON extraction */
 async function llamaTranslate(
   ai: Ai,
@@ -948,6 +976,51 @@ async function aiTranslate(
 
   // m2m100 failed or produced garbage — fallback to Llama
   return llamaTranslate(ai, title, summary, targetLang);
+}
+
+// ---------------------------------------------------------------------------
+// Full-content translation (on-demand, paragraph-by-paragraph)
+// ---------------------------------------------------------------------------
+
+/** Translate full article body text using Llama in a single call. */
+async function translateFullContent(
+  ai: Ai,
+  fullContent: string,
+  targetLang: string,
+  _sourceLang: string,
+): Promise<string | null> {
+  // Take first ~1200 chars to stay well within Llama's token limits
+  const text = fullContent.slice(0, 1200).trim();
+  if (text.length < 20) return null;
+
+  const langName = LANG_NAMES[targetLang] ?? "English";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (ai as any).run("@cf/meta/llama-3.1-8b-instruct", {
+        messages: [
+          {
+            role: "system",
+            content: `Translate this sports article into ${langName}. Output ONLY the translation. Keep paragraph breaks.`,
+          },
+          { role: "user", content: text },
+        ],
+        max_tokens: 1500,
+      });
+      const output = (result as { response?: string }).response?.trim();
+      console.log(`translateFullContent attempt ${attempt + 1}: output length=${output?.length ?? 0}`);
+      if (output && output.length > 30 && !hasRepetitionOrHallucination(output)) {
+        return output;
+      }
+      if (output) {
+        console.warn(`translateFullContent: rejected output (len=${output.length}, hallucination=${hasRepetitionOrHallucination(output)})`);
+      }
+    } catch (err) {
+      console.warn(`translateFullContent attempt ${attempt + 1} failed: ${err}`);
+      if (attempt < 1) await new Promise((r) => setTimeout(r, 1500));
+    }
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -1213,7 +1286,7 @@ async function newsPhaseSummarize(env: Env): Promise<void> {
   console.log("News phase 2: AI summarize");
 
   const res = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/yc_articles?full_content=not.is.null&full_content=neq.&ai_summary=is.null&order=published_at.desc&limit=3&select=id,title,full_content,language`,
+    `${env.SUPABASE_URL}/rest/v1/yc_articles?full_content=not.is.null&full_content=neq.&ai_summary=is.null&order=published_at.desc&limit=2&select=id,title,full_content,language`,
     { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}` } },
   );
   if (!res.ok) return;
@@ -1290,7 +1363,7 @@ async function newsPhaseTranslate(env: Env): Promise<void> {
     return langCount < SUPPORTED_LANGS.length;
   });
 
-  const allNeedWork = [...nullArticles, ...partialArticles].slice(0, 8);
+  const allNeedWork = [...nullArticles, ...partialArticles].slice(0, 3);
   console.log(`News phase 3: ${nullArticles.length} untranslated + ${partialArticles.length} partial — processing ${allNeedWork.length}`);
 
   let totalTranslated = 0;
@@ -1500,10 +1573,10 @@ async function handleCron(env: Env): Promise<void> {
     }
 
     // -----------------------------------------------------------------------
-    // Every 12th tick (~1 hour): run one news phase (cycles 0-3)
-    // Full cycle = 48 ticks = ~4 hours (same cadence, 4x CPU per phase)
+    // Every 24th tick (~2 hours): run one news phase (cycles 0-3)
+    // Full cycle = 96 ticks = ~8 hours. ~3 cycles/day saves neuron budget.
     // -----------------------------------------------------------------------
-    if (tick % 12 === 0) {
+    if (tick % 24 === 0) {
       const phaseStr = await env.SCORES_KV.get("news:phase");
       const phase = phaseStr ? parseInt(phaseStr, 10) : 0;
       console.log(`Cron: running news phase ${phase}`);
@@ -2259,11 +2332,12 @@ interface ArticleRow {
 }
 
 /** Overlay translation onto an article if available for the target language */
-function applyTranslation(article: ArticleRow, targetLang: string): ArticleRow & { translated: boolean; original_language: string } {
+function applyTranslation(article: ArticleRow, targetLang: string): ArticleRow & { translated: boolean; original_language: string; has_full_content: boolean } {
   const original_language = article.language;
+  const has_full_content = !!(article.full_content && article.full_content.trim().length > 0);
   // If article is already in target language, no translation needed
   if (article.language === targetLang) {
-    return { ...article, translated: false, original_language };
+    return { ...article, translated: false, original_language, has_full_content };
   }
   // Check if translation exists
   const t = article.translations?.[targetLang];
@@ -2272,13 +2346,15 @@ function applyTranslation(article: ArticleRow, targetLang: string): ArticleRow &
       ...article,
       title: t.title,
       summary: t.summary,
-      full_content: t.full_content ?? article.full_content,
+      // Only use translated full_content if it exists — do NOT fall back to original language
+      full_content: t.full_content ?? null,
       translated: true,
       original_language,
+      has_full_content,
     };
   }
   // No translation available — return original
-  return { ...article, translated: false, original_language };
+  return { ...article, translated: false, original_language, has_full_content };
 }
 
 /** Helper: fetch articles from Supabase with filters */
@@ -2342,7 +2418,7 @@ async function fetchArticles(
   const targetLang = params.targetLang;
   const data = targetLang
     ? enriched.map((r) => applyTranslation(r, targetLang))
-    : enriched.map((r) => ({ ...r, translated: false, original_language: r.language }));
+    : enriched.map((r) => ({ ...r, translated: false, original_language: r.language, has_full_content: !!(r.full_content && r.full_content.trim().length > 0) }));
 
   return { data, count };
 }
@@ -2377,33 +2453,73 @@ app.get("/api/news/:slug", async (c) => {
   return c.json({ article: data[0] });
 });
 
-// POST /api/news/:slug/translate — on-demand translation for a single article
+// GET /api/news/:slug/translate — on-demand full article translation
 app.get("/api/news/:slug/translate", async (c) => {
   const slug = c.req.param("slug");
   const lang = c.req.query("lang");
   if (!lang) return c.json({ error: "lang parameter required" }, 400);
 
-  // Fetch the article
+  // Fetch the article (no targetLang — we want the raw row)
   const { data } = await fetchArticles(c.env, { slug });
   if (!data.length) return c.json({ error: "Article not found" }, 404);
 
   const article = data[0] as ArticleRow & { translated: boolean };
 
-  // Check if translation already exists
+  // If article is already in the target language, return as-is
+  if (article.language === lang) {
+    return c.json({
+      title: article.title,
+      summary: article.ai_summary || article.summary,
+      full_content: article.full_content || null,
+      cached: true,
+    });
+  }
+
+  // Check if a complete translation already exists (including full_content if needed)
   const existing = article.translations?.[lang];
-  if (existing) {
-    return c.json({ title: existing.title, summary: existing.summary, cached: true });
+  const originalHasFullContent = !!(article.full_content && article.full_content.trim().length > 0);
+
+  if (existing && (existing.full_content || !originalHasFullContent)) {
+    // Translation is complete — return cached
+    return c.json({
+      title: existing.title,
+      summary: existing.summary,
+      full_content: existing.full_content ?? null,
+      cached: true,
+    });
   }
 
-  // Translate on demand — use ai_summary when available for richer translation
-  const summaryText = (article as ArticleRow).ai_summary || article.summary;
-  const translated = await aiTranslate(c.env.AI, article.title, summaryText, lang, article.language);
-  if (!translated) {
-    return c.json({ error: "Translation failed" }, 500);
+  // Reuse existing title+summary translation if available, only translate what's missing
+  let translatedTitle: string;
+  let translatedSummary: string;
+  if (existing?.title && existing?.summary) {
+    translatedTitle = existing.title;
+    translatedSummary = existing.summary;
+  } else {
+    const summaryText = article.ai_summary || article.summary;
+    const translated = await aiTranslate(c.env.AI, article.title, summaryText, lang, article.language);
+    if (!translated) {
+      return c.json({ error: "Translation failed" }, 500);
+    }
+    translatedTitle = translated.title;
+    translatedSummary = translated.summary;
   }
 
-  // Cache the translation in Supabase
-  const updatedTranslations = { ...(article.translations ?? {}), [lang]: translated };
+  // Translate full_content paragraph-by-paragraph if it exists
+  let translatedFullContent: string | null = null;
+  if (originalHasFullContent) {
+    translatedFullContent = await translateFullContent(
+      c.env.AI, article.full_content!, lang, article.language,
+    );
+  }
+
+  // Cache the complete translation in Supabase
+  const entry: TranslationEntry = {
+    title: translatedTitle,
+    summary: translatedSummary,
+    full_content: translatedFullContent ?? undefined,
+  };
+  const updatedTranslations = { ...(article.translations ?? {}), [lang]: entry };
   await fetch(`${c.env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${article.id}`, {
     method: "PATCH",
     headers: {
@@ -2414,7 +2530,12 @@ app.get("/api/news/:slug/translate", async (c) => {
     body: JSON.stringify({ translations: updatedTranslations }),
   });
 
-  return c.json({ title: translated.title, summary: translated.summary, cached: false });
+  return c.json({
+    title: translatedTitle,
+    summary: translatedSummary,
+    full_content: translatedFullContent,
+    cached: false,
+  });
 });
 
 // GET /api/:comp/news — competition-specific news
