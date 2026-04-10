@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, ExternalLink, Clock, Star, Languages, Newspaper } from "lucide-react";
 import { useI18n } from "../lib/i18n";
-import { fetchArticle, type NewsArticle } from "../lib/api";
+import { fetchArticle, translateArticleOnDemand, type NewsArticle } from "../lib/api";
 
 const LANG_NAMES: Record<string, string> = {
   en: "English", ar: "العربية", es: "Español",
@@ -24,6 +24,7 @@ export default function ArticlePage() {
   const { t, lang } = useI18n();
   const [article, setArticle] = useState<NewsArticle | null>(null);
   const [loading, setLoading] = useState(true);
+  const [translating, setTranslating] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -32,6 +33,18 @@ export default function ArticlePage() {
       .then((a) => setArticle(a))
       .finally(() => setLoading(false));
   }, [slug, lang]);
+
+  const handleTranslate = async () => {
+    if (!article || !slug) return;
+    setTranslating(true);
+    const result = await translateArticleOnDemand(slug, lang);
+    if (result) {
+      setArticle({ ...article, title: result.title, summary: result.summary, translated: true });
+    }
+    setTranslating(false);
+  };
+
+  const needsTranslation = article && !article.translated && article.original_language !== lang;
 
   if (loading) {
     return (
@@ -130,6 +143,18 @@ export default function ArticlePage() {
             }}
           />
         </div>
+      )}
+
+      {/* Translate button */}
+      {needsTranslation && (
+        <button
+          onClick={handleTranslate}
+          disabled={translating}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-yc-bg-elevated border border-yc-border text-sm text-yc-info hover:border-yc-green-muted hover:text-yc-green transition-colors disabled:opacity-50"
+        >
+          <Languages size={16} />
+          {translating ? t("news.translating") : t("news.translate")}
+        </button>
       )}
 
       {/* Summary */}

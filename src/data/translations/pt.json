@@ -240,6 +240,8 @@
   "news.backToNews": "Voltar às Notícias",
   "news.readOriginal": "Ler artigo original",
   "news.notFound": "Artigo não encontrado",
+  "news.translate": "Traduzir para português",
+  "news.translating": "Traduzindo...",
   "news.translatedFrom": "Traduzido de",
   "news.attribution": "Artigos de feeds RSS. Resumos gerados por IA. Sempre verifique a fonte original."
 }

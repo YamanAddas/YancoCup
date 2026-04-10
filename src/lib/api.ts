@@ -190,6 +190,17 @@ export async function fetchTeamNews(
   return data ?? { articles: [], total: 0 };
 }
 
+/** Request on-demand translation for an article. Returns translated title + summary. */
+export async function translateArticleOnDemand(
+  slug: string,
+  lang: string,
+): Promise<{ title: string; summary: string } | null> {
+  const data = await apiFetch<{ title: string; summary: string }>(
+    `/api/news/${slug}/translate?lang=${lang}`,
+  );
+  return data ?? null;
+}
+
 /** Check Worker health. */
 export async function fetchHealth(): Promise<{
   status: string;

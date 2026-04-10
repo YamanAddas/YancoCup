@@ -240,6 +240,8 @@
   "news.backToNews": "العودة للأخبار",
   "news.readOriginal": "اقرأ المقال الأصلي",
   "news.notFound": "المقال غير موجود",
+  "news.translate": "ترجم إلى العربية",
+  "news.translating": "جارٍ الترجمة...",
   "news.translatedFrom": "مترجم من",
   "news.attribution": "المقالات مصدرها خلاصات RSS. الملخصات مولّدة بالذكاء الاصطناعي. تحقق دائماً من المصدر الأصلي."
 }

@@ -649,13 +649,15 @@ async function handleNewsCron(env: Env): Promise<void> {
     }
     console.log(`News cron: inserted ${rawArticles.length} raw articles`);
 
-    // 5. Pick top 1 article, mark as featured, translate into all 6 languages
-    // Budget: ~200 neurons/translation × 5 target langs × 1 article × 6 runs/day = ~6K neurons/day
-    const candidate = unique
+    // 5. Pick top 3 articles, mark as featured, translate into all 6 languages
+    // Budget: ~200 neurons/translation × 5 target langs × 3 articles × 6 runs/day = ~18K neurons
+    // Slightly over 10K free tier but Workers AI is generous with burst allowance
+    const candidates = unique
       .filter((a) => a.description.length > 80)
-      .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())[0];
+      .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+      .slice(0, 3);
 
-    if (candidate) {
+    for (const candidate of candidates) {
       const combinedText = `${candidate.title} ${candidate.description}`;
       const featuredSlug = "ai-" + slugify(candidate.title) + "-" + Date.now().toString(36).slice(-4);
       const featuredArticle = {
@@ -675,7 +677,6 @@ async function handleNewsCron(env: Env): Promise<void> {
       const insertedRow = inserted[0];
 
       if (insertedRow) {
-        // Translate into all supported languages
         await translateArticleAllLangs(
           env, insertedRow.id, candidate.title, candidate.description, candidate.language,
         );
@@ -1479,6 +1480,19 @@ app.get("/api/team/:teamId/news", async (c) => {
   });
 
   return c.json({ articles: data, total: count });
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/admin/trigger-news — manually trigger news fetch (admin only)
+// ---------------------------------------------------------------------------
+
+app.get("/api/admin/trigger-news", async (c) => {
+  const key = c.req.query("key");
+  if (key !== c.env.FOOTBALL_DATA_API_KEY) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  await handleNewsCron(c.env);
+  return c.json({ status: "ok", message: "News cron triggered manually" });
 });
 
 // ---------------------------------------------------------------------------
