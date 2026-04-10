@@ -1096,9 +1096,9 @@ async function handleNewsCron(env: Env): Promise<void> {
     }
     console.log(`News cron: inserted ${rawArticles.length} raw articles`);
 
-    // 4b. Scrape full article content for articles that don't have it yet
+    // 4b. Scrape full article content for articles that don't have it yet (limit 5 to leave CPU for translations)
     const scrapeRes = await fetch(
-      `${env.SUPABASE_URL}/rest/v1/yc_articles?full_content=is.null&order=published_at.desc&limit=15&select=id,source_url`,
+      `${env.SUPABASE_URL}/rest/v1/yc_articles?full_content=is.null&order=published_at.desc&limit=5&select=id,source_url`,
       {
         headers: {
           apikey: env.SUPABASE_SERVICE_KEY,
