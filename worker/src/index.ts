@@ -1302,11 +1302,13 @@ app.get("/api/admin/backfill-translations", async (c) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  const limit = parseInt(c.req.query("limit") ?? "50", 10);
+  const limit = parseInt(c.req.query("limit") ?? "200", 10);
+  const maxTranslate = parseInt(c.req.query("max") ?? "5", 10); // cap actual translations to avoid CPU timeout
+  const offset = parseInt(c.req.query("offset") ?? "0", 10);
 
-  // Fetch all articles (up to limit) that are missing translations
+  // Fetch articles (up to limit) — use offset for paging through older articles
   const res = await fetch(
-    `${c.env.SUPABASE_URL}/rest/v1/yc_articles?order=published_at.desc&limit=${limit}&select=id,title,summary,language,translations`,
+    `${c.env.SUPABASE_URL}/rest/v1/yc_articles?order=published_at.desc&limit=${limit}&offset=${offset}&select=id,title,summary,language,translations`,
     {
       headers: {
         apikey: c.env.SUPABASE_SERVICE_KEY,
@@ -1328,10 +1330,13 @@ app.get("/api/admin/backfill-translations", async (c) => {
     return langCount < SUPPORTED_LANGS.length;
   });
 
+  // Only translate up to maxTranslate to stay within Worker CPU limits
+  const toProcess = incomplete.slice(0, maxTranslate);
+
   let totalTranslated = 0;
   let totalFailed = 0;
 
-  for (const row of incomplete) {
+  for (const row of toProcess) {
     const { translated, failed } = await translateArticleMissing(
       c.env, row.id, row.title, row.summary, row.language, row.translations,
     );
@@ -1343,8 +1348,10 @@ app.get("/api/admin/backfill-translations", async (c) => {
     status: "ok",
     checked: articles.length,
     incomplete: incomplete.length,
+    processed: toProcess.length,
     translated: totalTranslated,
     failed: totalFailed,
+    remaining: incomplete.length - toProcess.length,
   });
 });
 
