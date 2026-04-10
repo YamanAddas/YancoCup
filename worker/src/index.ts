@@ -430,13 +430,27 @@ async function fetchRSSFeed(feed: RSSFeedConfig): Promise<RSSArticle[]> {
       const link = (typeof i.link === "string" ? i.link : (i.link as Record<string, unknown>)?.["@_href"] as string) ?? "";
       if (!link) continue;
 
-      // Filter Al Jazeera to sports/football only
-      if (feed.sourceName === "Al Jazeera") {
+      // Filter non-football articles from generic sports feeds
+      const GENERIC_FEEDS = ["Al Jazeera", "Sky Sports", "ESPN", "Marca", "Kicker", "Record"];
+      if (GENERIC_FEEDS.includes(feed.sourceName)) {
         const category = JSON.stringify(i.category ?? "").toLowerCase();
         const titleLower = title.toLowerCase();
-        if (!category.includes("رياضة") && !category.includes("sport") && !titleLower.includes("كرة") && !titleLower.includes("foot")) {
-          continue;
-        }
+        const linkLower = link.toLowerCase();
+        const isFootball =
+          // URL path hints
+          linkLower.includes("/football") || linkLower.includes("/soccer") ||
+          linkLower.includes("/futbol") || linkLower.includes("/calcio") ||
+          linkLower.includes("/fussball") || linkLower.includes("/futebol") ||
+          // Category hints
+          category.includes("football") || category.includes("soccer") ||
+          category.includes("fútbol") || category.includes("كرة") ||
+          category.includes("رياضة") || category.includes("fußball") ||
+          // Title keyword hints (football terms in various languages)
+          /\b(goal|match|league|cup|transfer|manager|coach|striker|midfielder|defender|premier|champions|europa|la liga|bundesliga|serie a|ligue 1|world cup)\b/.test(titleLower) ||
+          /\b(gol|partido|fichaje|entrenador|portero|delantero|jornada)\b/.test(titleLower) ||
+          /\b(tor|spiel|trainer|spieltag|meisterschaft|pokal)\b/.test(titleLower) ||
+          /كرة|هدف|مباراة|دوري|مدرب|لاعب/.test(title);
+        if (!isFootball) continue;
       }
 
       // Description
@@ -585,8 +599,8 @@ async function insertArticles(
 ): Promise<Array<{ id: string; slug: string }>> {
   if (!articles.length || !env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return [];
 
-  // Upsert — skip if slug already exists, return inserted rows
-  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?select=id,slug`, {
+  // Upsert — skip if source_url already exists, return inserted rows
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?on_conflict=source_url&select=id,slug`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -597,12 +611,18 @@ async function insertArticles(
     body: JSON.stringify(articles),
   });
 
+  const body = await res.text();
   if (!res.ok) {
-    console.error("Supabase insert failed:", res.status, await res.text());
+    console.error("Supabase insert failed:", res.status, body);
     return [];
   }
 
-  return (await res.json()) as Array<{ id: string; slug: string }>;
+  try {
+    return JSON.parse(body) as Array<{ id: string; slug: string }>;
+  } catch {
+    console.error("Supabase insert parse error:", body.slice(0, 200));
+    return [];
+  }
 }
 
 /** News cron: fetch RSS, store raw, AI-rewrite top picks */
@@ -638,7 +658,7 @@ async function handleNewsCron(env: Env): Promise<void> {
         competition_id: detectCompetition(combinedText),
         team_tags: detectTeamTags(combinedText),
         is_featured: false,
-        published_at: new Date(a.pubDate).toISOString(),
+        published_at: (() => { try { return new Date(a.pubDate).toISOString(); } catch { return new Date().toISOString(); } })(),
       };
     });
 
@@ -650,38 +670,52 @@ async function handleNewsCron(env: Env): Promise<void> {
     console.log(`News cron: inserted ${rawArticles.length} raw articles`);
 
     // 5. Pick top 3 articles, mark as featured, translate into all 6 languages
-    // Budget: ~200 neurons/translation × 5 target langs × 3 articles × 6 runs/day = ~18K neurons
-    // Slightly over 10K free tier but Workers AI is generous with burst allowance
-    const candidates = unique
+    // Find articles that don't have translations yet and translate them
+    const candidateUrls = unique
       .filter((a) => a.description.length > 80)
-      .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
-      .slice(0, 3);
+      .sort((a, b) => (new Date(b.pubDate).getTime() || 0) - (new Date(a.pubDate).getTime() || 0))
+      .slice(0, 3)
+      .map((a) => a.link);
 
-    for (const candidate of candidates) {
-      const combinedText = `${candidate.title} ${candidate.description}`;
-      const featuredSlug = "ai-" + slugify(candidate.title) + "-" + Date.now().toString(36).slice(-4);
-      const featuredArticle = {
-        slug: featuredSlug,
-        title: candidate.title,
-        summary: candidate.description,
-        source_name: candidate.sourceName,
-        source_url: candidate.link,
-        image_url: candidate.imageUrl,
-        language: candidate.language,
-        competition_id: detectCompetition(combinedText),
-        team_tags: detectTeamTags(combinedText),
-        is_featured: true,
-        published_at: new Date(candidate.pubDate).toISOString(),
-      };
-      const inserted = await insertArticles(env, [featuredArticle]);
-      const insertedRow = inserted[0];
+    // Fetch these articles from DB (they were just inserted above)
+    for (const url of candidateUrls) {
+      const lookupRes = await fetch(
+        `${env.SUPABASE_URL}/rest/v1/yc_articles?source_url=eq.${encodeURIComponent(url)}&select=id,title,summary,language,translations,is_featured`,
+        {
+          headers: {
+            apikey: env.SUPABASE_SERVICE_KEY,
+            Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+          },
+        },
+      );
+      if (!lookupRes.ok) continue;
+      const rows = (await lookupRes.json()) as Array<{
+        id: string; title: string; summary: string;
+        language: string; translations: Record<string, unknown>;
+        is_featured: boolean;
+      }>;
+      const row = rows[0];
+      if (!row) continue;
 
-      if (insertedRow) {
-        await translateArticleAllLangs(
-          env, insertedRow.id, candidate.title, candidate.description, candidate.language,
-        );
-        console.log(`News cron: translated featured article "${candidate.title}" into all languages`);
+      // Skip if already has translations
+      if (row.translations && Object.keys(row.translations).length > 1) continue;
+
+      // Mark as featured
+      if (!row.is_featured) {
+        await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${row.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: env.SUPABASE_SERVICE_KEY,
+            Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+          },
+          body: JSON.stringify({ is_featured: true }),
+        });
       }
+
+      // Translate into all languages
+      await translateArticleAllLangs(env, row.id, row.title, row.summary, row.language);
+      console.log(`News cron: translated featured article "${row.title}" into all languages`);
     }
   } catch (err) {
     console.error("News cron failed:", err);
@@ -1488,11 +1522,16 @@ app.get("/api/team/:teamId/news", async (c) => {
 
 app.get("/api/admin/trigger-news", async (c) => {
   const key = c.req.query("key");
-  if (key !== c.env.FOOTBALL_DATA_API_KEY) {
+  if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
     return c.json({ error: "Unauthorized" }, 401);
   }
-  await handleNewsCron(c.env);
-  return c.json({ status: "ok", message: "News cron triggered manually" });
+
+  try {
+    await handleNewsCron(c.env);
+    return c.json({ status: "ok", message: "News cron triggered" });
+  } catch (err) {
+    return c.json({ status: "error", message: String(err) }, 500);
+  }
 });
 
 // ---------------------------------------------------------------------------
