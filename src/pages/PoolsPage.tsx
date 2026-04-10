@@ -21,8 +21,10 @@ import {
   LogOut,
   Loader2,
   Activity,
+  MessageCircle,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import PoolChat from "../components/pool/PoolChat";
 
 function CreatePoolForm({
   competitionId,
@@ -245,6 +247,7 @@ function PoolCard({
 }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const { members, loading: membersLoading } = usePoolMembers(
@@ -346,6 +349,18 @@ function PoolCard({
               {/* Pool activity feed */}
               <div className="pt-2 border-t border-yc-border/50">
                 <PoolActivityFeed members={members} competitionId={pool.competition_id} />
+              </div>
+
+              {/* Pool chat */}
+              <div className="pt-2 border-t border-yc-border/50">
+                <button
+                  onClick={() => setChatOpen(!chatOpen)}
+                  className="flex items-center gap-1.5 text-xs text-yc-text-secondary hover:text-yc-green transition-colors mb-2"
+                >
+                  <MessageCircle size={12} />
+                  {t("chat.title")}
+                </button>
+                {chatOpen && <PoolChat poolId={pool.id} />}
               </div>
             </>
           )}

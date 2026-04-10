@@ -198,6 +198,10 @@
   "pools.signInDesc": "Crea o únete a grupos para competir con amigos.",
   "pools.signInToJoin": "Inicia sesión para unirte a este grupo.",
   "pools.joinError": "No se pudo unir al grupo",
+  "chat.title": "Chat del grupo",
+  "chat.placeholder": "Escribe un mensaje...",
+  "chat.empty": "No hay mensajes aún. ¡Di hola!",
+  "chat.loadMore": "Cargar mensajes anteriores",
 
   "hub.overview": "Resumen"
 }

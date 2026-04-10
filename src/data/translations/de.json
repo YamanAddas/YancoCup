@@ -198,6 +198,10 @@
   "pools.signInDesc": "Erstelle oder tritt Pools bei, um gegen Freunde anzutreten.",
   "pools.signInToJoin": "Melde dich an, um diesem Pool beizutreten.",
   "pools.joinError": "Pool-Beitritt fehlgeschlagen",
+  "chat.title": "Pool-Chat",
+  "chat.placeholder": "Nachricht schreiben...",
+  "chat.empty": "Noch keine Nachrichten. Sag hallo!",
+  "chat.loadMore": "Ältere Nachrichten laden",
 
   "hub.overview": "Überblick"
 }

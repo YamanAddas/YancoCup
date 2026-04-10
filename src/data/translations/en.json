@@ -201,5 +201,9 @@
   "pools.signInTitle": "Sign in to use Pools",
   "pools.signInDesc": "Create or join pools to compete with friends.",
   "pools.signInToJoin": "Sign in to join this pool.",
-  "pools.joinError": "Could not join pool"
+  "pools.joinError": "Could not join pool",
+  "chat.title": "Pool Chat",
+  "chat.placeholder": "Type a message...",
+  "chat.empty": "No messages yet. Say hi!",
+  "chat.loadMore": "Load older messages"
 }

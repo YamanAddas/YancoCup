@@ -198,6 +198,10 @@
   "pools.signInDesc": "أنشئ أو انضم لمجموعات للتنافس مع أصدقائك.",
   "pools.signInToJoin": "سجّل دخول للانضمام لهذه المجموعة.",
   "pools.joinError": "تعذر الانضمام للمجموعة",
+  "chat.title": "دردشة المجموعة",
+  "chat.placeholder": "اكتب رسالة...",
+  "chat.empty": "لا توجد رسائل بعد. قل مرحبا!",
+  "chat.loadMore": "تحميل رسائل أقدم",
 
   "hub.overview": "نظرة عامة"
 }
