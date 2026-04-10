@@ -44,11 +44,13 @@
 /* ── Always dark — no light mode ── */
 html {
   color-scheme: dark;
+  overflow-x: hidden;
 }
 
 /* ── Body — cosmic gradient background ── */
 body {
   margin: 0;
+  overflow-x: hidden;
   background:
     radial-gradient(ellipse 80% 60% at 50% 100%, rgba(0, 255, 136, 0.03) 0%, transparent 70%),
     radial-gradient(ellipse 120% 80% at 50% 0%, rgba(10, 20, 40, 1) 0%, transparent 60%),

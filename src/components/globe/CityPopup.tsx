@@ -22,7 +22,7 @@ export default function CityPopup({ city, onClose }: CityPopupProps) {
   const flagCode = FLAG_CODES[city.country] ?? "xx";
 
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[var(--yc-bg-glass)] backdrop-blur-xl border border-yc-border rounded-xl p-5 min-w-[280px] max-w-[340px] shadow-[0_0_30px_var(--yc-green-glow)] transition-all duration-300">
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[var(--yc-bg-glass)] backdrop-blur-xl border border-yc-border rounded-xl p-5 min-w-[240px] max-w-[calc(100vw-2rem)] shadow-[0_0_30px_var(--yc-green-glow)] transition-all duration-300">
       <button
         onClick={onClose}
         className="absolute top-3 right-3 text-yc-text-tertiary hover:text-yc-text-primary transition-colors"

@@ -29,7 +29,7 @@ export default function GroupTable({ groupId, teams, standings }: GroupTableProp
   });
 
   return (
-    <div className="yc-card rounded-xl overflow-hidden">
+    <div className="yc-card rounded-xl overflow-x-auto">
       <div className="px-4 py-3 border-b border-yc-border flex items-center gap-2">
         <div className="w-6 h-6 rounded bg-yc-green/10 flex items-center justify-center">
           <span className="text-yc-green text-xs font-bold font-mono">{groupId}</span>

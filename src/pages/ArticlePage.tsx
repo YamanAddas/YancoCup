@@ -150,7 +150,7 @@ export default function ArticlePage() {
 
       {/* Summary */}
       <div className="yc-card p-6">
-        <p className="text-yc-text-primary leading-relaxed text-base whitespace-pre-line">
+        <p className="text-yc-text-primary leading-relaxed text-base whitespace-pre-line break-words">
           {article.summary}
         </p>
       </div>

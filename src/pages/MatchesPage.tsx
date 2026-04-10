@@ -89,13 +89,12 @@ function DateStrip({
 
   // Scroll the active pill into view on mount and when active changes
   useEffect(() => {
-    if (activePillRef.current) {
-      activePillRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "center",
-      });
-    }
+    const container = scrollRef.current;
+    const el = activePillRef.current;
+    if (!container || !el) return;
+    const cr = container.getBoundingClientRect();
+    const er = el.getBoundingClientRect();
+    container.scrollBy({ left: er.left - cr.left - cr.width / 2 + er.width / 2, behavior: "smooth" });
   }, [activeDate]);
 
   const scroll = (dir: "left" | "right") => {
@@ -431,15 +430,14 @@ function LeagueMatches() {
     if (nearest !== undefined) setSelectedMatchday(nearest);
   }, [findNearestMatchday, selectedMatchday]);
 
-  // Scroll active matchday pill into view
+  // Scroll active matchday pill into view (without shifting the page)
   useEffect(() => {
-    if (activeMdRef.current) {
-      activeMdRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "center",
-      });
-    }
+    const container = scrollRef.current;
+    const el = activeMdRef.current;
+    if (!container || !el) return;
+    const cr = container.getBoundingClientRect();
+    const er = el.getBoundingClientRect();
+    container.scrollBy({ left: er.left - cr.left - cr.width / 2 + er.width / 2, behavior: "smooth" });
   }, [selectedMatchday]);
 
   // Group matches by date for display

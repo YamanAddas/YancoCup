@@ -57,10 +57,15 @@ export default function CompetitionHub() {
   const segments = location.pathname.split("/");
   const activeTab = segments[2]?.toLowerCase();
 
-  // Scroll active tab into view when route changes
+  // Scroll active tab into view when route changes (without shifting the page)
   useEffect(() => {
-    const el = scrollRef.current?.querySelector<HTMLElement>("[data-active]");
-    el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    const container = scrollRef.current;
+    const el = container?.querySelector<HTMLElement>("[data-active]");
+    if (!container || !el) return;
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const offset = elRect.left - containerRect.left - containerRect.width / 2 + elRect.width / 2;
+    container.scrollBy({ left: offset, behavior: "smooth" });
   }, [activeTab]);
 
   return (

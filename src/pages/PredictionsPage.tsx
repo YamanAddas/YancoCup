@@ -59,9 +59,12 @@ export default function PredictionsPage() {
   }, [findNearestMatchday, selectedMatchday, isLeague]);
 
   useEffect(() => {
-    if (activeMdRef.current) {
-      activeMdRef.current.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-    }
+    const container = scrollRef.current;
+    const el = activeMdRef.current;
+    if (!container || !el) return;
+    const cr = container.getBoundingClientRect();
+    const er = el.getBoundingClientRect();
+    container.scrollBy({ left: er.left - cr.left - cr.width / 2 + er.width / 2, behavior: "smooth" });
   }, [selectedMatchday]);
 
   // Filter matches by matchday for leagues, or show all for tournaments
