@@ -7,11 +7,11 @@ compatibility_date = "2025-04-01"
 binding = "SCORES_KV"
 id = "c28d05b0f84a402aa441c0473de4a35a"
 
-# Cron Triggers — poll live scores during match windows
-# Every 60 seconds during tournament (June 11 - July 19, 2026)
-# Adjust schedule closer to tournament start
+# Cron Triggers — poll live scores
+# Every 5 min during pre-tournament (leagues only).
+# Switch to "* * * * *" (every 60s) during WC match windows (June 11 - July 19).
 [triggers]
-crons = ["* * * * *"]
+crons = ["*/5 * * * *"]
 
 # Secrets (set via `wrangler secret put`):
 # FOOTBALL_DATA_API_KEY — football-data.org API key

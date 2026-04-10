@@ -121,5 +121,31 @@
       { "name": "SBS", "type": "both", "url": "https://www.sbs.com.au/sport" },
       { "name": "Optus Sport", "type": "streaming", "url": "https://sport.optus.com.au" }
     ]
+  },
+  {
+    "country": "Japan",
+    "isoCode": "jp",
+    "broadcasters": [
+      { "name": "ABEMA", "type": "streaming", "url": "https://abema.tv" },
+      { "name": "NHK", "type": "tv", "url": "https://www.nhk.or.jp" },
+      { "name": "Fuji TV", "type": "tv", "url": "https://www.fujitv.co.jp" }
+    ]
+  },
+  {
+    "country": "South Korea",
+    "isoCode": "kr",
+    "broadcasters": [
+      { "name": "KBS", "type": "both", "url": "https://www.kbs.co.kr" },
+      { "name": "SBS", "type": "both", "url": "https://www.sbs.co.kr" },
+      { "name": "Coupang Play", "type": "streaming", "url": "https://www.coupangplay.com" }
+    ]
+  },
+  {
+    "country": "Turkey",
+    "isoCode": "tr",
+    "broadcasters": [
+      { "name": "TRT", "type": "both", "url": "https://www.trt.net.tr" },
+      { "name": "beIN Sports Turkey", "type": "both", "url": "https://tr.beinsports.com" }
+    ]
   }
 ]

@@ -57,24 +57,24 @@ The V2 upgrade is documented in full in `docs/V2_UPGRADE_PLAN.md`. Below is the 
 
 These directly impact the core prediction loop that friends will use during the World Cup.
 
-**Track A: Prediction UX (Phase 1 + Phase 2 from V2 plan)**
-1. "Predicted" indicator (checkmark) on match cards
-2. "My Predictions Today" widget on home page
-3. Timezone display on match times
-4. Your prediction banner on match detail page
-5. Quick-predict mode (1X2) for leagues
-6. Post-match points reveal animation
+**Track A: Prediction UX (Phase 1 + Phase 2 from V2 plan)** — ALL DONE
+1. ~~"Predicted" indicator (checkmark) on match cards~~ DONE
+2. ~~"My Predictions Today" widget on home page~~ DONE
+3. ~~Timezone display on match times~~ DONE
+4. ~~Your prediction banner on match detail page~~ DONE
+5. ~~Quick-predict mode (1X2) for leagues~~ DONE
+6. ~~Post-match points reveal animation~~ DONE
 
-**Track B: Social & Pools (Phase 3 from V2 plan)**
-7. Pool chat (Supabase Realtime)
-8. Pool matchday recap (auto-generated, shareable)
-9. Social share buttons (WhatsApp, Telegram, Twitter)
-10. Pool admin controls (rename, remove members)
+**Track B: Social & Pools (Phase 3 from V2 plan)** — ALL DONE
+7. ~~Pool chat (Supabase Realtime)~~ DONE
+8. ~~Pool matchday recap (auto-generated, shareable)~~ DONE
+9. ~~Social share buttons (WhatsApp, Telegram, Twitter)~~ DONE
+10. ~~Pool admin controls (rename, remove members)~~ DONE
 
-**Track C: Leaderboard polish (Phase 3 from V2 plan)**
-11. Matchday / weekly / monthly sub-leaderboards
-12. Rank movement arrows
-13. Pool leaderboard filter
+**Track C: Leaderboard polish (Phase 3 from V2 plan)** — ALL DONE
+11. ~~Matchday / weekly / monthly sub-leaderboards~~ DONE
+12. ~~Rank movement arrows~~ DONE
+13. ~~Pool leaderboard filter~~ DONE
 
 **Track D: Critical fixes**
 14. ~~Add React error boundary around globe component~~ DONE

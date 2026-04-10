@@ -464,6 +464,30 @@ async function handleCron(env: Env): Promise<void> {
       }
     }
 
+    // -----------------------------------------------------------------------
+    // Every 60th tick (~1 hour): full season schedule for one competition
+    // Rotates through all competitions, populates kvSchedule so the
+    // /api/:comp/matches endpoint never needs to hit upstream.
+    // -----------------------------------------------------------------------
+    if (tick % 60 === 0) {
+      const schedComps = STANDINGS_COMPS.filter((c) => c !== "WC"); // WC uses static JSON
+      const schedIdx = Math.floor(tick / 60) % schedComps.length;
+      const comp = schedComps[schedIdx]!;
+
+      const schedRes = await fetchFromFootballData(
+        `/competitions/${comp}/matches`,
+        env.FOOTBALL_DATA_API_KEY,
+      );
+
+      if (schedRes.ok) {
+        const schedData = (await schedRes.json()) as { matches: FDMatch[] };
+        const matches = schedData.matches.map(transformMatch);
+        await kvPut(env.SCORES_KV, kvSchedule(comp), JSON.stringify(matches), {
+          expirationTtl: 7200, // 2 hours
+        });
+      }
+    }
+
     // Record last successful poll
     await kvPut(env.SCORES_KV,KV_LAST_POLL, new Date().toISOString());
   } catch (err) {
@@ -640,43 +664,19 @@ app.get("/api/:comp/matches", async (c) => {
     return c.json({ error: `Unknown competition: ${comp}` }, 404);
   }
 
-  // Check KV cache first
-  const cached = await c.env.SCORES_KV.get(kvSchedule(comp));
-  if (cached) {
-    const matches = safeParse<MatchScore[]>(cached) ?? [];
-    // Apply optional filters
-    const matchday = c.req.query("matchday");
-    if (matchday) {
-      const md = parseInt(matchday, 10);
-      return c.json({
-        matches: matches.filter((m) => m.matchday === md),
-      });
-    }
-    return c.json({ matches });
+  // Check KV cache: try schedule first, then scores as fallback
+  const cached =
+    (await c.env.SCORES_KV.get(kvSchedule(comp))) ??
+    (await c.env.SCORES_KV.get(kvScores(comp)));
+
+  if (!cached) {
+    // No cached data — cron hasn't populated yet. Return empty, don't hit upstream.
+    return c.json({ matches: [] });
   }
 
-  // Fetch from upstream
-  const res = await fetchFromFootballData(
-    `/competitions/${comp}/matches`,
-    c.env.FOOTBALL_DATA_API_KEY,
-  );
+  const matches = safeParse<MatchScore[]>(cached) ?? [];
 
-  if (!res.ok) {
-    return c.json(
-      { error: `Failed to fetch schedule for ${comp}` },
-      502,
-    );
-  }
-
-  const data = (await res.json()) as { matches: FDMatch[] };
-  const matches = data.matches.map(transformMatch);
-
-  // Cache for 1 hour
-  await kvPut(c.env.SCORES_KV,kvSchedule(comp), JSON.stringify(matches), {
-    expirationTtl: 3600,
-  });
-
-  // Apply optional filters
+  // Apply optional matchday filter
   const matchday = c.req.query("matchday");
   if (matchday) {
     const md = parseInt(matchday, 10);
