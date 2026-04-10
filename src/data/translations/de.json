@@ -229,5 +229,16 @@
   "profile.rivals": "Rivalen",
   "profile.addRival": "Rivale hinzufügen",
   "profile.searchRival": "Nach Benutzername suchen...",
-  "profile.noRivals": "Noch keine Rivalen. Füge bis zu 3 Freunde hinzu!"
+  "profile.noRivals": "Noch keine Rivalen. Füge bis zu 3 Freunde hinzu!",
+  "nav.news": "Nachrichten",
+  "news.title": "Nachrichten",
+  "news.subtitle": "KI-kuratierte Fußballnachrichten aus den besten Quellen weltweit",
+  "news.articles": "Artikel",
+  "news.noArticles": "Keine Artikel gefunden. Schau bald wieder vorbei!",
+  "news.prev": "Zurück",
+  "news.next": "Weiter",
+  "news.backToNews": "Zurück zu Nachrichten",
+  "news.readOriginal": "Originalartikel lesen",
+  "news.notFound": "Artikel nicht gefunden",
+  "news.attribution": "Artikel aus RSS-Feeds. KI-Zusammenfassungen sind automatisch generiert. Überprüfe immer die Originalquelle."
 }

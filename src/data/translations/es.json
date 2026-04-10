@@ -229,5 +229,16 @@
   "profile.rivals": "Rivales",
   "profile.addRival": "Añadir rival",
   "profile.searchRival": "Buscar por usuario...",
-  "profile.noRivals": "Sin rivales aún. ¡Añade hasta 3 amigos para comparar!"
+  "profile.noRivals": "Sin rivales aún. ¡Añade hasta 3 amigos para comparar!",
+  "nav.news": "Noticias",
+  "news.title": "Noticias",
+  "news.subtitle": "Noticias de fútbol seleccionadas por IA de las mejores fuentes del mundo",
+  "news.articles": "artículos",
+  "news.noArticles": "No se encontraron artículos. ¡Vuelve pronto!",
+  "news.prev": "Anterior",
+  "news.next": "Siguiente",
+  "news.backToNews": "Volver a Noticias",
+  "news.readOriginal": "Leer artículo original",
+  "news.notFound": "Artículo no encontrado",
+  "news.attribution": "Artículos obtenidos de feeds RSS. Los resúmenes son generados por IA. Siempre verifica con la fuente original."
 }

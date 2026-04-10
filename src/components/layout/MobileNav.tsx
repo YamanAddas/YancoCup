@@ -2,6 +2,7 @@ import { NavLink, useParams } from "react-router-dom";
 import {
   Globe as GlobeIcon,
   Trophy,
+  Newspaper,
   Tv,
   User,
 } from "lucide-react";
@@ -69,6 +70,21 @@ export default function MobileNav() {
         >
           <Trophy size={20} />
           {t("nav.predictions")}
+        </NavLink>
+
+        {/* News */}
+        <NavLink
+          to="/news"
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] font-medium transition-all min-w-[48px] ${
+              isActive
+                ? "text-yc-green drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]"
+                : "text-yc-text-tertiary"
+            }`
+          }
+        >
+          <Newspaper size={20} />
+          {t("nav.news")}
         </NavLink>
 
         {/* Watch */}

@@ -13,5 +13,11 @@ id = "c28d05b0f84a402aa441c0473de4a35a"
 [triggers]
 crons = ["*/5 * * * *"]
 
+# Workers AI binding for news article rewriting
+[ai]
+binding = "AI"
+
 # Secrets (set via `wrangler secret put`):
 # FOOTBALL_DATA_API_KEY — football-data.org API key
+# SUPABASE_URL — Supabase project URL
+# SUPABASE_SERVICE_KEY — Supabase service role key (for article inserts)

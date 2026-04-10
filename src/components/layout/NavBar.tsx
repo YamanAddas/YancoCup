@@ -2,6 +2,7 @@ import { NavLink, useParams } from "react-router-dom";
 import {
   Globe as GlobeIcon,
   Tv,
+  Newspaper,
   LogIn,
   LogOut,
 } from "lucide-react";
@@ -26,6 +27,7 @@ export default function NavBar() {
     ...(compConfig
       ? [{ to: `/${comp}/overview`, label: compConfig.shortName, emblem: compConfig.emblem, emblemBg: compConfig.emblemBg, end: false }]
       : []),
+    { to: "/news", labelKey: "nav.news", icon: Newspaper, end: false },
     { to: "/watch", labelKey: "nav.watch", icon: Tv, end: false },
   ] as Array<{ to: string; labelKey?: string; label?: string; icon?: React.ComponentType<{ size?: number }>; emblem?: string; emblemBg?: string; end: boolean }>;
 

@@ -109,11 +109,15 @@ These can ship incrementally during the World Cup without disrupting users.
 33. ~~Points-to-safety / points-to-title calculator~~ DONE
 34. ~~"Path to the final" bracket highlight~~ DONE
 
-### DEFER TO POST-WC (Phase 6: AI News)
+### Phase 6: AI News — DONE
 
-AI-powered news is the most complex feature and has the least impact on the core prediction game. Ship after the WC launch is stable.
-
-35-40. Full AI news pipeline (RSS → Workers AI → Supabase → frontend)
+~~35-40. Full AI news pipeline (RSS → Workers AI → Supabase → frontend)~~ DONE
+- 11 RSS feeds (EN/AR/ES/DE/IT/FR/PT) fetched every 4 hours via cron
+- Workers AI (Llama 3.1 8B) rewrites top 2 articles per cron run as featured summaries
+- All raw articles stored in Supabase `yc_articles` with competition/team tagging
+- News API endpoints: `/api/news`, `/api/news/:slug`, `/api/:comp/news`, `/api/team/:teamId/news`
+- Frontend: NewsPage (filterable by language, featured), ArticlePage (single article view)
+- Competition-scoped news tab, global news nav link, 6-language translations
 
 ---
 

@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { XMLParser } from "fast-xml-parser";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -9,6 +10,9 @@ interface Env {
   SCORES_KV: KVNamespace;
   FOOTBALL_DATA_API_KEY: string;
   API_FOOTBALL_KEY: string;
+  AI: Ai;
+  SUPABASE_URL: string;
+  SUPABASE_SERVICE_KEY: string;
 }
 
 /** Competition configuration */
@@ -312,6 +316,327 @@ async function kvPut(
 }
 
 // ---------------------------------------------------------------------------
+// News pipeline — RSS feeds, AI rewrite, Supabase storage
+// ---------------------------------------------------------------------------
+
+interface RSSFeedConfig {
+  url: string;
+  sourceName: string;
+  language: string;
+}
+
+const RSS_FEEDS: RSSFeedConfig[] = [
+  // English
+  { url: "https://feeds.bbci.co.uk/sport/football/rss.xml", sourceName: "BBC Sport", language: "en" },
+  { url: "https://www.theguardian.com/football/rss", sourceName: "The Guardian", language: "en" },
+  { url: "https://www.espn.com/espn/rss/soccer/news", sourceName: "ESPN", language: "en" },
+  { url: "https://www.skysports.com/rss/12040", sourceName: "Sky Sports", language: "en" },
+  // Arabic
+  { url: "https://www.aljazeera.net/rss", sourceName: "Al Jazeera", language: "ar" },
+  // Spanish
+  { url: "https://e00-marca.uecdn.es/rss/portada.xml", sourceName: "Marca", language: "es" },
+  { url: "https://feeds.as.com/mrss-s/pages/as/site/as.com/section/futbol/portada", sourceName: "AS", language: "es" },
+  // German
+  { url: "https://newsfeed.kicker.de/news/aktuell", sourceName: "Kicker", language: "de" },
+  // Italian
+  { url: "https://www.gazzetta.it/dynamic-feed/rss/section/Calcio.xml", sourceName: "Gazzetta dello Sport", language: "it" },
+  // French
+  { url: "https://dwh.lequipe.fr/api/edito/rss?path=/Football/", sourceName: "L'Equipe", language: "fr" },
+  // Portuguese
+  { url: "https://www.record.pt/rss", sourceName: "Record", language: "pt" },
+];
+
+/** Parsed RSS article */
+interface RSSArticle {
+  title: string;
+  link: string;
+  description: string;
+  imageUrl: string | null;
+  pubDate: string;
+  sourceName: string;
+  language: string;
+}
+
+/** Generate a URL-safe slug from title */
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 80)
+    .replace(/^-|-$/g, "");
+}
+
+/** Detect competition from article title/description */
+function detectCompetition(text: string): string | null {
+  const lower = text.toLowerCase();
+  if (/world cup|copa del mundo|كأس العالم|coupe du monde|wm 2026|mondiale/.test(lower)) return "WC";
+  if (/champions league|uefa cl|ligue des champions|liga de campeones/.test(lower)) return "CL";
+  if (/premier league|epl/.test(lower)) return "PL";
+  if (/la liga|liga española/.test(lower)) return "PD";
+  if (/bundesliga/.test(lower)) return "BL1";
+  if (/serie a|calcio/.test(lower)) return "SA";
+  if (/ligue 1/.test(lower)) return "FL1";
+  if (/europa league/.test(lower)) return "EL";
+  return null;
+}
+
+/** Detect team tags from article text (using known team TLAs) */
+const KNOWN_TEAMS = [
+  "BAR", "RMA", "ATM", "LIV", "MCI", "MUN", "CHE", "ARS",
+  "BAY", "BVB", "JUV", "INT", "MIL", "NAP", "PSG", "BEN",
+  "POR", "AJA", "FCB", "TOT", "NEW", "AVL", "BHA", "WHU",
+];
+
+function detectTeamTags(text: string): string[] {
+  const upper = text.toUpperCase();
+  return KNOWN_TEAMS.filter((tla) => upper.includes(tla));
+}
+
+/** Fetch and parse a single RSS feed */
+async function fetchRSSFeed(feed: RSSFeedConfig): Promise<RSSArticle[]> {
+  try {
+    const res = await fetch(feed.url, {
+      headers: { "User-Agent": "YancoCup/1.0 (RSS Reader)" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return [];
+
+    const xml = await res.text();
+    const parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: "@_",
+    });
+    const parsed = parser.parse(xml);
+
+    // Handle both RSS 2.0 and Atom formats
+    const items: unknown[] =
+      parsed?.rss?.channel?.item ??
+      parsed?.feed?.entry ??
+      [];
+
+    const articles: RSSArticle[] = [];
+    const itemArray = Array.isArray(items) ? items : [items];
+
+    for (const item of itemArray.slice(0, 10)) {
+      const i = item as Record<string, unknown>;
+
+      // Title
+      const title = (typeof i.title === "string" ? i.title : (i.title as Record<string, unknown>)?.["#text"] as string) ?? "";
+      if (!title) continue;
+
+      // Link
+      const link = (typeof i.link === "string" ? i.link : (i.link as Record<string, unknown>)?.["@_href"] as string) ?? "";
+      if (!link) continue;
+
+      // Filter Al Jazeera to sports/football only
+      if (feed.sourceName === "Al Jazeera") {
+        const category = JSON.stringify(i.category ?? "").toLowerCase();
+        const titleLower = title.toLowerCase();
+        if (!category.includes("رياضة") && !category.includes("sport") && !titleLower.includes("كرة") && !titleLower.includes("foot")) {
+          continue;
+        }
+      }
+
+      // Description
+      const desc = (typeof i.description === "string" ? i.description : (i["content:encoded"] as string) ?? (i.summary as string) ?? "")
+        .replace(/<[^>]+>/g, "") // strip HTML tags
+        .slice(0, 500);
+
+      // Image URL
+      const imageUrl =
+        (i["media:content"] as Record<string, unknown>)?.["@_url"] as string ??
+        (i["media:thumbnail"] as Record<string, unknown>)?.["@_url"] as string ??
+        (i.enclosure as Record<string, unknown>)?.["@_url"] as string ??
+        null;
+
+      // Published date
+      const pubDate = (i.pubDate as string) ?? (i.published as string) ?? (i.updated as string) ?? new Date().toISOString();
+
+      articles.push({
+        title: title.trim(),
+        link: link.trim(),
+        description: desc.trim(),
+        imageUrl: typeof imageUrl === "string" ? imageUrl : null,
+        pubDate,
+        sourceName: feed.sourceName,
+        language: feed.language,
+      });
+    }
+
+    return articles;
+  } catch {
+    return [];
+  }
+}
+
+/** Fetch all RSS feeds in batches of 6 (Workers connection limit) */
+async function fetchAllFeeds(): Promise<RSSArticle[]> {
+  const all: RSSArticle[] = [];
+  const batchSize = 6;
+
+  for (let i = 0; i < RSS_FEEDS.length; i += batchSize) {
+    const batch = RSS_FEEDS.slice(i, i + batchSize);
+    const results = await Promise.all(batch.map(fetchRSSFeed));
+    for (const articles of results) {
+      all.push(...articles);
+    }
+  }
+
+  return all;
+}
+
+/** AI rewrite an article into a 3-5 sentence summary */
+async function aiRewrite(
+  ai: Ai,
+  article: RSSArticle,
+): Promise<string | null> {
+  try {
+    const prompt = article.language === "ar"
+      ? `لخص هذا المقال الرياضي في 3-5 جمل بالعربية. اكتب بشكل محايد وإخباري.\n\nالعنوان: ${article.title}\n\n${article.description}`
+      : article.language === "es"
+      ? `Resume este artículo deportivo en 3-5 oraciones en español. Escribe de forma neutral e informativa.\n\nTítulo: ${article.title}\n\n${article.description}`
+      : article.language === "de"
+      ? `Fasse diesen Sportartikel in 3-5 Sätzen auf Deutsch zusammen. Schreibe neutral und informativ.\n\nTitel: ${article.title}\n\n${article.description}`
+      : article.language === "it"
+      ? `Riassumi questo articolo sportivo in 3-5 frasi in italiano. Scrivi in modo neutrale e informativo.\n\nTitolo: ${article.title}\n\n${article.description}`
+      : article.language === "fr"
+      ? `Résumez cet article sportif en 3-5 phrases en français. Écrivez de manière neutre et informative.\n\nTitre: ${article.title}\n\n${article.description}`
+      : article.language === "pt"
+      ? `Resuma este artigo esportivo em 3-5 frases em português. Escreva de forma neutra e informativa.\n\nTítulo: ${article.title}\n\n${article.description}`
+      : `Summarize this sports article in 3-5 sentences. Write neutrally and informatively. Do not add opinions.\n\nTitle: ${article.title}\n\n${article.description}`;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (ai as any).run("@cf/meta/llama-3.1-8b-instruct", {
+      messages: [
+        { role: "system", content: "You are a concise sports news summarizer. Output ONLY the summary, no labels or prefixes." },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 256,
+    });
+
+    const text = (result as { response?: string }).response;
+    return text?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Insert articles into Supabase yc_articles table */
+async function insertArticles(
+  env: Env,
+  articles: Array<{
+    slug: string;
+    title: string;
+    summary: string;
+    source_name: string;
+    source_url: string;
+    image_url: string | null;
+    language: string;
+    competition_id: string | null;
+    team_tags: string[];
+    is_featured: boolean;
+    published_at: string;
+  }>,
+): Promise<void> {
+  if (!articles.length || !env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return;
+
+  // Upsert — skip if slug already exists
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: env.SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+      Prefer: "resolution=ignore-duplicates",
+    },
+    body: JSON.stringify(articles),
+  });
+
+  if (!res.ok) {
+    console.error("Supabase insert failed:", res.status, await res.text());
+  }
+}
+
+/** News cron: fetch RSS, store raw, AI-rewrite top picks */
+async function handleNewsCron(env: Env): Promise<void> {
+  try {
+    console.log("News cron: starting RSS fetch...");
+
+    // 1. Fetch all RSS feeds
+    const allArticles = await fetchAllFeeds();
+    console.log(`News cron: fetched ${allArticles.length} articles from RSS`);
+
+    if (!allArticles.length) return;
+
+    // 2. Deduplicate by link (source URL)
+    const seen = new Set<string>();
+    const unique = allArticles.filter((a) => {
+      if (seen.has(a.link)) return false;
+      seen.add(a.link);
+      return true;
+    });
+
+    // 3. Prepare raw articles for insert (not AI-rewritten)
+    const rawArticles = unique.map((a) => {
+      const combinedText = `${a.title} ${a.description}`;
+      return {
+        slug: slugify(a.title) + "-" + Date.now().toString(36).slice(-4),
+        title: a.title,
+        summary: a.description || a.title,
+        source_name: a.sourceName,
+        source_url: a.link,
+        image_url: a.imageUrl,
+        language: a.language,
+        competition_id: detectCompetition(combinedText),
+        team_tags: detectTeamTags(combinedText),
+        is_featured: false,
+        published_at: new Date(a.pubDate).toISOString(),
+      };
+    });
+
+    // 4. Insert all raw articles into Supabase
+    // Batch in groups of 25 to avoid payload limits
+    for (let i = 0; i < rawArticles.length; i += 25) {
+      await insertArticles(env, rawArticles.slice(i, i + 25));
+    }
+    console.log(`News cron: inserted ${rawArticles.length} raw articles`);
+
+    // 5. AI-rewrite top 2 articles (budget: ~1000 neurons each, ~10-15/day)
+    // Pick the 2 most recent football-related articles with enough description
+    const candidates = unique
+      .filter((a) => a.description.length > 80)
+      .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+      .slice(0, 2);
+
+    for (const article of candidates) {
+      const summary = await aiRewrite(env.AI, article);
+      if (summary) {
+        const combinedText = `${article.title} ${article.description}`;
+        const featured = {
+          slug: "ai-" + slugify(article.title) + "-" + Date.now().toString(36).slice(-4),
+          title: article.title,
+          summary,
+          source_name: article.sourceName,
+          source_url: article.link,
+          image_url: article.imageUrl,
+          language: article.language,
+          competition_id: detectCompetition(combinedText),
+          team_tags: detectTeamTags(combinedText),
+          is_featured: true,
+          published_at: new Date(article.pubDate).toISOString(),
+        };
+        await insertArticles(env, [featured]);
+      }
+    }
+    console.log(`News cron: AI-rewrote ${candidates.length} featured articles`);
+  } catch (err) {
+    console.error("News cron failed:", err);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Cron handler — polls upstream, writes to KV
 // ---------------------------------------------------------------------------
 
@@ -486,6 +811,13 @@ async function handleCron(env: Env): Promise<void> {
           expirationTtl: 7200, // 2 hours
         });
       }
+    }
+
+    // -----------------------------------------------------------------------
+    // Every 48th tick (~4 hours): fetch RSS news, AI-rewrite top picks
+    // -----------------------------------------------------------------------
+    if (tick % 48 === 0) {
+      await handleNewsCron(env);
     }
 
     // Record last successful poll
@@ -897,6 +1229,131 @@ app.get("/api/:comp/scorers", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// News API endpoints — read from Supabase yc_articles
+// ---------------------------------------------------------------------------
+
+/** Helper: fetch articles from Supabase with filters */
+async function fetchArticles(
+  env: Env,
+  params: {
+    competitionId?: string;
+    teamId?: string;
+    language?: string;
+    featured?: boolean;
+    limit?: number;
+    offset?: number;
+    slug?: string;
+  },
+): Promise<{ data: unknown[]; count: number }> {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) {
+    return { data: [], count: 0 };
+  }
+
+  const query = new URLSearchParams();
+  query.set("select", "*");
+  query.set("order", "published_at.desc");
+
+  if (params.slug) {
+    query.set("slug", `eq.${params.slug}`);
+  } else {
+    if (params.competitionId) {
+      query.set("competition_id", `eq.${params.competitionId}`);
+    }
+    if (params.teamId) {
+      query.set("team_tags", `cs.{${params.teamId}}`);
+    }
+    if (params.language) {
+      query.set("language", `eq.${params.language}`);
+    }
+    if (params.featured) {
+      query.set("is_featured", "eq.true");
+    }
+    query.set("limit", String(params.limit ?? 30));
+    query.set("offset", String(params.offset ?? 0));
+  }
+
+  const res = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/yc_articles?${query.toString()}`,
+    {
+      headers: {
+        apikey: env.SUPABASE_SERVICE_KEY,
+        Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+        Prefer: "count=exact",
+      },
+    },
+  );
+
+  if (!res.ok) return { data: [], count: 0 };
+
+  const data = (await res.json()) as unknown[];
+  const countHeader = res.headers.get("content-range");
+  const count = countHeader ? parseInt(countHeader.split("/")[1] ?? "0", 10) : data.length;
+
+  return { data, count };
+}
+
+// GET /api/news — global news feed
+app.get("/api/news", async (c) => {
+  const lang = c.req.query("lang");
+  const featured = c.req.query("featured") === "true";
+  const limit = parseInt(c.req.query("limit") ?? "30", 10);
+  const offset = parseInt(c.req.query("offset") ?? "0", 10);
+
+  const { data, count } = await fetchArticles(c.env, {
+    language: lang,
+    featured: featured || undefined,
+    limit,
+    offset,
+  });
+
+  return c.json({ articles: data, total: count });
+});
+
+// GET /api/news/:slug — single article by slug
+app.get("/api/news/:slug", async (c) => {
+  const slug = c.req.param("slug");
+  const { data } = await fetchArticles(c.env, { slug });
+
+  if (!data.length) {
+    return c.json({ error: "Article not found" }, 404);
+  }
+
+  return c.json({ article: data[0] });
+});
+
+// GET /api/:comp/news — competition-specific news
+app.get("/api/:comp/news", async (c) => {
+  const comp = c.req.param("comp").toUpperCase();
+  const lang = c.req.query("lang");
+  const limit = parseInt(c.req.query("limit") ?? "20", 10);
+  const offset = parseInt(c.req.query("offset") ?? "0", 10);
+
+  const { data, count } = await fetchArticles(c.env, {
+    competitionId: comp,
+    language: lang,
+    limit,
+    offset,
+  });
+
+  return c.json({ articles: data, total: count });
+});
+
+// GET /api/team/:teamId/news — team-specific news
+app.get("/api/team/:teamId/news", async (c) => {
+  const teamId = c.req.param("teamId").toUpperCase();
+  const lang = c.req.query("lang");
+  const limit = parseInt(c.req.query("limit") ?? "15", 10);
+
+  const { data, count } = await fetchArticles(c.env, {
+    teamId,
+    language: lang,
+    limit,
+  });
+
+  return c.json({ articles: data, total: count });
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/health — status check
 // ---------------------------------------------------------------------------
 
@@ -929,6 +1386,10 @@ app.notFound((c) => {
         "GET /api/:comp/match/:id",
         "GET /api/match/:id/detail",
         "GET /api/h2h/:id",
+        "GET /api/news",
+        "GET /api/news/:slug",
+        "GET /api/:comp/news",
+        "GET /api/team/:teamId/news",
         "GET /api/scores (alias → WC)",
         "GET /api/standings (alias → WC)",
         "GET /api/match/:id (alias)",

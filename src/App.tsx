@@ -23,6 +23,8 @@ const AdminPage = lazy(() => import("./pages/AdminPage"));
 const PoolsPage = lazy(() => import("./pages/PoolsPage"));
 const JoinPoolPage = lazy(() => import("./pages/JoinPoolPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const NewsPage = lazy(() => import("./pages/NewsPage"));
+const ArticlePage = lazy(() => import("./pages/ArticlePage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 function PageLoader() {
@@ -64,6 +66,7 @@ export default function App() {
                   <Route path="predictions" element={<PredictionsPage />} />
                   <Route path="leaderboard" element={<LeaderboardPage />} />
                   <Route path="pools" element={<PoolsPage />} />
+                  <Route path="news" element={<NewsPage />} />
                 </Route>
 
                 {/* Backward-compatible redirects (old /matches → /WC/matches) */}
@@ -88,6 +91,8 @@ export default function App() {
                 <Route path="pool/:joinCode" element={<JoinPoolPage />} />
 
                 {/* Global routes (not competition-scoped) */}
+                <Route path="news" element={<NewsPage />} />
+                <Route path="news/:slug" element={<ArticlePage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="watch" element={<WatchPage />} />
                 <Route path="sign-in" element={<SignInPage />} />

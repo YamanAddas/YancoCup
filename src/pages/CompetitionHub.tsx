@@ -11,6 +11,7 @@ import {
   Trophy,
   BarChart3,
   UsersRound,
+  Newspaper,
 } from "lucide-react";
 
 interface TabDef {
@@ -46,6 +47,7 @@ export default function CompetitionHub() {
       { path: "predictions", labelKey: "nav.predictions", icon: Trophy },
       { path: "leaderboard", labelKey: "nav.leaderboard", icon: BarChart3 },
       { path: "pools", labelKey: "pools.title", icon: UsersRound },
+      { path: "news", labelKey: "nav.news", icon: Newspaper },
     );
 
     return list;
