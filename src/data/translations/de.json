@@ -207,6 +207,9 @@
   "recap.noData": "Noch keine bewerteten Tipps für einen Rückblick.",
   "share.title": "Teilen",
   "share.more": "Weitere Optionen",
+  "pools.rename": "Umbenennen",
+  "pools.save": "Speichern",
+  "pools.removeMember": "Aus Pool entfernen",
 
   "hub.overview": "Überblick"
 }

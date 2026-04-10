@@ -210,5 +210,8 @@
   "recap.mvp": "MVP",
   "recap.noData": "No scored predictions yet for a recap.",
   "share.title": "Share",
-  "share.more": "More options"
+  "share.more": "More options",
+  "pools.rename": "Rename",
+  "pools.save": "Save",
+  "pools.removeMember": "Remove from pool"
 }

@@ -241,3 +241,30 @@ export async function leavePool(
 
   return error?.message ?? null;
 }
+
+/** Rename a pool (creator only) */
+export async function renamePool(
+  poolId: string,
+  newName: string,
+): Promise<string | null> {
+  const { error } = await supabase
+    .from("yc_pools")
+    .update({ name: newName.trim() })
+    .eq("id", poolId);
+
+  return error?.message ?? null;
+}
+
+/** Remove a member from a pool (creator only, cannot remove self) */
+export async function removeMember(
+  poolId: string,
+  memberId: string,
+): Promise<string | null> {
+  const { error } = await supabase
+    .from("yc_pool_members")
+    .delete()
+    .eq("pool_id", poolId)
+    .eq("user_id", memberId);
+
+  return error?.message ?? null;
+}

@@ -207,6 +207,9 @@
   "recap.noData": "Aucun pronostic scoré pour l'instant.",
   "share.title": "Partager",
   "share.more": "Plus d'options",
+  "pools.rename": "Renommer",
+  "pools.save": "Enregistrer",
+  "pools.removeMember": "Retirer du groupe",
 
   "hub.overview": "Aperçu"
 }

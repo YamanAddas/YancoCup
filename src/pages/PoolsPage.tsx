@@ -9,6 +9,8 @@ import {
   createPool,
   joinPoolByCode,
   leavePool,
+  renamePool,
+  removeMember,
 } from "../hooks/usePools";
 import type { Pool, PoolMember } from "../hooks/usePools";
 import {
@@ -22,6 +24,8 @@ import {
   Loader2,
   Activity,
   MessageCircle,
+  Pencil,
+  UserMinus,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import PoolChat from "../components/pool/PoolChat";
@@ -251,6 +255,9 @@ function PoolCard({
   const [chatOpen, setChatOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState(pool.name);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const { members, loading: membersLoading } = usePoolMembers(
     expanded ? pool.id : null,
   );
@@ -267,6 +274,23 @@ function PoolCard({
     await leavePool(pool.id, userId);
     setLeaving(false);
     onLeft();
+  };
+
+  const handleRename = async () => {
+    if (!newName.trim() || newName.trim() === pool.name) {
+      setRenaming(false);
+      return;
+    }
+    await renamePool(pool.id, newName);
+    pool.name = newName.trim();
+    setRenaming(false);
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    setRemovingId(memberId);
+    await removeMember(pool.id, memberId);
+    setRemovingId(null);
+    onLeft(); // refresh pools to update member count
   };
 
   const isCreator = pool.created_by === userId;
@@ -311,6 +335,15 @@ function PoolCard({
             >
               {t("pools.viewLeaderboard")}
             </NavLink>
+            {isCreator && (
+              <button
+                onClick={() => setRenaming(!renaming)}
+                className="flex items-center gap-1.5 text-xs text-yc-text-secondary hover:text-yc-text-primary transition-colors"
+              >
+                <Pencil size={12} />
+                {t("pools.rename")}
+              </button>
+            )}
             {!isCreator && (
               <button
                 onClick={handleLeave}
@@ -322,6 +355,26 @@ function PoolCard({
               </button>
             )}
           </div>
+
+          {/* Rename form (creator only) */}
+          {renaming && (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                maxLength={50}
+                className="flex-1 bg-yc-bg-elevated border border-yc-border rounded-lg px-3 py-1.5 text-sm text-yc-text-primary focus:outline-none focus:border-yc-green-muted"
+              />
+              <button
+                onClick={handleRename}
+                disabled={!newName.trim()}
+                className="px-3 py-1.5 rounded-lg bg-yc-green text-yc-bg-deep text-xs font-semibold hover:brightness-110 disabled:opacity-40"
+              >
+                {t("pools.save")}
+              </button>
+            </div>
+          )}
 
           {/* Members */}
           {membersLoading ? (
@@ -338,11 +391,25 @@ function PoolCard({
                         {(m.handle ?? "?").charAt(0).toUpperCase()}
                       </div>
                     )}
-                    <span className="text-yc-text-secondary text-sm">
+                    <span className="text-yc-text-secondary text-sm flex-1">
                       {m.display_name ?? m.handle}
                     </span>
                     {m.user_id === pool.created_by && (
                       <Crown size={10} className="text-yc-warning" />
+                    )}
+                    {isCreator && m.user_id !== userId && (
+                      <button
+                        onClick={() => handleRemoveMember(m.user_id)}
+                        disabled={removingId === m.user_id}
+                        className="text-yc-text-tertiary hover:text-yc-danger transition-colors p-0.5"
+                        title={t("pools.removeMember")}
+                      >
+                        {removingId === m.user_id ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : (
+                          <UserMinus size={12} />
+                        )}
+                      </button>
                     )}
                   </div>
                 ))}

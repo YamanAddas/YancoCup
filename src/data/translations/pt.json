@@ -207,6 +207,9 @@
   "recap.noData": "Nenhum palpite pontuado ainda para um resumo.",
   "share.title": "Compartilhar",
   "share.more": "Mais opções",
+  "pools.rename": "Renomear",
+  "pools.save": "Salvar",
+  "pools.removeMember": "Remover do grupo",
 
   "hub.overview": "Visão geral"
 }

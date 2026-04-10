@@ -207,6 +207,9 @@
   "recap.noData": "لا توجد توقعات محتسبة بعد لعرض الملخص.",
   "share.title": "مشاركة",
   "share.more": "خيارات أخرى",
+  "pools.rename": "إعادة تسمية",
+  "pools.save": "حفظ",
+  "pools.removeMember": "إزالة من المجموعة",
 
   "hub.overview": "نظرة عامة"
 }

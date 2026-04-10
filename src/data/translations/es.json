@@ -207,6 +207,9 @@
   "recap.noData": "Aún no hay predicciones puntuadas para un resumen.",
   "share.title": "Compartir",
   "share.more": "Más opciones",
+  "pools.rename": "Renombrar",
+  "pools.save": "Guardar",
+  "pools.removeMember": "Eliminar del grupo",
 
   "hub.overview": "Resumen"
 }
