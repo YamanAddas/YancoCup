@@ -102,7 +102,7 @@ interface MatchCardProps {
 }
 
 export default function MatchCard({ match, teamMap, venueMap, liveScore, compact, competitionId, predicted }: MatchCardProps) {
-  const { t } = useI18n();
+  const { t, tTeam, tVenue } = useI18n();
   const wrapRef = useRef<HTMLDivElement>(null);
   const specRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef(0);
@@ -123,7 +123,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
   const headerLabel = match.group
     ? t("match.group", { id: match.group })
     : match.matchday && match.round === "group"
-      ? `Matchday ${match.matchday}`
+      ? t("match.matchday", { num: match.matchday })
       : t(ROUND_KEYS[match.round]);
 
   const detailUrl = competitionId ? `/${competitionId}/match/${match.id}` : undefined;
@@ -219,7 +219,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
                   team={home}
                   tla={match.homeTeam}
                   crest={match.homeCrest ?? liveScore?.homeCrest}
-                  displayName={match.homeTeamName ?? liveScore?.homeTeamName}
+                  displayName={match.homeTeamName ? tTeam(match.homeTeamName) : home ? tTeam(home.id) : liveScore?.homeTeamName}
                   side="home"
                 />
               ) : (
@@ -237,7 +237,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
                       {scoreHome} - {scoreAway}
                     </span>
                     {isFinished && (
-                      <span className="text-yc-text-tertiary text-[10px] font-medium">FT</span>
+                      <span className="text-yc-text-tertiary text-[10px] font-medium">{t("match.ft")}</span>
                     )}
                   </>
                 ) : (
@@ -256,7 +256,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
                   team={away}
                   tla={match.awayTeam}
                   crest={match.awayCrest ?? liveScore?.awayCrest}
-                  displayName={match.awayTeamName ?? liveScore?.awayTeamName}
+                  displayName={match.awayTeamName ? tTeam(match.awayTeamName) : away ? tTeam(away.id) : liveScore?.awayTeamName}
                   side="away"
                 />
               ) : (
@@ -271,7 +271,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
                 {venue && (
                   <span className="flex items-center gap-1 truncate ml-2">
                     <MapPin size={10} className="shrink-0" />
-                    {venue.name}
+                    {tVenue(venue.id).name}
                   </span>
                 )}
               </div>

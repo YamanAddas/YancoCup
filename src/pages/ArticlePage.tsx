@@ -9,19 +9,11 @@ const LANG_NAMES: Record<string, string> = {
   de: "Deutsch", it: "Italiano", fr: "Français", pt: "Português",
 };
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
+// timeAgo removed — use relTime from useI18n() instead
 
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
-  const { t, lang } = useI18n();
+  const { t, lang, relTime } = useI18n();
   const [article, setArticle] = useState<NewsArticle | null>(null);
   const [loading, setLoading] = useState(true);
   const [translating, setTranslating] = useState(false);
@@ -127,7 +119,7 @@ export default function ArticlePage() {
         <span>{article.source_name}</span>
         <span className="flex items-center gap-1">
           <Clock size={14} />
-          {timeAgo(article.published_at)}
+          {relTime(article.published_at)}
         </span>
       </div>
 

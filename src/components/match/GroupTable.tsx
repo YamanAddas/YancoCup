@@ -10,7 +10,7 @@ interface GroupTableProps {
 }
 
 export default function GroupTable({ groupId, teams, standings }: GroupTableProps) {
-  const { t } = useI18n();
+  const { t, tTeam } = useI18n();
 
   // Build a lookup from TLA → standing row
   const standingMap = new Map<string, StandingTeam>();
@@ -68,7 +68,7 @@ export default function GroupTable({ groupId, teams, standings }: GroupTableProp
                       size="sm"
                     />
                     <span className="text-yc-text-primary font-medium truncate">
-                      {team.name}
+                      {tTeam(team.id)}
                     </span>
                   </div>
                 </td>

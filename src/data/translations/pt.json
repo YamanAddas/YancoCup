@@ -243,5 +243,49 @@
   "news.translate": "Traduzir para português",
   "news.translating": "Traduzindo...",
   "news.translatedFrom": "Traduzido de",
-  "news.attribution": "Artigos de feeds RSS. Resumos gerados por IA. Sempre verifique a fonte original."
+  "news.attribution": "Artigos de feeds RSS. Resumos gerados por IA. Sempre verifique a fonte original.",
+  "news.aiSummary": "Resumo IA",
+
+  "match.upcoming": "Próximo",
+  "match.matchday": "Jornada {num}",
+
+  "team.notFound": "Equipa não encontrada.",
+  "team.backToStandings": "Voltar à classificação",
+  "team.position": "Posição",
+  "team.cleanSheets": "Clean sheets",
+  "team.home": "Casa",
+  "team.away": "Fora",
+  "team.goalsPerMatch": "golos/jogo",
+  "team.recentForm": "Forma recente",
+  "team.upcomingFixtures": "Próximos jogos",
+  "team.squad": "Plantel",
+  "team.players": "{count} jogadores",
+  "team.est": "Fund. {year}",
+
+  "stats.notAvailable": "Estatísticas não disponíveis para este jogo",
+  "stats.form": "Forma",
+  "stats.topScorers": "Melhores marcadores",
+  "stats.player": "Jogador",
+  "stats.team": "Equipa",
+  "stats.mp": "JD",
+  "stats.goals": "G",
+  "stats.assists": "A",
+
+  "match.events.none": "Sem eventos ainda",
+  "match.lineup.startingXI": "Titulares",
+  "match.lineup.bench": "Suplentes",
+  "match.lineup.notAvailable": "Escalação não disponível",
+  "match.h2h.draws": "Empates",
+  "match.h2h.recentMatches": "Jogos recentes",
+
+  "quickPick.home": "Casa",
+  "quickPick.draw": "Empate",
+  "quickPick.away": "Fora",
+
+  "profile.matchNotifications": "Notificações de jogos",
+  "profile.matchNotificationsDesc": "Receber lembrete antes dos prazos de palpite",
+
+  "common.predict": "Prever",
+  "common.today": "Hoje",
+  "common.matchday": "J"
 }

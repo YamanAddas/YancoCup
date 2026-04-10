@@ -243,5 +243,49 @@
   "news.translate": "Auf Deutsch übersetzen",
   "news.translating": "Wird übersetzt...",
   "news.translatedFrom": "Übersetzt aus",
-  "news.attribution": "Artikel aus RSS-Feeds. KI-Zusammenfassungen sind automatisch generiert. Überprüfe immer die Originalquelle."
+  "news.attribution": "Artikel aus RSS-Feeds. KI-Zusammenfassungen sind automatisch generiert. Überprüfe immer die Originalquelle.",
+  "news.aiSummary": "KI-Zusammenfassung",
+
+  "match.upcoming": "Anstehend",
+  "match.matchday": "Spieltag {num}",
+
+  "team.notFound": "Team nicht gefunden.",
+  "team.backToStandings": "Zurück zur Tabelle",
+  "team.position": "Position",
+  "team.cleanSheets": "Zu-Null-Spiele",
+  "team.home": "Heim",
+  "team.away": "Auswärts",
+  "team.goalsPerMatch": "Tore/Spiel",
+  "team.recentForm": "Aktuelle Form",
+  "team.upcomingFixtures": "Nächste Spiele",
+  "team.squad": "Kader",
+  "team.players": "{count} Spieler",
+  "team.est": "Gegr. {year}",
+
+  "stats.notAvailable": "Statistiken für dieses Spiel nicht verfügbar",
+  "stats.form": "Form",
+  "stats.topScorers": "Torjäger",
+  "stats.player": "Spieler",
+  "stats.team": "Team",
+  "stats.mp": "Sp",
+  "stats.goals": "T",
+  "stats.assists": "V",
+
+  "match.events.none": "Noch keine Ereignisse",
+  "match.lineup.startingXI": "Startelf",
+  "match.lineup.bench": "Ersatzbank",
+  "match.lineup.notAvailable": "Aufstellung nicht verfügbar",
+  "match.h2h.draws": "Unentschieden",
+  "match.h2h.recentMatches": "Letzte Spiele",
+
+  "quickPick.home": "Heim",
+  "quickPick.draw": "Unentschieden",
+  "quickPick.away": "Auswärts",
+
+  "profile.matchNotifications": "Spielbenachrichtigungen",
+  "profile.matchNotificationsDesc": "Erinnerungen vor Tippabgabe erhalten",
+
+  "common.predict": "Tippen",
+  "common.today": "Heute",
+  "common.matchday": "ST"
 }

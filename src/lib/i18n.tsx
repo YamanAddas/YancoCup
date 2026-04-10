@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
+import { teamName, competitionName, venueName, countryName, confederationName } from "./i18n-data";
 
 // Supported languages
 export const LANGUAGES = [
@@ -14,7 +15,7 @@ export type LangCode = (typeof LANGUAGES)[number]["code"];
 
 const STORAGE_KEY = "yc_lang";
 
-// Translation dictionaries loaded eagerly (small payload, ~100 keys each)
+// Translation dictionaries loaded eagerly (small payload, ~250 keys each)
 import en from "../data/translations/en.json";
 import ar from "../data/translations/ar.json";
 import es from "../data/translations/es.json";
@@ -26,11 +27,85 @@ const dictionaries: Record<LangCode, Record<string, string>> = {
   en, ar, es, fr, de, pt,
 };
 
+// ─── Arabic Plural Rules ─────────────────────────────────────────────────────
+// Arabic has 6 plural forms: zero, one, two, few (3-10), many (11-99), other (100+)
+// Usage: define keys like "key.zero", "key.one", "key.two", "key.few", "key.many", "key.other"
+// Falls back: specific form → "key" (base) → English
+
+function getArabicPluralForm(count: number): string {
+  if (count === 0) return "zero";
+  if (count === 1) return "one";
+  if (count === 2) return "two";
+  const mod100 = count % 100;
+  if (mod100 >= 3 && mod100 <= 10) return "few";
+  if (mod100 >= 11 && mod100 <= 99) return "many";
+  return "other";
+}
+
+function getPluralForm(count: number, lang: LangCode): string {
+  if (lang === "ar") return getArabicPluralForm(count);
+  // Most European languages: 1 = one, else other
+  if (count === 1) return "one";
+  return "other";
+}
+
+// ─── Intl.RelativeTimeFormat helper ──────────────────────────────────────────
+
+const rtfCache = new Map<string, Intl.RelativeTimeFormat>();
+
+function getRelativeTimeFormatter(lang: LangCode): Intl.RelativeTimeFormat {
+  if (!rtfCache.has(lang)) {
+    rtfCache.set(lang, new Intl.RelativeTimeFormat(lang, { numeric: "auto", style: "short" }));
+  }
+  return rtfCache.get(lang)!;
+}
+
+/**
+ * Format a relative time string like "2 min ago", "3 hours ago", "5 days ago"
+ * using the browser's Intl.RelativeTimeFormat for proper localization.
+ */
+export function formatRelativeTime(date: Date | string | number, lang: LangCode): string {
+  const now = Date.now();
+  const then = typeof date === "number" ? date : new Date(date).getTime();
+  const diffMs = then - now;
+  const diffSec = Math.round(diffMs / 1000);
+  const diffMin = Math.round(diffMs / 60000);
+  const diffHour = Math.round(diffMs / 3600000);
+  const diffDay = Math.round(diffMs / 86400000);
+
+  const rtf = getRelativeTimeFormatter(lang);
+
+  if (Math.abs(diffSec) < 60) return rtf.format(0, "second"); // "just now" / "الآن"
+  if (Math.abs(diffMin) < 60) return rtf.format(diffMin, "minute");
+  if (Math.abs(diffHour) < 24) return rtf.format(diffHour, "hour");
+  return rtf.format(diffDay, "day");
+}
+
+// ─── Context & Provider ──────────────────────────────────────────────────────
+
 interface I18nState {
   lang: LangCode;
   dir: "ltr" | "rtl";
   setLang: (code: LangCode) => void;
+  /** Translate a UI string key, with optional interpolation params. */
   t: (key: string, params?: Record<string, string | number>) => string;
+  /**
+   * Translate with plural support. Looks up "key.one"/"key.other" (or Arabic forms).
+   * Falls back to the base key with {count} interpolation.
+   */
+  tp: (key: string, count: number, params?: Record<string, string | number>) => string;
+  /** Translate a team name by team id (e.g., "bra" → "البرازيل") */
+  tTeam: (idOrName: string) => string;
+  /** Get translated competition name/shortName by comp id (e.g., "WC") */
+  tComp: (compId: string) => { name: string; shortName: string };
+  /** Get translated venue info by venue id */
+  tVenue: (venueId: string) => { name: string; city: string; country: string };
+  /** Translate a country name by ISO code (e.g., "us" → "الولايات المتحدة") */
+  tCountry: (isoCode: string) => string;
+  /** Translate a confederation name (e.g., "UEFA" → "الاتحاد الأوروبي") */
+  tConf: (confId: string) => string;
+  /** Format relative time (e.g., Date → "5 min ago" / "منذ ٥ دقائق") */
+  relTime: (date: Date | string | number) => string;
 }
 
 const I18nContext = createContext<I18nState | null>(null);
@@ -76,8 +151,38 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     [lang],
   );
 
+  const tp = useCallback(
+    (key: string, count: number, params?: Record<string, string | number>): string => {
+      const form = getPluralForm(count, lang);
+      const pluralKey = `${key}.${form}`;
+      // Try plural form, fall back to base key
+      const dict = dictionaries[lang];
+      const enDict = dictionaries.en;
+      let text = dict[pluralKey] ?? dict[key] ?? enDict[pluralKey] ?? enDict[key] ?? key;
+      // Always inject count
+      const allParams = { count, ...params };
+      for (const [k, v] of Object.entries(allParams)) {
+        text = text.split(`{${k}}`).join(String(v));
+      }
+      return text;
+    },
+    [lang],
+  );
+
+  const tTeam = useCallback((idOrName: string) => teamName(idOrName, lang), [lang]);
+  const tComp = useCallback((compId: string) => competitionName(compId, lang), [lang]);
+  const tVenue = useCallback((venueId: string) => venueName(venueId, lang), [lang]);
+  const tCountry = useCallback((isoCode: string) => countryName(isoCode, lang), [lang]);
+  const tConf = useCallback((confId: string) => confederationName(confId, lang), [lang]);
+  const relTime = useCallback((date: Date | string | number) => formatRelativeTime(date, lang), [lang]);
+
+  const value = useMemo<I18nState>(
+    () => ({ lang, dir, setLang, t, tp, tTeam, tComp, tVenue, tCountry, tConf, relTime }),
+    [lang, dir, setLang, t, tp, tTeam, tComp, tVenue, tCountry, tConf, relTime],
+  );
+
   return (
-    <I18nContext.Provider value={{ lang, dir, setLang, t }}>
+    <I18nContext.Provider value={value}>
       {children}
     </I18nContext.Provider>
   );

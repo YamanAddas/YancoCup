@@ -34,17 +34,18 @@ const TYPE_KEYS: Record<Broadcaster["type"], string> = {
 export default function WatchPage() {
   const [search, setSearch] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
-  const { t } = useI18n();
+  const { t, tCountry } = useI18n();
 
   const filtered = useMemo(() => {
     if (!search.trim()) return data;
     const q = search.toLowerCase();
     return data.filter(
       (c) =>
+        tCountry(c.isoCode).toLowerCase().includes(q) ||
         c.country.toLowerCase().includes(q) ||
         c.broadcasters.some((b) => b.name.toLowerCase().includes(q)),
     );
-  }, [search]);
+  }, [search, tCountry]);
 
   const selected = useMemo(
     () => data.find((c) => c.isoCode === selectedCountry),
@@ -98,7 +99,7 @@ export default function WatchPage() {
               alt={c.country}
               className="w-6 h-6 rounded-full shrink-0"
             />
-            <span className="truncate">{c.country}</span>
+            <span className="truncate">{tCountry(c.isoCode)}</span>
           </button>
         ))}
       </div>
@@ -118,7 +119,7 @@ export default function WatchPage() {
               alt={selected.country}
               className="w-10 h-10 rounded-full"
             />
-            <h3 className="font-heading text-xl font-bold">{selected.country}</h3>
+            <h3 className="font-heading text-xl font-bold">{tCountry(selected.isoCode)}</h3>
           </div>
 
           <div className="space-y-3">

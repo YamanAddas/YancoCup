@@ -243,5 +243,49 @@
   "news.translate": "Traducir al español",
   "news.translating": "Traduciendo...",
   "news.translatedFrom": "Traducido de",
-  "news.attribution": "Artículos obtenidos de feeds RSS. Los resúmenes son generados por IA. Siempre verifica con la fuente original."
+  "news.attribution": "Artículos obtenidos de feeds RSS. Los resúmenes son generados por IA. Siempre verifica con la fuente original.",
+  "news.aiSummary": "Resumen IA",
+
+  "match.upcoming": "Próximo",
+  "match.matchday": "Jornada {num}",
+
+  "team.notFound": "Equipo no encontrado.",
+  "team.backToStandings": "Volver a la clasificación",
+  "team.position": "Posición",
+  "team.cleanSheets": "Porterías imbatidas",
+  "team.home": "Local",
+  "team.away": "Visitante",
+  "team.goalsPerMatch": "goles/partido",
+  "team.recentForm": "Forma reciente",
+  "team.upcomingFixtures": "Próximos partidos",
+  "team.squad": "Plantilla",
+  "team.players": "{count} jugadores",
+  "team.est": "Fund. {year}",
+
+  "stats.notAvailable": "Estadísticas no disponibles para este partido",
+  "stats.form": "Forma",
+  "stats.topScorers": "Goleadores",
+  "stats.player": "Jugador",
+  "stats.team": "Equipo",
+  "stats.mp": "PJ",
+  "stats.goals": "G",
+  "stats.assists": "A",
+
+  "match.events.none": "Sin eventos todavía",
+  "match.lineup.startingXI": "Once titular",
+  "match.lineup.bench": "Banquillo",
+  "match.lineup.notAvailable": "Alineación no disponible",
+  "match.h2h.draws": "Empates",
+  "match.h2h.recentMatches": "Últimos partidos",
+
+  "quickPick.home": "Local",
+  "quickPick.draw": "Empate",
+  "quickPick.away": "Visitante",
+
+  "profile.matchNotifications": "Notificaciones de partidos",
+  "profile.matchNotificationsDesc": "Recibe recordatorios antes de los plazos de predicción",
+
+  "common.predict": "Predecir",
+  "common.today": "Hoy",
+  "common.matchday": "J"
 }

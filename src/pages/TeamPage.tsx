@@ -135,14 +135,7 @@ const LANG_LABELS: Record<string, string> = {
   en: "EN", ar: "AR", es: "ES", de: "DE", it: "IT", fr: "FR", pt: "PT",
 };
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
-  return `${Math.floor(hours / 24)}d`;
-}
+// timeAgo removed — use relTime from useI18n() instead
 
 function TeamNewspaper({ teamTla, teamName }: { teamTla: string; teamName: string; teamCrest: string }) {
   const { t, lang } = useI18n();
@@ -215,7 +208,7 @@ function TeamNewspaper({ teamTla, teamName }: { teamTla: string; teamName: strin
 }
 
 function TeamNewsHero({ article, userLang }: { article: NewsArticle; userLang: string }) {
-  const { t } = useI18n();
+  const { t, relTime } = useI18n();
   const needsTranslation = !article.translated && article.original_language !== userLang;
   const [translating, setTranslating] = useState(false);
   const [localTitle, setLocalTitle] = useState(article.title);
@@ -282,7 +275,7 @@ function TeamNewsHero({ article, userLang }: { article: NewsArticle; userLang: s
           )}
           <div className="flex items-center justify-between text-[11px] text-yc-text-tertiary pt-0.5">
             <span>{article.source_name}</span>
-            <span className="flex items-center gap-0.5"><Clock size={10} /> {timeAgo(article.published_at)}</span>
+            <span className="flex items-center gap-0.5"><Clock size={10} /> {relTime(article.published_at)}</span>
           </div>
         </div>
       </div>
@@ -291,6 +284,7 @@ function TeamNewsHero({ article, userLang }: { article: NewsArticle; userLang: s
 }
 
 function TeamNewsCompact({ article, userLang }: { article: NewsArticle; userLang: string }) {
+  const { relTime } = useI18n();
   const needsTranslation = !article.translated && article.original_language !== userLang;
   const [translating, setTranslating] = useState(false);
   const [localTitle, setLocalTitle] = useState(article.title);
@@ -337,7 +331,7 @@ function TeamNewsCompact({ article, userLang }: { article: NewsArticle; userLang
           </h4>
           <div className="flex items-center gap-2 text-[10px] text-yc-text-tertiary">
             <span>{article.source_name}</span>
-            <span className="flex items-center gap-0.5"><Clock size={9} /> {timeAgo(article.published_at)}</span>
+            <span className="flex items-center gap-0.5"><Clock size={9} /> {relTime(article.published_at)}</span>
             {needsTranslation && !isTranslated && (
               <button
                 onClick={handleTranslate}

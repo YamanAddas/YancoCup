@@ -243,5 +243,49 @@
   "news.translate": "ترجم إلى العربية",
   "news.translating": "جارٍ الترجمة...",
   "news.translatedFrom": "مترجم من",
-  "news.attribution": "المقالات مصدرها خلاصات RSS. الملخصات مولّدة بالذكاء الاصطناعي. تحقق دائماً من المصدر الأصلي."
+  "news.attribution": "المقالات مصدرها خلاصات RSS. الملخصات مولّدة بالذكاء الاصطناعي. تحقق دائماً من المصدر الأصلي.",
+  "news.aiSummary": "ملخص ذكي",
+
+  "match.upcoming": "قادمة",
+  "match.matchday": "الجولة {num}",
+
+  "team.notFound": "الفريق غير موجود.",
+  "team.backToStandings": "العودة للترتيب",
+  "team.position": "المركز",
+  "team.cleanSheets": "شباك نظيفة",
+  "team.home": "ديار",
+  "team.away": "خارج",
+  "team.goalsPerMatch": "أهداف/مباراة",
+  "team.recentForm": "الأداء الأخير",
+  "team.upcomingFixtures": "المباريات القادمة",
+  "team.squad": "التشكيلة",
+  "team.players": "{count} لاعب",
+  "team.est": "تأسس {year}",
+
+  "stats.notAvailable": "الإحصائيات غير متوفرة لهذه المباراة",
+  "stats.form": "الأداء",
+  "stats.topScorers": "الهدافون",
+  "stats.player": "اللاعب",
+  "stats.team": "الفريق",
+  "stats.mp": "م",
+  "stats.goals": "هـ",
+  "stats.assists": "ص",
+
+  "match.events.none": "لا أحداث بعد",
+  "match.lineup.startingXI": "التشكيلة الأساسية",
+  "match.lineup.bench": "البدلاء",
+  "match.lineup.notAvailable": "التشكيلة غير متوفرة",
+  "match.h2h.draws": "تعادل",
+  "match.h2h.recentMatches": "المباريات الأخيرة",
+
+  "quickPick.home": "المضيف",
+  "quickPick.draw": "تعادل",
+  "quickPick.away": "الضيف",
+
+  "profile.matchNotifications": "إشعارات المباريات",
+  "profile.matchNotificationsDesc": "تلقي تذكير قبل مواعيد التوقعات",
+
+  "common.predict": "توقّع",
+  "common.today": "اليوم",
+  "common.matchday": "ج"
 }

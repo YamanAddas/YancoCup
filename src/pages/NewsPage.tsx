@@ -11,18 +11,10 @@ const LANG_LABELS: Record<string, string> = {
   en: "EN", ar: "AR", es: "ES", de: "DE", it: "IT", fr: "FR", pt: "PT",
 };
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
+// timeAgo removed — use relTime from useI18n() instead
 
 function NewsCard({ article, userLang }: { article: NewsArticle; userLang: string }) {
-  const { t } = useI18n();
+  const { t, relTime } = useI18n();
   const needsTranslation = !article.translated && article.original_language !== userLang;
   const [translating, setTranslating] = useState(false);
   const [localTitle, setLocalTitle] = useState(article.title);
@@ -115,7 +107,7 @@ function NewsCard({ article, userLang }: { article: NewsArticle; userLang: strin
             <span>{article.source_name}</span>
             <span className="flex items-center gap-1">
               <Clock size={12} />
-              {timeAgo(article.published_at)}
+              {relTime(article.published_at)}
             </span>
           </div>
         </div>

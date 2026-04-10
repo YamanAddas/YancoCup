@@ -39,7 +39,7 @@ export default function PredictionCard({
   quickMode = false,
   onSaved,
 }: PredictionCardProps) {
-  const { t } = useI18n();
+  const { t, tVenue } = useI18n();
   const home = match.homeTeam ? teamMap.get(match.homeTeam) : undefined;
   const away = match.awayTeam ? teamMap.get(match.awayTeam) : undefined;
   const venue = venueMap.get(match.venueId);
@@ -132,7 +132,7 @@ export default function PredictionCard({
       actualAway: match.awayScore,
       points: prediction.points,
       competition: competitionId,
-      matchday: match.matchday ? `Matchday ${match.matchday}` : undefined,
+      matchday: match.matchday ? t("match.matchday", { num: match.matchday }) : undefined,
     });
 
     if (cardResult === "shared" || cardResult === "downloaded") {
@@ -306,7 +306,7 @@ export default function PredictionCard({
       {/* Footer */}
       <div className="mt-3 pt-3 border-t border-yc-border flex items-center justify-between">
         <div className="flex items-center gap-3 text-xs text-yc-text-tertiary">
-          {venue && <span className="truncate max-w-[120px]">{venue.city}</span>}
+          {venue && <span className="truncate max-w-[120px]">{tVenue(venue.id).city}</span>}
           {predictionCount > 0 && (
             <span className="flex items-center gap-1">
               <UsersIcon size={10} />
@@ -364,7 +364,7 @@ export default function PredictionCard({
             <span className="flex items-center gap-1 text-yc-text-secondary text-xs">
               <Check size={12} className="text-yc-green" />
               {prediction.quick_pick
-                ? { H: "1 (Home)", D: "X (Draw)", A: "2 (Away)" }[prediction.quick_pick]
+                ? { H: `1 (${t("quickPick.home")})`, D: `X (${t("quickPick.draw")})`, A: `2 (${t("quickPick.away")})` }[prediction.quick_pick]
                 : `${prediction.home_score} : ${prediction.away_score}`}
             </span>
             {prediction.points !== null ? (

@@ -245,5 +245,49 @@
   "news.translate": "Translate to English",
   "news.translating": "Translating...",
   "news.translatedFrom": "Translated from",
-  "news.attribution": "Articles sourced from RSS feeds. AI summaries are auto-generated. Always verify with the original source."
+  "news.attribution": "Articles sourced from RSS feeds. AI summaries are auto-generated. Always verify with the original source.",
+  "news.aiSummary": "AI Summary",
+
+  "match.upcoming": "Upcoming",
+  "match.matchday": "Matchday {num}",
+
+  "team.notFound": "Team not found.",
+  "team.backToStandings": "Back to standings",
+  "team.position": "Position",
+  "team.cleanSheets": "Clean Sheets",
+  "team.home": "Home",
+  "team.away": "Away",
+  "team.goalsPerMatch": "goals/match",
+  "team.recentForm": "Recent Form",
+  "team.upcomingFixtures": "Upcoming Fixtures",
+  "team.squad": "Squad",
+  "team.players": "{count} players",
+  "team.est": "Est. {year}",
+
+  "stats.notAvailable": "Statistics not available for this match",
+  "stats.form": "Form",
+  "stats.topScorers": "Top Scorers",
+  "stats.player": "Player",
+  "stats.team": "Team",
+  "stats.mp": "MP",
+  "stats.goals": "G",
+  "stats.assists": "A",
+
+  "match.events.none": "No events yet",
+  "match.lineup.startingXI": "Starting XI",
+  "match.lineup.bench": "Bench",
+  "match.lineup.notAvailable": "Lineup not available",
+  "match.h2h.draws": "Draws",
+  "match.h2h.recentMatches": "Recent Matches",
+
+  "quickPick.home": "Home",
+  "quickPick.draw": "Draw",
+  "quickPick.away": "Away",
+
+  "profile.matchNotifications": "Match Notifications",
+  "profile.matchNotificationsDesc": "Get reminded before prediction deadlines",
+
+  "common.predict": "Predict",
+  "common.today": "Today",
+  "common.matchday": "MD"
 }

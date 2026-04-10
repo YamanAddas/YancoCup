@@ -243,5 +243,49 @@
   "news.translate": "Traduire en français",
   "news.translating": "Traduction en cours...",
   "news.translatedFrom": "Traduit de",
-  "news.attribution": "Articles issus de flux RSS. Les résumés sont générés par IA. Vérifiez toujours avec la source originale."
+  "news.attribution": "Articles issus de flux RSS. Les résumés sont générés par IA. Vérifiez toujours avec la source originale.",
+  "news.aiSummary": "Résumé IA",
+
+  "match.upcoming": "À venir",
+  "match.matchday": "Journée {num}",
+
+  "team.notFound": "Équipe introuvable.",
+  "team.backToStandings": "Retour au classement",
+  "team.position": "Position",
+  "team.cleanSheets": "Clean sheets",
+  "team.home": "Domicile",
+  "team.away": "Extérieur",
+  "team.goalsPerMatch": "buts/match",
+  "team.recentForm": "Forme récente",
+  "team.upcomingFixtures": "Prochains matchs",
+  "team.squad": "Effectif",
+  "team.players": "{count} joueurs",
+  "team.est": "Fondé en {year}",
+
+  "stats.notAvailable": "Statistiques non disponibles pour ce match",
+  "stats.form": "Forme",
+  "stats.topScorers": "Meilleurs buteurs",
+  "stats.player": "Joueur",
+  "stats.team": "Équipe",
+  "stats.mp": "MJ",
+  "stats.goals": "B",
+  "stats.assists": "PD",
+
+  "match.events.none": "Aucun événement pour le moment",
+  "match.lineup.startingXI": "Titulaires",
+  "match.lineup.bench": "Remplaçants",
+  "match.lineup.notAvailable": "Composition non disponible",
+  "match.h2h.draws": "Nuls",
+  "match.h2h.recentMatches": "Matchs récents",
+
+  "quickPick.home": "Domicile",
+  "quickPick.draw": "Nul",
+  "quickPick.away": "Extérieur",
+
+  "profile.matchNotifications": "Notifications de matchs",
+  "profile.matchNotificationsDesc": "Recevoir un rappel avant les délais de pronostic",
+
+  "common.predict": "Pronostiquer",
+  "common.today": "Aujourd'hui",
+  "common.matchday": "J"
 }

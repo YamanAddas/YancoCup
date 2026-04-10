@@ -22,7 +22,7 @@ interface TabDef {
 
 export default function CompetitionHub() {
   const comp = useCompetition();
-  const { t } = useI18n();
+  const { t, tComp } = useI18n();
   const location = useLocation();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -82,7 +82,7 @@ export default function CompetitionHub() {
               />
             </div>
             <h1 className="font-heading text-lg font-bold leading-tight truncate">
-              {comp.shortName}
+              {tComp(comp.id).shortName}
             </h1>
             <span className="text-yc-text-tertiary text-xs shrink-0 ml-auto">
               {comp.seasonLabel}

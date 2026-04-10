@@ -66,7 +66,7 @@ function PersonalizedGreeting() {
 }
 
 function CompetitionCards() {
-  const { t } = useI18n();
+  const { t, tComp } = useI18n();
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
@@ -102,7 +102,7 @@ function CompetitionCards() {
               />
             </div>
             <p className="text-yc-text-primary text-sm font-semibold leading-tight">
-              {comp.shortName}
+              {tComp(comp.id).shortName}
             </p>
             <p className="text-yc-text-tertiary text-xs mt-0.5">
               {comp.seasonLabel}
@@ -364,7 +364,7 @@ function MyPredictionsToday() {
             className="flex items-center gap-1 px-3 py-2 bg-yc-green text-yc-bg-deep text-xs font-semibold rounded-lg hover:brightness-110 active:scale-[0.97] transition-all shrink-0"
           >
             <Target size={14} />
-            Predict
+            {t("common.predict")}
           </NavLink>
         )}
       </div>

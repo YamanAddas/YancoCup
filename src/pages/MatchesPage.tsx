@@ -183,7 +183,7 @@ const ROUND_KEYS: { value: Match["round"] | ""; labelKey: string }[] = [
 
 function TournamentMatches() {
   const comp = useCompetition();
-  const { t } = useI18n();
+  const { t, tTeam, tVenue } = useI18n();
   const [showFilters, setShowFilters] = useState(false);
   const [round, setRound] = useState("");
   const [group, setGroup] = useState("");
@@ -310,13 +310,13 @@ function TournamentMatches() {
             <SelectFilter label={t("matches.filterTeam")} value={team} onChange={setTeam}>
               <option value="">{t("matches.allTeams")}</option>
               {teams.map((t_) => (
-                <option key={t_.id} value={t_.id}>{t_.name}</option>
+                <option key={t_.id} value={t_.id}>{tTeam(t_.id)}</option>
               ))}
             </SelectFilter>
             <SelectFilter label={t("matches.filterVenue")} value={venueId} onChange={setVenueId}>
               <option value="">{t("matches.allVenues")}</option>
               {venues.map((v) => (
-                <option key={v.id} value={v.id}>{v.name}</option>
+                <option key={v.id} value={v.id}>{tVenue(v.id).name}</option>
               ))}
             </SelectFilter>
           </div>
@@ -348,13 +348,13 @@ function TournamentMatches() {
           </h3>
           {effectiveDate === today && (
             <span className="text-[10px] uppercase tracking-widest text-yc-green font-bold bg-yc-green/10 px-2 py-0.5 rounded-full">
-              Today
+              {t("home.todaysMatches")}
             </span>
           )}
           {liveSet.has(effectiveDate) && (
             <span className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-yc-green font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-yc-green animate-pulse" />
-              Live
+              {t("match.live")}
             </span>
           )}
         </div>
@@ -502,7 +502,7 @@ function LeagueMatches() {
                               : "bg-yc-bg-surface text-yc-text-secondary border-yc-border hover:text-yc-text-primary hover:border-yc-border-hover"
                       }`}
                     >
-                      <span className="text-[9px] uppercase tracking-wider opacity-60">MD</span>
+                      <span className="text-[9px] uppercase tracking-wider opacity-60">{t("common.matchday")}</span>
                       <span className="font-bold font-mono">{md}</span>
                       {status === "live" && (
                         <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-yc-green animate-pulse" />
