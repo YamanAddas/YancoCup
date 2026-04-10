@@ -60,6 +60,8 @@
   "groups.advanceNote": "Top 2 advance. Best 3rd-place teams also qualify.",
 
   "standings.noData": "No standings data available yet.",
+  "standings.ifEnded": "If the season ended today",
+  "standings.matchdayProgress": "Matchday {current}/{total} ({pct}% complete)",
 
   "groupTable.team": "Team",
   "groupTable.played": "P",

@@ -57,6 +57,8 @@
   "groups.subtitle": "12 groupes · 48 équipes · Les 2 premiers + meilleurs 3es se qualifient",
   "groups.advanceNote": "Les 2 premiers se qualifient. Les meilleures équipes classées 3es aussi.",
   "standings.noData": "Aucune donnée de classement disponible.",
+  "standings.ifEnded": "Si la saison se terminait aujourd'hui",
+  "standings.matchdayProgress": "Journée {current}/{total} ({pct}% terminé)",
 
   "groupTable.team": "Équipe",
   "groupTable.played": "J",

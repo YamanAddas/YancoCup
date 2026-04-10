@@ -57,6 +57,8 @@
   "groups.subtitle": "12 grupos de 4 equipos",
   "groups.advanceNote": "Los 2 primeros avanzan. Los mejores terceros también clasifican.",
   "standings.noData": "No hay datos de clasificación disponibles.",
+  "standings.ifEnded": "Si la temporada terminara hoy",
+  "standings.matchdayProgress": "Jornada {current}/{total} ({pct}% completado)",
 
   "groupTable.team": "Equipo",
   "groupTable.played": "PJ",

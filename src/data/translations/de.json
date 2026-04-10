@@ -57,6 +57,8 @@
   "groups.subtitle": "12 Gruppen mit je 4 Teams",
   "groups.advanceNote": "Die besten 2 kommen weiter. Die besten Gruppendritten qualifizieren sich ebenfalls.",
   "standings.noData": "Noch keine Tabellendaten verfügbar.",
+  "standings.ifEnded": "Wenn die Saison heute enden würde",
+  "standings.matchdayProgress": "Spieltag {current}/{total} ({pct}% abgeschlossen)",
 
   "groupTable.team": "Team",
   "groupTable.played": "Sp",

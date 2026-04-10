@@ -57,6 +57,8 @@
   "groups.subtitle": "12 grupos de 4 seleções",
   "groups.advanceNote": "Os 2 primeiros avançam. As melhores seleções em 3º lugar também se classificam.",
   "standings.noData": "Dados de classificação ainda não disponíveis.",
+  "standings.ifEnded": "Se a temporada terminasse hoje",
+  "standings.matchdayProgress": "Rodada {current}/{total} ({pct}% concluído)",
 
   "groupTable.team": "Seleção",
   "groupTable.played": "J",

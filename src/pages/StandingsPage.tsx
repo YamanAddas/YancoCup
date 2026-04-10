@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
@@ -6,7 +6,10 @@ import { fetchScorers } from "../lib/api";
 import type { Scorer } from "../lib/api";
 import TeamCrest from "../components/match/TeamCrest";
 import type { StandingsZones } from "../lib/competitions";
-import { Target } from "lucide-react";
+import { Target, ArrowUp, ArrowDown, Info } from "lucide-react";
+
+type SortKey = "position" | "playedGames" | "won" | "draw" | "lost" | "goalsFor" | "goalsAgainst" | "goalDifference" | "points";
+type SortDir = "asc" | "desc";
 
 const WORKER_URL =
   import.meta.env.VITE_WORKER_URL ??
@@ -73,6 +76,24 @@ function getZoneStyle(position: number, zones?: StandingsZones) {
   if (zones.relegation.includes(position))
     return { borderLeft: "3px solid #ef4444", background: "rgba(239,68,68,0.04)" };
   return {};
+}
+
+function SortHeader({ k, label, current, dir, onClick, className }: {
+  k: SortKey; label: string; current: SortKey; dir: SortDir;
+  onClick: (k: SortKey) => void; className?: string;
+}) {
+  const active = current === k;
+  return (
+    <th
+      className={`${className ?? ""} cursor-pointer select-none hover:text-yc-text-secondary transition-colors`}
+      onClick={() => onClick(k)}
+    >
+      <span className="inline-flex items-center gap-0.5">
+        {label}
+        {active && (dir === "asc" ? <ArrowUp size={10} /> : <ArrowDown size={10} />)}
+      </span>
+    </th>
+  );
 }
 
 export default function StandingsPage() {
@@ -148,6 +169,38 @@ export default function StandingsPage() {
 
   const zones = comp.zones;
 
+  const [sortKey, setSortKey] = useState<SortKey>("position");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const handleSort = useCallback((key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "position" ? "asc" : "desc");
+    }
+  }, [sortKey]);
+
+  const sortedStandings = useMemo(() => {
+    if (sortKey === "position" && sortDir === "asc") return standings;
+    return [...standings].sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      return sortDir === "asc" ? (av as number) - (bv as number) : (bv as number) - (av as number);
+    });
+  }, [standings, sortKey, sortDir]);
+
+  // "If season ended today" banner data
+  const seasonBanner = useMemo(() => {
+    if (!zones || standings.length === 0) return null;
+    const totalRounds = comp.type === "league" ? (standings.length - 1) * 2 : 0;
+    if (totalRounds === 0) return null;
+    const maxPlayed = Math.max(...standings.map((r) => r.playedGames));
+    if (maxPlayed < 3 || maxPlayed >= totalRounds) return null; // too early or season over
+    const pct = Math.round((maxPlayed / totalRounds) * 100);
+    return { matchday: maxPlayed, total: totalRounds, pct };
+  }, [standings, zones, comp.type]);
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
 
@@ -172,25 +225,40 @@ export default function StandingsPage() {
         </div>
       ) : (
         <>
+          {/* "If season ended today" banner */}
+          {seasonBanner && zones && (
+            <div className="yc-card rounded-xl p-4 mb-4 flex items-center gap-3">
+              <Info size={16} className="text-yc-info shrink-0" />
+              <div className="text-sm">
+                <span className="text-yc-text-primary font-medium">
+                  {t("standings.ifEnded")}
+                </span>
+                <span className="text-yc-text-secondary ml-2">
+                  {t("standings.matchdayProgress", { current: seasonBanner.matchday, total: seasonBanner.total, pct: seasonBanner.pct })}
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="yc-card rounded-xl overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-yc-text-tertiary text-xs uppercase tracking-wider border-b border-yc-border">
-                  <th className="text-left py-3 px-3 w-8">#</th>
+                  <SortHeader k="position" label="#" current={sortKey} dir={sortDir} onClick={handleSort} className="text-left py-3 px-3 w-8" />
                   <th className="text-left py-3 px-2">{t("groupTable.team")}</th>
-                  <th className="text-center py-3 px-2 w-8">{t("groupTable.played")}</th>
-                  <th className="text-center py-3 px-2 w-8">{t("groupTable.won")}</th>
-                  <th className="text-center py-3 px-2 w-8">{t("groupTable.drawn")}</th>
-                  <th className="text-center py-3 px-2 w-8">{t("groupTable.lost")}</th>
-                  <th className="text-center py-3 px-2 w-10 hidden sm:table-cell">GF</th>
-                  <th className="text-center py-3 px-2 w-10 hidden sm:table-cell">GA</th>
-                  <th className="text-center py-3 px-2 w-10">{t("groupTable.gd")}</th>
-                  <th className="text-center py-3 px-2 w-10 font-bold">{t("groupTable.pts")}</th>
+                  <SortHeader k="playedGames" label={t("groupTable.played")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-8" />
+                  <SortHeader k="won" label={t("groupTable.won")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-8" />
+                  <SortHeader k="draw" label={t("groupTable.drawn")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-8" />
+                  <SortHeader k="lost" label={t("groupTable.lost")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-8" />
+                  <SortHeader k="goalsFor" label="GF" current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-10 hidden sm:table-cell" />
+                  <SortHeader k="goalsAgainst" label="GA" current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-10 hidden sm:table-cell" />
+                  <SortHeader k="goalDifference" label={t("groupTable.gd")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-10" />
+                  <SortHeader k="points" label={t("groupTable.pts")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-10 font-bold" />
                   <th className="text-center py-3 px-2 w-20 hidden md:table-cell">Form</th>
                 </tr>
               </thead>
               <tbody>
-                {standings.map((row) => (
+                {sortedStandings.map((row) => (
                   <tr
                     key={row.position}
                     className="border-b border-yc-border/30 hover:bg-white/[0.02] transition-colors"

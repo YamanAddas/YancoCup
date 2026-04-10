@@ -57,6 +57,8 @@
   "groups.subtitle": "12 مجموعة من 4 فرق",
   "groups.advanceNote": "يتأهل الأول والثاني. أفضل فرق المركز الثالث تتأهل أيضاً.",
   "standings.noData": "لا تتوفر بيانات الترتيب بعد.",
+  "standings.ifEnded": "لو انتهى الموسم اليوم",
+  "standings.matchdayProgress": "الجولة {current}/{total} ({pct}% مكتمل)",
 
   "groupTable.team": "الفريق",
   "groupTable.played": "لعب",
