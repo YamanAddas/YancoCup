@@ -3,13 +3,14 @@ import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { getRank, getRankStars } from "../lib/ranks";
 import { fetchBadges, fetchUserBadges, checkLoyaltyBadges, type Badge, type UserBadge } from "../lib/badges";
+import { shareProfileCard } from "../lib/shareCard";
 import RivalsSection from "../components/predictions/RivalsSection";
 import { requestNotificationPermission, notificationsEnabled } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
 import { COMPETITIONS } from "../lib/competitions";
 import {
   Trophy, Target, TrendingUp, Flame, Award, Shield, Globe, Medal,
-  Eye, Zap, Crosshair, CheckCircle, Shuffle, Star, Bell, History, ChevronDown,
+  Eye, Zap, Crosshair, CheckCircle, Shuffle, Star, Bell, History, ChevronDown, Share2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -460,7 +461,7 @@ export default function ProfilePage() {
             {(profile?.handle ?? "?").charAt(0).toUpperCase()}
           </div>
         )}
-        <div>
+        <div className="flex-1">
           <h2 className="font-heading text-2xl font-bold">
             {profile?.display_name ?? profile?.handle ?? "Player"}
           </h2>
@@ -471,6 +472,25 @@ export default function ProfilePage() {
             </span>
           </div>
         </div>
+        <button
+          onClick={() => {
+            if (!stats || !profile) return;
+            const rank = getRank(stats.totalPoints);
+            shareProfileCard({
+              handle: profile.handle,
+              displayName: profile.display_name,
+              rank: rank.name,
+              totalPoints: stats.totalPoints,
+              predictions: stats.totalPredictions,
+              exactScores: stats.exactScores,
+              accuracy,
+            });
+          }}
+          className="shrink-0 p-2 rounded-lg bg-yc-bg-elevated border border-yc-border hover:border-yc-green-muted/40 transition-colors"
+          title={t("share.title")}
+        >
+          <Share2 size={18} className="text-yc-text-secondary" />
+        </button>
       </div>
 
       {/* Stats grid */}

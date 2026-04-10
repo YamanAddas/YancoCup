@@ -123,6 +123,145 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
   }
 }
 
+// ---------------------------------------------------------------------------
+// Profile share card
+// ---------------------------------------------------------------------------
+
+interface ProfileCardData {
+  handle: string;
+  displayName: string | null;
+  rank: string;
+  totalPoints: number;
+  predictions: number;
+  exactScores: number;
+  accuracy: number;
+}
+
+export async function generateProfileCard(data: ProfileCardData): Promise<Blob | null> {
+  try {
+    const W = 600;
+    const H = 360;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    // Background
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, "#060b14");
+    bg.addColorStop(1, "#0c1620");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Border
+    ctx.strokeStyle = "#142035";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, W - 2, H - 2);
+
+    // Green accent line
+    ctx.fillStyle = "#00ff88";
+    ctx.fillRect(0, 0, W, 3);
+
+    // Branding
+    ctx.fillStyle = "#00ff88";
+    ctx.font = "bold 14px 'Space Grotesk', sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("YANCOCUP", 24, 36);
+
+    // Name
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 28px 'Space Grotesk', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(data.displayName ?? data.handle, W / 2, 80);
+
+    // Handle
+    ctx.fillStyle = "#666666";
+    ctx.font = "14px 'Inter', sans-serif";
+    ctx.fillText(`@${data.handle}`, W / 2, 105);
+
+    // Rank badge
+    ctx.fillStyle = "#00ff88";
+    ctx.font = "bold 16px 'Space Grotesk', sans-serif";
+    ctx.fillText(data.rank, W / 2, 140);
+
+    // Stats row
+    const stats = [
+      { label: "POINTS", value: String(data.totalPoints) },
+      { label: "PREDICTIONS", value: String(data.predictions) },
+      { label: "EXACT", value: String(data.exactScores) },
+      { label: "ACCURACY", value: `${data.accuracy}%` },
+    ];
+
+    const colW = W / stats.length;
+    const baseY = 190;
+
+    for (let i = 0; i < stats.length; i++) {
+      const s = stats[i]!;
+      const x = colW * i + colW / 2;
+
+      // Value
+      ctx.fillStyle = "#00ff88";
+      ctx.font = "bold 36px 'Space Grotesk', monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(s.value, x, baseY);
+
+      // Label
+      ctx.fillStyle = "#666666";
+      ctx.font = "11px 'Inter', sans-serif";
+      ctx.fillText(s.label, x, baseY + 20);
+    }
+
+    // Divider
+    ctx.fillStyle = "#142035";
+    ctx.fillRect(24, baseY + 40, W - 48, 1);
+
+    // Invite text
+    ctx.fillStyle = "#a0a0a0";
+    ctx.font = "14px 'Inter', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Join me on YancoCup — predict the World Cup!", W / 2, baseY + 70);
+
+    // Footer
+    ctx.fillStyle = "#333333";
+    ctx.font = "10px 'Inter', sans-serif";
+    ctx.fillText("yamanaddas.github.io/YancoCup", W / 2, H - 12);
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/png");
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function shareProfileCard(data: ProfileCardData): Promise<"shared" | "downloaded" | "failed"> {
+  const blob = await generateProfileCard(data);
+  if (!blob) return "failed";
+
+  const file = new File([blob], "yancocup-profile.png", { type: "image/png" });
+
+  if (navigator.share && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({
+        text: `I'm ${data.rank} on YancoCup with ${data.totalPoints} points! | YancoCup`,
+        files: [file],
+      });
+      return "shared";
+    } catch {
+      // User cancelled
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "yancocup-profile.png";
+  a.click();
+  URL.revokeObjectURL(url);
+  return "downloaded";
+}
+
 /** Share a prediction card image via Web Share API or download */
 export async function sharePredictionCard(data: ShareCardData): Promise<"shared" | "downloaded" | "failed"> {
   const blob = await generateShareCard(data);
