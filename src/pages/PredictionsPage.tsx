@@ -30,8 +30,9 @@ export default function PredictionsPage() {
     [predictions],
   );
 
-  // For leagues: matchday-based navigation
+  // For leagues: matchday-based navigation + quick mode toggle
   const isLeague = comp.type === "league";
+  const [quickMode, setQuickMode] = useState(false);
   const [selectedMatchday, setSelectedMatchday] = useState<number | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeMdRef = useRef<HTMLButtonElement>(null);
@@ -143,11 +144,38 @@ export default function PredictionsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-      {/* Prediction stats */}
-      <div className="flex items-center gap-2 text-sm mb-4">
-        <span className="text-yc-text-secondary">{t("predictions.predicted", { count: predictions.length })}</span>
-        <span className="text-yc-text-tertiary">&middot;</span>
-        <span className="text-yc-text-secondary">{t("predictions.remaining", { count: unpredicted.length })}</span>
+      {/* Prediction stats + mode toggle */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-yc-text-secondary">{t("predictions.predicted", { count: predictions.length })}</span>
+          <span className="text-yc-text-tertiary">&middot;</span>
+          <span className="text-yc-text-secondary">{t("predictions.remaining", { count: unpredicted.length })}</span>
+        </div>
+
+        {isLeague && (
+          <div className="flex items-center bg-yc-bg-surface border border-yc-border rounded-lg p-0.5">
+            <button
+              onClick={() => setQuickMode(false)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                !quickMode
+                  ? "bg-yc-green text-yc-bg-deep"
+                  : "text-yc-text-tertiary hover:text-yc-text-secondary"
+              }`}
+            >
+              Full
+            </button>
+            <button
+              onClick={() => setQuickMode(true)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                quickMode
+                  ? "bg-yc-green text-yc-bg-deep"
+                  : "text-yc-text-tertiary hover:text-yc-text-secondary"
+              }`}
+            >
+              1X2
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Matchday navigation for leagues */}
@@ -226,6 +254,7 @@ export default function PredictionsPage() {
                     competitionId={comp.id}
                     userPredictionCount={predictions.length}
                     jokerUsedThisMatchday={jokerMatchId !== null && jokerMatchId !== m.id}
+                    quickMode={quickMode}
                     onSaved={refresh}
                   />
                 ))}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Lock, Check, Loader2, Users as UsersIcon, Share2, Sparkles } from "lucide-react";
-import { upsertPrediction, canPredict } from "../../hooks/usePredictions";
+import { upsertPrediction, upsertQuickPrediction, canPredict } from "../../hooks/usePredictions";
 import { useConsensus } from "../../hooks/useConsensus";
 import { checkActivityBadges } from "../../lib/badges";
 import { buildShareText, sharePrediction } from "../../lib/share";
@@ -21,6 +21,7 @@ interface PredictionCardProps {
   competitionId?: string;
   userPredictionCount?: number;
   jokerUsedThisMatchday?: boolean;
+  quickMode?: boolean;
   onSaved: () => void;
 }
 
@@ -34,6 +35,7 @@ export default function PredictionCard({
   competitionId = "WC",
   userPredictionCount = 0,
   jokerUsedThisMatchday = false,
+  quickMode = false,
   onSaved,
 }: PredictionCardProps) {
   const { t } = useI18n();
@@ -44,13 +46,15 @@ export default function PredictionCard({
 
   const [homeScore, setHomeScore] = useState<string>("");
   const [awayScore, setAwayScore] = useState<string>("");
+  const [quickPick, setQuickPick] = useState<"H" | "D" | "A" | null>(null);
   const [isJoker, setIsJoker] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (prediction) {
-      setHomeScore(String(prediction.home_score));
-      setAwayScore(String(prediction.away_score));
+      setHomeScore(prediction.home_score != null ? String(prediction.home_score) : "");
+      setAwayScore(prediction.away_score != null ? String(prediction.away_score) : "");
+      setQuickPick(prediction.quick_pick);
       setIsJoker(prediction.is_joker);
     }
   }, [prediction]);
@@ -61,8 +65,16 @@ export default function PredictionCard({
   const hasPrediction = prediction !== undefined;
   const consensus = useConsensus(match.id, hasPrediction, competitionId);
   const hasChanged =
-    homeScore !== (prediction ? String(prediction.home_score) : "") ||
-    awayScore !== (prediction ? String(prediction.away_score) : "");
+    homeScore !== (prediction?.home_score != null ? String(prediction.home_score) : "") ||
+    awayScore !== (prediction?.away_score != null ? String(prediction.away_score) : "");
+
+  const afterSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    const newCount = hasPrediction ? userPredictionCount : userPredictionCount + 1;
+    checkActivityBadges(userId, newCount).catch(() => {});
+    onSaved();
+  };
 
   const handleSave = async () => {
     const h = parseInt(homeScore, 10);
@@ -75,20 +87,23 @@ export default function PredictionCard({
     setError(null);
     const err = await upsertPrediction(userId, match.id, h, a, competitionId, isJoker);
     setSaving(false);
-    if (err) {
-      setError(err);
-    } else {
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-      // Award activity badges based on new total prediction count
-      const newCount = hasPrediction ? userPredictionCount : userPredictionCount + 1;
-      checkActivityBadges(userId, newCount).catch(() => {});
-      onSaved();
-    }
+    if (err) { setError(err); } else { afterSave(); }
+  };
+
+  const handleQuickPick = async (pick: "H" | "D" | "A") => {
+    if (locked) return;
+    // If same pick tapped again, do nothing
+    if (pick === quickPick && hasPrediction) return;
+    setQuickPick(pick);
+    setSaving(true);
+    setError(null);
+    const err = await upsertQuickPrediction(userId, match.id, pick, competitionId, isJoker);
+    setSaving(false);
+    if (err) { setError(err); } else { afterSave(); }
   };
 
   const handleShare = async () => {
-    if (!match.homeTeam || !match.awayTeam || !prediction) return;
+    if (!match.homeTeam || !match.awayTeam || !prediction || prediction.home_score == null) return;
 
     const hCode = home?.fifaCode ?? match.homeTeam.toUpperCase();
     const aCode = away?.fifaCode ?? match.awayTeam.toUpperCase();
@@ -98,8 +113,8 @@ export default function PredictionCard({
     const cardResult = await sharePredictionCard({
       homeTeam: homeName,
       awayTeam: awayName,
-      homeScore: prediction.home_score,
-      awayScore: prediction.away_score,
+      homeScore: prediction.home_score!,
+      awayScore: prediction.away_score!,
       actualHome: match.homeScore,
       actualAway: match.awayScore,
       points: prediction.points,
@@ -115,7 +130,7 @@ export default function PredictionCard({
 
     const shareHome = home ?? { id: match.homeTeam, name: hCode, fifaCode: hCode, isoCode: "", confederation: "", group: "" };
     const shareAway = away ?? { id: match.awayTeam, name: aCode, fifaCode: aCode, isoCode: "", confederation: "", group: "" };
-    const text = buildShareText(match, shareHome, shareAway, prediction.home_score, prediction.away_score);
+    const text = buildShareText(match, shareHome, shareAway, prediction.home_score!, prediction.away_score!);
     const result = await sharePrediction(text);
     if (result === "copied") {
       setShareStatus(t("predictions.copied"));
@@ -178,7 +193,7 @@ export default function PredictionCard({
         </div>
       </div>
 
-      {/* Teams + score inputs */}
+      {/* Teams + score inputs / quick-pick buttons */}
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <TeamCrest
@@ -192,29 +207,48 @@ export default function PredictionCard({
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
-          <input
-            type="number"
-            min={0}
-            max={99}
-            value={homeScore}
-            onChange={(e) => setHomeScore(e.target.value)}
-            disabled={locked}
-            placeholder="-"
-            className="w-12 h-12 sm:w-10 sm:h-10 bg-yc-bg-elevated border border-yc-border rounded-lg text-center text-yc-text-primary font-mono text-lg font-bold focus:outline-none focus:border-yc-green-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-          />
-          <span className="text-yc-text-tertiary font-mono text-sm">:</span>
-          <input
-            type="number"
-            min={0}
-            max={99}
-            value={awayScore}
-            onChange={(e) => setAwayScore(e.target.value)}
-            disabled={locked}
-            placeholder="-"
-            className="w-12 h-12 sm:w-10 sm:h-10 bg-yc-bg-elevated border border-yc-border rounded-lg text-center text-yc-text-primary font-mono text-lg font-bold focus:outline-none focus:border-yc-green-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-          />
-        </div>
+        {quickMode ? (
+          <div className="flex items-center gap-1 shrink-0">
+            {(["H", "D", "A"] as const).map((pick) => (
+              <button
+                key={pick}
+                onClick={() => handleQuickPick(pick)}
+                disabled={locked || saving}
+                className={`w-11 h-10 rounded-lg font-mono text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                  quickPick === pick
+                    ? "bg-yc-green text-yc-bg-deep shadow-[0_0_12px_rgba(0,255,136,0.2)]"
+                    : "bg-yc-bg-elevated border border-yc-border text-yc-text-secondary hover:border-yc-green-muted hover:text-yc-text-primary"
+                }`}
+              >
+                {pick === "H" ? "1" : pick === "D" ? "X" : "2"}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <input
+              type="number"
+              min={0}
+              max={99}
+              value={homeScore}
+              onChange={(e) => setHomeScore(e.target.value)}
+              disabled={locked}
+              placeholder="-"
+              className="w-12 h-12 sm:w-10 sm:h-10 bg-yc-bg-elevated border border-yc-border rounded-lg text-center text-yc-text-primary font-mono text-lg font-bold focus:outline-none focus:border-yc-green-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <span className="text-yc-text-tertiary font-mono text-sm">:</span>
+            <input
+              type="number"
+              min={0}
+              max={99}
+              value={awayScore}
+              onChange={(e) => setAwayScore(e.target.value)}
+              disabled={locked}
+              placeholder="-"
+              className="w-12 h-12 sm:w-10 sm:h-10 bg-yc-bg-elevated border border-yc-border rounded-lg text-center text-yc-text-primary font-mono text-lg font-bold focus:outline-none focus:border-yc-green-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+          </div>
+        )}
 
         <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
           <span className="text-yc-text-primary text-sm font-semibold truncate text-right">
@@ -272,7 +306,7 @@ export default function PredictionCard({
           </button>
         )}
 
-        {!locked && (
+        {!locked && !quickMode && (
           <button
             onClick={handleSave}
             disabled={saving || (!hasChanged && hasPrediction && isJoker === (prediction?.is_joker ?? false)) || !homeScore || !awayScore}
@@ -302,7 +336,9 @@ export default function PredictionCard({
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1 text-yc-text-secondary text-xs">
               <Check size={12} className="text-yc-green" />
-              {prediction.home_score} : {prediction.away_score}
+              {prediction.quick_pick
+                ? { H: "1 (Home)", D: "X (Draw)", A: "2 (Away)" }[prediction.quick_pick]
+                : `${prediction.home_score} : ${prediction.away_score}`}
             </span>
             {prediction.points !== null ? (
               <span

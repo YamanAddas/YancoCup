@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { supabase } from "../lib/supabase";
-import { calculatePoints } from "../lib/scoring";
+import { calculatePoints, calculateQuickPoints } from "../lib/scoring";
 import { COMPETITIONS } from "../lib/competitions";
 import { updateStreak, checkSkillBadges } from "../lib/badges";
 import { useAuth } from "../lib/auth";
@@ -51,17 +51,24 @@ export function useScoring(competitionId = "WC") {
 
       for (const pred of toScore) {
         const result = resultMap.get(pred.match_id)!;
-        const scoreResult = calculatePoints(
-          {
-            predictedHome: pred.home_score,
-            predictedAway: pred.away_score,
-            actualHome: result.homeScore,
-            actualAway: result.awayScore,
-          },
-          result.round ?? "group",
-          pred.is_joker,
-          isTournament,
-        );
+        const scoreResult = pred.quick_pick
+          ? calculateQuickPoints(
+              pred.quick_pick,
+              result.homeScore,
+              result.awayScore,
+              pred.is_joker,
+            )
+          : calculatePoints(
+              {
+                predictedHome: pred.home_score!,
+                predictedAway: pred.away_score!,
+                actualHome: result.homeScore,
+                actualAway: result.awayScore,
+              },
+              result.round ?? "group",
+              pred.is_joker,
+              isTournament,
+            );
 
         const { error } = await supabase
           .from("yc_predictions")

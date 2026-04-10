@@ -7,8 +7,9 @@ export interface Prediction {
   user_id: string;
   match_id: number;
   competition_id: string;
-  home_score: number;
-  away_score: number;
+  home_score: number | null;
+  away_score: number | null;
+  quick_pick: "H" | "D" | "A" | null;
   points: number | null;
   scored_at: string | null;
   is_joker: boolean;
@@ -48,7 +49,7 @@ export function useMyPredictions(competitionId = "WC") {
   return { predictions, loading, refresh };
 }
 
-/** Upsert a prediction (insert or update) */
+/** Upsert an exact-score prediction */
 export async function upsertPrediction(
   userId: string,
   matchId: number,
@@ -64,6 +65,31 @@ export async function upsertPrediction(
       competition_id: competitionId,
       home_score: homeScore,
       away_score: awayScore,
+      quick_pick: null,
+      is_joker: isJoker,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,competition_id,match_id" },
+  );
+  return error?.message ?? null;
+}
+
+/** Upsert a quick-predict (1X2) prediction */
+export async function upsertQuickPrediction(
+  userId: string,
+  matchId: number,
+  pick: "H" | "D" | "A",
+  competitionId = "WC",
+  isJoker = false,
+): Promise<string | null> {
+  const { error } = await supabase.from("yc_predictions").upsert(
+    {
+      user_id: userId,
+      match_id: matchId,
+      competition_id: competitionId,
+      home_score: null,
+      away_score: null,
+      quick_pick: pick,
       is_joker: isJoker,
       updated_at: new Date().toISOString(),
     },

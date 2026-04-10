@@ -4,6 +4,7 @@ import { ArrowLeft, Clock, MapPin } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import { formatTimeWithTZ } from "../lib/formatDate";
+import { useMyPredictions } from "../hooks/usePredictions";
 import TeamCrest from "../components/match/TeamCrest";
 
 const WORKER_URL =
@@ -573,6 +574,8 @@ export default function MatchDetailPage() {
   const [match, setMatch] = useState<MatchData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabId>("overview");
+  const { predictions } = useMyPredictions(comp.id);
+  const myPrediction = predictions.find((p) => p.match_id === Number(id));
 
   useEffect(() => {
     async function load() {
@@ -729,6 +732,43 @@ export default function MatchDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Your prediction banner */}
+      {myPrediction && (
+        <div
+          className={`rounded-lg px-4 py-3 mb-4 flex items-center justify-between text-sm ${
+            myPrediction.scored_at
+              ? myPrediction.points && myPrediction.points >= 5
+                ? "bg-yc-green/10 border border-yc-green-muted/30"
+                : myPrediction.points && myPrediction.points > 0
+                  ? "bg-yc-warning/10 border border-yc-warning/30"
+                  : "bg-yc-danger/10 border border-yc-danger/30"
+              : "bg-yc-bg-elevated border border-yc-border"
+          }`}
+        >
+          <span className="text-yc-text-primary">
+            You predicted{" "}
+            <span className="font-mono font-bold">
+              {myPrediction.home_score} - {myPrediction.away_score}
+            </span>
+          </span>
+          <span
+            className={`font-mono font-bold ${
+              myPrediction.scored_at
+                ? myPrediction.points && myPrediction.points >= 5
+                  ? "text-yc-green"
+                  : myPrediction.points && myPrediction.points > 0
+                    ? "text-yc-warning"
+                    : "text-yc-danger"
+                : "text-yc-text-tertiary"
+            }`}
+          >
+            {myPrediction.scored_at
+              ? `${myPrediction.points ?? 0} pts`
+              : "Pending"}
+          </span>
+        </div>
+      )}
 
       {/* Tabs */}
       <TabBar active={tab} onChange={setTab} />

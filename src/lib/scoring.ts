@@ -111,6 +111,35 @@ export function calculatePoints(
 }
 
 /**
+ * Quick-predict scoring: 2 pts for correct result, 0 for wrong.
+ * @param pick - 'H' (home win), 'D' (draw), 'A' (away win)
+ * @param actualHome - actual home score
+ * @param actualAway - actual away score
+ * @param isJoker - whether this is a joker pick (2x)
+ */
+export function calculateQuickPoints(
+  pick: "H" | "D" | "A",
+  actualHome: number,
+  actualAway: number,
+  isJoker = false,
+): ScoreResult {
+  const actualResult = getResult(actualHome, actualAway);
+  const pickMap = { H: "home", D: "draw", A: "away" } as const;
+  const correct = pickMap[pick] === actualResult;
+
+  const basePoints = correct ? 2 : 0;
+  const multiplier = isJoker ? 2 : 1;
+
+  return {
+    tier: correct ? "correct_result" : "wrong",
+    points: basePoints * multiplier,
+    basePoints,
+    multiplier,
+    isJoker,
+  };
+}
+
+/**
  * Upset bonus: awarded when the lower-seeded team wins
  * and the user predicted that team to win.
  */
