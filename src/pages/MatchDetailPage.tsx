@@ -251,7 +251,7 @@ function EventsTimeline({ match }: { match: MatchData }) {
     }
     for (const b of Array.isArray(match.bookings) ? match.bookings : []) {
       const side = b.team.id === match.homeTeam.id ? "home" : "away";
-      events.push({ minute: b.minute, side, type: b.card === "RED" ? "red" : "yellow", primary: b.player.name });
+      events.push({ minute: b.minute, side, type: b.card === "RED" ? "red" : b.card === "YELLOW_RED" ? "yellow_red" : "yellow", primary: b.player.name });
     }
     for (const s of Array.isArray(match.substitutions) ? match.substitutions : []) {
       const side = s.team.id === match.homeTeam.id ? "home" : "away";
