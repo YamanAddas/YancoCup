@@ -76,7 +76,7 @@ export default function PredictionCard({
     prevScoredRef.current = prediction?.scored_at ?? null;
   }, [prediction?.scored_at]);
 
-  const consensus = useConsensus(match.id, hasPrediction, competitionId);
+  const consensus = useConsensus(match.id, hasPrediction, competitionId, locked);
   const hasChanged =
     homeScore !== (prediction?.home_score != null ? String(prediction.home_score) : "") ||
     awayScore !== (prediction?.away_score != null ? String(prediction.away_score) : "");
