@@ -19,6 +19,7 @@ export interface LocalLiveScore {
   halfTimeHome: number | null;
   halfTimeAway: number | null;
   winner: string | null;
+  stage: string;
 }
 
 /** Whether any match is currently live */
@@ -65,6 +66,7 @@ export function useScores() {
         halfTimeHome: s.halfTimeHome,
         halfTimeAway: s.halfTimeAway,
         winner: s.winner,
+        stage: s.stage,
       });
     }
 

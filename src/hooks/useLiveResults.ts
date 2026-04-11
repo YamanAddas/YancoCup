@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useScores } from "./useScores";
+import { stageToRound } from "./useCompetitionSchedule";
 import type { MatchResult } from "./useScoring";
 
 /**
@@ -29,6 +30,7 @@ export function useLiveResults(): { results: MatchResult[]; loading: boolean } {
         homeScore: score.homeScore,
         awayScore: score.awayScore,
         status,
+        round: stageToRound(score.stage),
       });
     }
     return out;

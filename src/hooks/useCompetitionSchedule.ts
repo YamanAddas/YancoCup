@@ -112,7 +112,7 @@ export function useCompetitionSchedule(matchday?: number) {
 }
 
 /** Map football-data.org stage names to our round type */
-function stageToRound(
+export function stageToRound(
   stage: string,
 ): Match["round"] {
   switch (stage) {
