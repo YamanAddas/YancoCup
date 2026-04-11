@@ -762,9 +762,11 @@ export default function MatchDetailPage() {
           }`}
         >
           <span className="text-yc-text-primary">
-            You predicted{" "}
+            {t("yourPrediction")}{" "}
             <span className="font-mono font-bold">
-              {myPrediction.home_score} - {myPrediction.away_score}
+              {myPrediction.quick_pick
+                ? { H: t("quickPick.home"), D: t("quickPick.draw"), A: t("quickPick.away") }[myPrediction.quick_pick]
+                : `${myPrediction.home_score} - ${myPrediction.away_score}`}
             </span>
           </span>
           <span
@@ -779,8 +781,8 @@ export default function MatchDetailPage() {
             }`}
           >
             {myPrediction.scored_at
-              ? `${myPrediction.points ?? 0} pts`
-              : "Pending"}
+              ? `${myPrediction.points ?? 0} ${t("pts")}`
+              : t("pending")}
           </span>
         </div>
       )}

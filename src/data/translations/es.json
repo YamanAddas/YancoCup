@@ -284,6 +284,10 @@
   "quickPick.draw": "Empate",
   "quickPick.away": "Visitante",
 
+  "yourPrediction": "Predijiste",
+  "pending": "Pendiente",
+  "pts": "pts",
+
   "profile.matchNotifications": "Notificaciones de partidos",
   "profile.matchNotificationsDesc": "Recibe recordatorios antes de los plazos de predicción",
 

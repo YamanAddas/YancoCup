@@ -284,6 +284,10 @@
   "quickPick.draw": "Unentschieden",
   "quickPick.away": "Auswärts",
 
+  "yourPrediction": "Deine Vorhersage",
+  "pending": "Ausstehend",
+  "pts": "Pkt",
+
   "profile.matchNotifications": "Spielbenachrichtigungen",
   "profile.matchNotificationsDesc": "Erinnerungen vor Tippabgabe erhalten",
 

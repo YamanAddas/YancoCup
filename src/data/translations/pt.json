@@ -284,6 +284,10 @@
   "quickPick.draw": "Empate",
   "quickPick.away": "Fora",
 
+  "yourPrediction": "Você previu",
+  "pending": "Pendente",
+  "pts": "pts",
+
   "profile.matchNotifications": "Notificações de jogos",
   "profile.matchNotificationsDesc": "Receber lembrete antes dos prazos de palpite",
 

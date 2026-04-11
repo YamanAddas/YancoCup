@@ -97,6 +97,29 @@ export async function checkSkillBadges(
   return awarded;
 }
 
+const WORKER_URL =
+  import.meta.env.VITE_WORKER_URL ??
+  "https://yancocup-api.catbyte1985.workers.dev";
+
+/** Fetch match list for a competition from Worker (cached in KV) */
+async function fetchCompMatches(
+  compId: string,
+): Promise<Array<{ id: number; matchday: number | null }>> {
+  try {
+    const res = await fetch(`${WORKER_URL}/api/${compId}/matches`);
+    if (!res.ok) return [];
+    const json = await res.json();
+    const matches = json.matches ?? json;
+    if (!Array.isArray(matches)) return [];
+    return matches.map((m: { id: number; matchday?: number | null }) => ({
+      id: m.id,
+      matchday: m.matchday ?? null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Check and award loyalty badges.
  * Call periodically (e.g., after saving a prediction or on profile load).
@@ -121,17 +144,95 @@ export async function checkLoyaltyBadges(userId: string): Promise<string[]> {
     awarded.push("social_butterfly");
   }
 
-  // Globe Trotter: predicted in 3+ competitions
-  const { data: compData } = await supabase
+  // Fetch all user predictions once — reused by multiple badge checks
+  const { data: allPreds } = await supabase
     .from("yc_predictions")
-    .select("competition_id")
+    .select("match_id, competition_id")
     .eq("user_id", userId);
-  if (compData) {
-    const comps = new Set(compData.map((r) => r.competition_id));
-    if (comps.size >= 3) {
-      await awardBadge(userId, "multi_comp");
-      awarded.push("multi_comp");
+  const preds = allPreds ?? [];
+
+  // Globe Trotter: predicted in 3+ competitions
+  const compSet = new Set(preds.map((r) => r.competition_id));
+  if (compSet.size >= 3) {
+    await awardBadge(userId, "multi_comp");
+    awarded.push("multi_comp");
+  }
+
+  // --- Matchday-based badges (opening_day, all_in, marathon) ---
+  // Build matchday map per competition: { compId → { matchday → Set<matchId> } }
+  const compIds = [...compSet];
+  const schedules = await Promise.all(compIds.map((c) => fetchCompMatches(c)));
+  const mdMap = new Map<string, Map<number, Set<number>>>();
+  compIds.forEach((compId, i) => {
+    const byMd = new Map<number, Set<number>>();
+    for (const m of schedules[i] ?? []) {
+      if (m.matchday == null) continue;
+      if (!byMd.has(m.matchday)) byMd.set(m.matchday, new Set());
+      byMd.get(m.matchday)!.add(m.id);
     }
+    mdMap.set(compId, byMd);
+  });
+
+  // Build user's predicted match IDs per competition
+  const userPredsByComp = new Map<string, Set<number>>();
+  for (const p of preds) {
+    if (!userPredsByComp.has(p.competition_id))
+      userPredsByComp.set(p.competition_id, new Set());
+    userPredsByComp.get(p.competition_id)!.add(p.match_id);
+  }
+
+  // Opening Day: predicted at least one match in matchday 1 of any competition
+  let hasOpeningDay = false;
+  for (const [compId, byMd] of mdMap) {
+    const md1Matches = byMd.get(1);
+    if (!md1Matches) continue;
+    const userPreds = userPredsByComp.get(compId);
+    if (userPreds && [...md1Matches].some((id) => userPreds.has(id))) {
+      hasOpeningDay = true;
+      break;
+    }
+  }
+  if (hasOpeningDay) {
+    await awardBadge(userId, "opening_day");
+    awarded.push("opening_day");
+  }
+
+  // All-In: predicted every match in at least one matchday of any competition
+  let hasAllIn = false;
+  for (const [compId, byMd] of mdMap) {
+    const userPreds = userPredsByComp.get(compId);
+    if (!userPreds) continue;
+    for (const [, matchIds] of byMd) {
+      if (matchIds.size > 0 && [...matchIds].every((id) => userPreds.has(id))) {
+        hasAllIn = true;
+        break;
+      }
+    }
+    if (hasAllIn) break;
+  }
+  if (hasAllIn) {
+    await awardBadge(userId, "all_in");
+    awarded.push("all_in");
+  }
+
+  // Marathon: predicted in 20+ consecutive matchdays in any competition
+  let hasMarathon = false;
+  for (const [compId, byMd] of mdMap) {
+    const userPreds = userPredsByComp.get(compId);
+    if (!userPreds) continue;
+    const matchdays = [...byMd.keys()].sort((a, b) => a - b);
+    let streak = 0;
+    for (const md of matchdays) {
+      const matchIds = byMd.get(md)!;
+      const predictedAny = [...matchIds].some((id) => userPreds.has(id));
+      streak = predictedAny ? streak + 1 : 0;
+      if (streak >= 20) { hasMarathon = true; break; }
+    }
+    if (hasMarathon) break;
+  }
+  if (hasMarathon) {
+    await awardBadge(userId, "marathon");
+    awarded.push("marathon");
   }
 
   return awarded;

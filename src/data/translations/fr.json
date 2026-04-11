@@ -284,6 +284,10 @@
   "quickPick.draw": "Nul",
   "quickPick.away": "Extérieur",
 
+  "yourPrediction": "Vous avez prédit",
+  "pending": "En attente",
+  "pts": "pts",
+
   "profile.matchNotifications": "Notifications de matchs",
   "profile.matchNotificationsDesc": "Recevoir un rappel avant les délais de pronostic",
 

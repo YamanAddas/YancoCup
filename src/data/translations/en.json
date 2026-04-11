@@ -285,6 +285,10 @@
   "quickPick.draw": "Draw",
   "quickPick.away": "Away",
 
+  "yourPrediction": "You predicted",
+  "pending": "Pending",
+  "pts": "pts",
+
   "profile.matchNotifications": "Match Notifications",
   "profile.matchNotificationsDesc": "Get reminded before prediction deadlines",
 

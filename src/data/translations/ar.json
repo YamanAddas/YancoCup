@@ -284,6 +284,10 @@
   "quickPick.draw": "تعادل",
   "quickPick.away": "الضيف",
 
+  "yourPrediction": "توقعت",
+  "pending": "قيد الانتظار",
+  "pts": "نقاط",
+
   "profile.matchNotifications": "إشعارات المباريات",
   "profile.matchNotificationsDesc": "تلقي تذكير قبل مواعيد التوقعات",
 
