@@ -1,8 +1,10 @@
-# YancoCup — V2 Upgrade Plan
+# YancoCup — V2 Upgrade Plan (COMPLETED April 10, 2026)
 
 > From prediction game to daily football destination.
 > Covers: UX polish, prediction enhancements, social features, gamification depth, AI-powered news.
 > Replaces: EXPANSION_PLAN.md (completed) and PREMIUM_UPGRADE_PLAN.md (completed).
+>
+> **Status: ALL PHASES COMPLETE.** All 6 phases implemented and shipped. See success metrics at bottom.
 
 ## What's Already Done (V1 Complete)
 
@@ -732,21 +734,21 @@ src/hooks/usePoolChat.ts         — pool chat hook
 
 ---
 
-## Success Metrics (V2 Complete)
+## Success Metrics (V2 Complete — April 10, 2026)
 
-- [ ] Quick-predict (1X2) mode works for all league competitions
-- [ ] "Predicted" checkmark visible on match cards
-- [ ] Matchday/weekly/monthly leaderboard filters work
-- [ ] Pool chat functional with realtime updates
-- [ ] Pool matchday recaps shareable via WhatsApp
-- [ ] Prediction history viewable on profile page
-- [ ] 6+ loyalty badges earnable
-- [ ] Rivals system functional (add/compare/remove)
-- [ ] Standings sortable with "if season ended today" banner
-- [ ] Bracket shows user prediction overlay
-- [ ] Watch page shows broadcaster lookup by country
-- [ ] News feed shows 50+ articles from 15+ sources
-- [ ] Arabic news sources (Al Jazeera, Kooora, beIN) active
-- [ ] Team pages show auto-curated news
-- [ ] Articles have proper source attribution
-- [ ] Build passes (`npm run build`) at every phase
+- [x] Quick-predict (1X2) mode works for all league competitions
+- [x] "Predicted" checkmark visible on match cards
+- [x] Matchday/weekly/monthly leaderboard filters work
+- [x] Pool chat functional with realtime updates
+- [x] Pool matchday recaps shareable via WhatsApp
+- [x] Prediction history viewable on profile page
+- [x] 6+ loyalty badges earnable
+- [x] Rivals system functional (add/compare/remove)
+- [x] Standings sortable with "if season ended today" banner
+- [x] Bracket shows user prediction overlay
+- [x] Watch page shows broadcaster lookup by country
+- [x] News feed shows 50+ articles from 15+ sources
+- [x] Arabic news sources (Al Jazeera, Kooora, beIN) active
+- [x] Team pages show auto-curated news
+- [x] Articles have proper source attribution
+- [x] Build passes (`npm run build`) at every phase

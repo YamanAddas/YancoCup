@@ -2,7 +2,7 @@
 
 Multi-competition soccer prediction platform with AI-powered news. World Cup 2026 + Champions League + top European leagues. 3D interactive globe, live scores, predictions game with pools, broadcast links, gamification, multilingual, auto-curated team news.
 
-**Current phase:** V2 Upgrade — UX polish, quick-predict, social features (pool chat/recaps), gamification depth (loyalty badges/rivals), AI-powered news section with Arabic + European sources. See `docs/V2_UPGRADE_PLAN.md` for full plan.
+**Current phase:** V2 Complete — all features shipped. Pre-launch polish and bug fixes before World Cup 2026 kickoff.
 
 **World Cup 2026 launch target:** June 11, 2026. All 48 teams are finalized — qualifying completed March 31, 2026. Static data (groups.json, teams.json, schedule.json) is up to date. Group stage matches have resolved team IDs; knockout matches correctly have null teams with placeholders.
 
@@ -109,10 +109,11 @@ When in doubt about visual direction, think: "cinematic immersion with depth, gl
 - **Never** host crest files in the repo, use FIFA/UEFA official logos, or use player photos.
 - The `<TeamCrest>` component handles all logic: circle-flag for national teams, API crest for clubs, TLA fallback.
 
-## Completed features (V1)
+## Completed features (V1 + V2)
 
 These are live and working. Do not re-implement.
 
+### Core platform (V1)
 - Multi-competition architecture (WC, CL, PL, PD, BL1, SA, FL1, EL)
 - Club crests via football-data.org API URLs + `<TeamCrest>` component
 - Form guide dots on standings + zone coloring (CL/EL/relegation per competition)
@@ -131,36 +132,32 @@ These are live and working. Do not re-implement.
 - Browser notifications
 - 6-language i18n (EN, AR, ES, FR, DE, PT)
 
-## V2 features (in progress)
-
-See `docs/V2_UPGRADE_PLAN.md` for full plan with implementation details.
-
-### Phase 1: Core UX Fixes
+### UX polish (V2 Phase 1)
 - "Predicted" indicator (checkmark) on match cards
 - "My Predictions Today" widget on home page
 - Personalized greeting with rank
 - Timezone display on match times
-- Your prediction banner on match detail page
+- Your prediction banner on match detail page (exact score + quick-pick, i18n)
 
-### Phase 2: Predictions Enhancement
+### Predictions enhancement (V2 Phase 2)
 - Quick-predict mode (1X2) for leagues — 3 buttons, max 2 pts, reduces fatigue
 - Prediction streak counter on prediction page
 - "Bold Prediction" tag for upset picks
 - Post-match points reveal animation
 - "Copy last matchday" button for leagues
 
-### Phase 3: Leaderboard & Social
+### Leaderboard & social (V2 Phase 3)
 - Matchday / weekly / monthly sub-leaderboards
-- Rank movement arrows (↑3 / ↓2)
+- Rank movement arrows
 - Pool leaderboard filter
 - Pool chat (Supabase Realtime)
 - Pool matchday recap (auto-generated, shareable)
 - Pool admin controls (rename, remove members)
 - Social share buttons (WhatsApp, Telegram, Twitter)
-- Activity feed reactions (🔥 😂 🤡)
+- Activity feed reactions
 - Post-match result display in activity feed
 
-### Phase 4: Profile & Gamification Depth
+### Profile & gamification depth (V2 Phase 4)
 - Prediction history (paginated, filterable by competition)
 - Accuracy breakdown (exact/GD/result/wrong visual bar)
 - Competition-specific stats
@@ -168,15 +165,13 @@ See `docs/V2_UPGRADE_PLAN.md` for full plan with implementation details.
 - Rivals system (pick 1-3 rivals, side-by-side comparison)
 - Shareable profile card
 
-### Phase 5: Standings, Bracket & Watch
+### Standings, bracket & watch (V2 Phase 5)
 - "If season ended today" banner on standings
-- Points-to-safety / points-to-title calculator
 - Sortable standings columns
 - User predictions overlay on bracket
-- "Path to the final" bracket highlight
 - Watch page: broadcaster lookup by country
 
-### Phase 6: AI-Powered News
+### AI-powered news (V2 Phase 6)
 - Cloudflare Workers AI (Llama 3.1 8B) rewrites RSS articles
 - 18+ sources: BBC, Guardian, ESPN, Al Jazeera, Kooora, beIN, Marca, Kicker, Gazzetta, L'Equipe, and more
 - Arabic sources: Al Jazeera Sport, beIN Arabic, Kooora, Yalla Kora, FilGoal, Goal.com Arabic, Arryadia, SSC
