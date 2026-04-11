@@ -6,26 +6,41 @@ import { CompetitionProvider } from "./lib/CompetitionProvider";
 import AppLayout from "./components/layout/AppLayout";
 import CompetitionHub from "./pages/CompetitionHub";
 
+// Retry dynamic imports once — handles stale chunks after deploy
+function lazyRetry(loader: () => Promise<{ default: React.ComponentType }>) {
+  return lazy(() =>
+    loader().catch(() => {
+      // Chunk probably changed after a deploy — reload once
+      const key = "chunk-reload";
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, "1");
+        window.location.reload();
+      }
+      return loader(); // Fallback: try once more before React error boundary catches it
+    }),
+  );
+}
+
 // Lazy load all pages — only HomePage is eager for fast first paint
 import HomePage from "./pages/HomePage";
-const OverviewTab = lazy(() => import("./pages/OverviewTab"));
-const MatchesPage = lazy(() => import("./pages/MatchesPage"));
-const MatchDetailPage = lazy(() => import("./pages/MatchDetailPage"));
-const TeamPage = lazy(() => import("./pages/TeamPage"));
-const BracketPage = lazy(() => import("./pages/BracketPage"));
-const GroupsPage = lazy(() => import("./pages/GroupsPage"));
-const StandingsPage = lazy(() => import("./pages/StandingsPage"));
-const PredictionsPage = lazy(() => import("./pages/PredictionsPage"));
-const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
-const WatchPage = lazy(() => import("./pages/WatchPage"));
-const SignInPage = lazy(() => import("./pages/SignInPage"));
-const AdminPage = lazy(() => import("./pages/AdminPage"));
-const PoolsPage = lazy(() => import("./pages/PoolsPage"));
-const JoinPoolPage = lazy(() => import("./pages/JoinPoolPage"));
-const ProfilePage = lazy(() => import("./pages/ProfilePage"));
-const NewsPage = lazy(() => import("./pages/NewsPage"));
-const ArticlePage = lazy(() => import("./pages/ArticlePage"));
-const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+const OverviewTab = lazyRetry(() => import("./pages/OverviewTab"));
+const MatchesPage = lazyRetry(() => import("./pages/MatchesPage"));
+const MatchDetailPage = lazyRetry(() => import("./pages/MatchDetailPage"));
+const TeamPage = lazyRetry(() => import("./pages/TeamPage"));
+const BracketPage = lazyRetry(() => import("./pages/BracketPage"));
+const GroupsPage = lazyRetry(() => import("./pages/GroupsPage"));
+const StandingsPage = lazyRetry(() => import("./pages/StandingsPage"));
+const PredictionsPage = lazyRetry(() => import("./pages/PredictionsPage"));
+const LeaderboardPage = lazyRetry(() => import("./pages/LeaderboardPage"));
+const WatchPage = lazyRetry(() => import("./pages/WatchPage"));
+const SignInPage = lazyRetry(() => import("./pages/SignInPage"));
+const AdminPage = lazyRetry(() => import("./pages/AdminPage"));
+const PoolsPage = lazyRetry(() => import("./pages/PoolsPage"));
+const JoinPoolPage = lazyRetry(() => import("./pages/JoinPoolPage"));
+const ProfilePage = lazyRetry(() => import("./pages/ProfilePage"));
+const NewsPage = lazyRetry(() => import("./pages/NewsPage"));
+const ArticlePage = lazyRetry(() => import("./pages/ArticlePage"));
+const NotFoundPage = lazyRetry(() => import("./pages/NotFoundPage"));
 
 function PageLoader() {
   return (
