@@ -77,7 +77,8 @@ export function useScoring(competitionId = "WC") {
             scored_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
-          .eq("id", pred.id);
+          .eq("id", pred.id)
+          .is("scored_at", null);
 
         if (error) {
           console.error(`Failed to score prediction ${pred.id}:`, error.message);
