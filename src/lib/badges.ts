@@ -240,10 +240,10 @@ export async function checkLoyaltyBadges(userId: string): Promise<string[]> {
 export async function fetchStreak(
   userId: string,
   competitionId: string,
-): Promise<{ current_streak: number; best_streak: number } | null> {
+): Promise<{ current_streak: number; best_streak: number; last_match_id: number | null } | null> {
   const { data } = await supabase
     .from("yc_streaks")
-    .select("current_streak, best_streak")
+    .select("current_streak, best_streak, last_match_id")
     .eq("user_id", userId)
     .eq("competition_id", competitionId)
     .single();
@@ -258,6 +258,11 @@ export async function updateStreak(
   correct: boolean,
 ): Promise<{ current_streak: number; best_streak: number }> {
   const existing = await fetchStreak(userId, competitionId);
+
+  // Guard: don't double-increment if same match is scored twice
+  if (existing && existing.last_match_id === matchId) {
+    return { current_streak: existing.current_streak, best_streak: existing.best_streak };
+  }
 
   const currentStreak = correct ? (existing?.current_streak ?? 0) + 1 : 0;
   const bestStreak = Math.max(currentStreak, existing?.best_streak ?? 0);
