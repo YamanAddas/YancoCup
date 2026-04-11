@@ -102,8 +102,10 @@ export function usePoolChat(poolId: string | null) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "yc_pool_messages", filter: `pool_id=eq.${poolId}` },
         async (payload) => {
+          if (cancelled) return;
           const newMsg = payload.new as { id: string; pool_id: string; user_id: string; content: string; created_at: string };
           const enriched = await enrichMessage(newMsg);
+          if (cancelled) return;
           setMessages((prev) => {
             // Deduplicate (optimistic insert may already exist)
             if (prev.some((m) => m.id === enriched.id)) return prev;
