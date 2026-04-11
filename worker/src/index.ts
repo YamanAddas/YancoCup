@@ -1527,14 +1527,14 @@ async function handleCron(env: Env): Promise<void> {
     }
 
     // -----------------------------------------------------------------------
-    // Every 10th tick (~10 min): pre-enrich imminent matches (lineups, events)
-    // Matches within 2 hours get their API-Football detail pre-cached
+    // Every 10th tick (~50 min): pre-enrich upcoming matches (lineups, events)
+    // Lineups typically drop ~24h before kickoff. Pre-cache via API-Football
     // so users see lineups immediately when opening match detail page.
     // Budget: max 3 enrichments per tick to stay within API-Football 100 req/day.
     // -----------------------------------------------------------------------
     if (tick % 10 === 0 && env.API_FOOTBALL_KEY) {
       const now = Date.now();
-      const twoHoursMs = 2 * 60 * 60 * 1000;
+      const twentyFourHoursMs = 24 * 60 * 60 * 1000;
       let enrichCount = 0;
       const MAX_ENRICH_PER_TICK = 3;
 
@@ -1545,10 +1545,10 @@ async function handleCron(env: Env): Promise<void> {
           const kickoff = new Date(score.utcDate).getTime();
           const diff = kickoff - now;
 
-          // Only pre-enrich matches starting within 2 hours (or currently live)
-          const isImminent = diff > 0 && diff <= twoHoursMs;
+          // Pre-enrich matches within 24 hours of kickoff (or currently live)
+          const isUpcoming = diff > 0 && diff <= twentyFourHoursMs;
           const isLive = score.status === "IN_PLAY" || score.status === "PAUSED";
-          if (!isImminent && !isLive) continue;
+          if (!isUpcoming && !isLive) continue;
 
           // Skip if already enriched in KV
           const enrichedKey = `matchenriched:${score.apiId}`;

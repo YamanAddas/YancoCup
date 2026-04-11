@@ -606,17 +606,17 @@ export default function MatchDetailPage() {
     load();
   }, [id]);
 
-  // Auto-refresh: live matches (30s) + imminent matches within 90min of kickoff (2min)
+  // Auto-refresh: live matches (30s) + upcoming matches within 24h of kickoff (5min)
   useEffect(() => {
     if (!match) return;
     const isLiveNow = match.status === "IN_PLAY" || match.status === "PAUSED";
     const kickoffMs = new Date(match.utcDate).getTime();
     const msUntilKickoff = kickoffMs - Date.now();
-    const isImminent = match.status === "TIMED" && msUntilKickoff > 0 && msUntilKickoff <= 90 * 60_000;
+    const isUpcoming = match.status === "TIMED" && msUntilKickoff > 0 && msUntilKickoff <= 24 * 60 * 60_000;
 
-    if (!isLiveNow && !isImminent) return;
+    if (!isLiveNow && !isUpcoming) return;
 
-    const pollMs = isLiveNow ? 30_000 : 120_000; // 30s live, 2min pre-match
+    const pollMs = isLiveNow ? 30_000 : 5 * 60_000; // 30s live, 5min pre-match
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`${WORKER_URL}/api/match/${id}/detail`);
