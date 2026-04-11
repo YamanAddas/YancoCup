@@ -129,14 +129,20 @@ export function usePredictedMatchIds(competitionId?: string) {
 
   useEffect(() => {
     if (!user) { setIds(new Set()); return; }
-    let query = supabase
-      .from("yc_predictions")
-      .select("match_id")
-      .eq("user_id", user.id);
-    if (competitionId) query = query.eq("competition_id", competitionId);
-    query.then(({ data }) => {
-      setIds(new Set((data ?? []).map((r: { match_id: number }) => r.match_id)));
-    });
+    let cancelled = false;
+    async function load() {
+      let query = supabase
+        .from("yc_predictions")
+        .select("match_id")
+        .eq("user_id", user!.id);
+      if (competitionId) query = query.eq("competition_id", competitionId);
+      const { data } = await query;
+      if (!cancelled) {
+        setIds(new Set((data ?? []).map((r: { match_id: number }) => r.match_id)));
+      }
+    }
+    load();
+    return () => { cancelled = true; };
   }, [user, competitionId]);
 
   return ids;
