@@ -88,6 +88,7 @@ export function usePoolChat(poolId: string | null) {
         return { ...r, handle: p?.handle, display_name: p?.display_name, avatar_url: p?.avatar_url };
       });
 
+      if (cancelled) return;
       // Reverse so oldest first (for chat display)
       setMessages(enriched.reverse());
       setLoading(false);

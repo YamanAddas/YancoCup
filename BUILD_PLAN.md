@@ -1,11 +1,11 @@
-# YancoCup — build plan (v5)
+# YancoCup — build plan (v6)
 
-> Multi-competition soccer prediction platform.
-> Phases 0-9 (Sessions 1-33) are COMPLETE. This plan covers V2 Upgrade.
-> **World Cup 2026 kicks off June 11, 2026. All work is prioritized against this deadline.**
+> Multi-competition soccer prediction platform. Live and in public testing.
+> Phases 0-9 (Sessions 1-33) are COMPLETE. V2 Upgrade is COMPLETE.
+> **This plan covers Phase 10: Live product iteration.**
+> **World Cup 2026 kicks off June 11, 2026.**
 
-Phased execution plan. One task per Claude Code session. Commit after each.
-Total cost: $0/month. Entire stack is free.
+---
 
 ## Free stack
 
@@ -16,14 +16,13 @@ Total cost: $0/month. Entire stack is free.
 | Database + Auth + Realtime | Supabase free (unlimited realtime, 500MB DB) | $0 |
 | Live scores | football-data.org (10 req/min, all major competitions) | $0 |
 | Live scores fallback | API-Football (100 req/day + Cron Trigger + KV cache) | $0 |
-| Static WC data | `src/data/` JSON files (football-data.org match IDs) | $0 |
 | Globe visualization | r3f-globe by Vasturiano (open source) | $0 |
 | Country flags | circle-flags (400+ circular SVGs, open source) | $0 |
-| Icons | Lucide React (open source, dark-theme friendly) | $0 |
+| Icons | Lucide React (open source) | $0 |
 | Error monitoring | Sentry free (5K errors/month) | $0 |
 | Analytics | Cloudflare Web Analytics (unlimited, no cookies) | $0 |
 | Fonts | Google Fonts (Space Grotesk, Inter, JetBrains Mono) | $0 |
-| AI News (V2) | Cloudflare Workers AI (10K neurons/day free) | $0 |
+| AI News | Cloudflare Workers AI (10K neurons/day free) | $0 |
 
 ---
 
@@ -41,105 +40,182 @@ Total cost: $0/month. Entire stack is free.
 | Phase 7: Frontend Multi-Competition | 22-26 | DONE |
 | Phase 8: Pools | 27-29 | DONE |
 | Phase 9: Gamification | 30-33 | DONE |
+| V2 Upgrade (Tracks A-F) | 34-66 | DONE |
 
 Live at: https://yamanaddas.github.io/YancoCup/
 Worker at: https://yancocup-api.catbyte1985.workers.dev/
-Sentry + Cloudflare Analytics active.
-All 48 World Cup teams finalized (qualifying completed March 31, 2026).
 
 ---
 
-## V2 Upgrade — Priority order for World Cup launch
+## Phase 10: Live product iteration
 
-The V2 upgrade is documented in full in `docs/V2_UPGRADE_PLAN.md`. Below is the **execution priority** reordered for the June 11 deadline.
+App is live and in public testing. Priority order is: stability and security first, then performance, then design elevation, then features.
 
-### MUST SHIP (before June 11)
-
-These directly impact the core prediction loop that friends will use during the World Cup.
-
-**Track A: Prediction UX (Phase 1 + Phase 2 from V2 plan)** — ALL DONE
-1. ~~"Predicted" indicator (checkmark) on match cards~~ DONE
-2. ~~"My Predictions Today" widget on home page~~ DONE
-3. ~~Timezone display on match times~~ DONE
-4. ~~Your prediction banner on match detail page~~ DONE
-5. ~~Quick-predict mode (1X2) for leagues~~ DONE
-6. ~~Post-match points reveal animation~~ DONE
-
-**Track B: Social & Pools (Phase 3 from V2 plan)** — ALL DONE
-7. ~~Pool chat (Supabase Realtime)~~ DONE
-8. ~~Pool matchday recap (auto-generated, shareable)~~ DONE
-9. ~~Social share buttons (WhatsApp, Telegram, Twitter)~~ DONE
-10. ~~Pool admin controls (rename, remove members)~~ DONE
-
-**Track C: Leaderboard polish (Phase 3 from V2 plan)** — ALL DONE
-11. ~~Matchday / weekly / monthly sub-leaderboards~~ DONE
-12. ~~Rank movement arrows~~ DONE
-13. ~~Pool leaderboard filter~~ DONE
-
-**Track D: Critical fixes** — ALL DONE
-14. ~~Add React error boundary around globe component~~ DONE
-15. ~~Fix `/api/:comp/matches` cache-miss → upstream call (should read KV only)~~ DONE
-16. ~~Verify cron schedule is appropriate for current match windows~~ DONE (*/5 pre-tournament)
-17. ~~Verify broadcaster data covers at least 15 countries~~ DONE (18 countries)
-
-### SHOULD SHIP (before or during group stage)
-
-These enhance the experience but won't break anything if delayed.
-
-18. ~~Personalized greeting with rank~~ DONE
-19. ~~Prediction streak counter~~ DONE
-20. ~~"Bold Prediction" tag for upset picks~~ DONE
-21. ~~"Copy last matchday" button for leagues~~ DONE
-22. ~~Activity feed reactions (🔥 😂 🤡)~~ DONE
-23. ~~Post-match result display in activity feed~~ DONE
-24. ~~Standings: sortable columns + "if season ended today" banner~~ DONE
-25. ~~User predictions overlay on bracket~~ DONE
-26. ~~Watch page: broadcaster lookup by country~~ DONE (already implemented in V1)
-
-### NICE TO HAVE (post-launch or during tournament)
-
-These can ship incrementally during the World Cup without disrupting users.
-
-27. ~~Prediction history on profile page~~ DONE
-28. ~~Accuracy breakdown visualization~~ DONE
-29. ~~Competition-specific stats on profile~~ DONE
-30. ~~Loyalty badges (Opening Day, All-In, Marathon, Night Owl, Globe Trotter, Social Butterfly)~~ DONE
-31. ~~Rivals system (pick 1-3 rivals, side-by-side comparison)~~ DONE
-32. ~~Shareable profile card~~ DONE
-33. ~~Points-to-safety / points-to-title calculator~~ DONE
-34. ~~"Path to the final" bracket highlight~~ DONE
-
-### Phase 6: AI News — DONE
-
-~~35-40. Full AI news pipeline (RSS → Workers AI → Supabase → frontend)~~ DONE
-- 11 RSS feeds (EN/AR/ES/DE/IT/FR/PT) fetched every 4 hours via cron
-- Workers AI (Llama 3.1 8B) rewrites top 2 articles per cron run as featured summaries
-- All raw articles stored in Supabase `yc_articles` with competition/team tagging
-- News API endpoints: `/api/news`, `/api/news/:slug`, `/api/:comp/news`, `/api/team/:teamId/news`
-- Frontend: NewsPage (filterable by language, featured), ArticlePage (single article view)
-- Competition-scoped news tab, global news nav link, 6-language translations
+Each session is one task. Commit after each. Do not combine sessions.
 
 ---
 
-## Pre-launch checklist
+### Track A: Security (highest priority — before WC)
 
-Before June 11, 2026:
+#### Session 34: Supabase RLS audit and documentation
+**Goal:** Know exactly what RLS policies exist and verify they're correct.
+- Open Supabase dashboard → every table → document all RLS policies
+- Create `docs/RLS_POLICIES.md` with policy definitions and rationale
+- Test with a secondary test account: verify predictions hidden before kickoff, pool isolation, message isolation
+- Document any gaps found and fix them in the same session
 
-- [ ] Static data verified: all 48 teams, 12 groups, 104 matches with correct dates/times/venues
-- [ ] football-data.org API returns WC data (test: `GET /v4/competitions/WC`)
-- [ ] Worker cron populates WC match data in KV
-- [ ] Prediction flow: can predict, score shows after match finishes
-- [ ] Leaderboard: shows correct rankings per competition
-- [ ] Pools: create, join via code, pool leaderboard works
-- [ ] Globe: renders without crash, error boundary catches WebGL failures
-- [ ] Mobile: all pages usable on phone (test iOS Safari + Android Chrome)
-- [ ] Broadcaster data: covers US, UK, Canada, Mexico, Germany, France, Spain, Saudi Arabia, Jordan, UAE, Brazil, Australia, Japan, South Korea, Turkey
-- [ ] Build passes: `npm run build` succeeds with zero errors
-- [ ] Deploy: production build live on GitHub Pages
-- [ ] Supabase RLS: predictions hidden until match kickoff
-- [ ] Auth: sign-in/sign-up works, HashRouter doesn't break auth redirect
-- [ ] i18n: all 6 languages load without errors
-- [ ] Sentry: error monitoring active and receiving events
+#### Session 35: Input sanitization audit
+**Goal:** Ensure all user text inputs are sanitized before reaching Supabase.
+- Audit: pool names, display names, pool chat messages, any other user-controlled text
+- Add server-side length limits and HTML stripping where missing
+- Test with adversarial inputs (HTML tags, script injection attempts)
+
+---
+
+### Track B: Performance (critical — GlobeScene is 2MB)
+
+#### Session 36: GlobeScene bundle analysis
+**Goal:** Understand what's driving the 2MB and establish a fix plan.
+- Run `npx vite-bundle-visualizer` — capture the output
+- Identify the top contributors to the GlobeScene chunk (Three.js? earth textures? r3f-globe internals?)
+- Document findings. Do not fix yet — just understand.
+- Propose 2-3 fix options with estimated impact. Get approval before proceeding.
+
+#### Session 37: GlobeScene bundle reduction
+**Goal:** Reduce GlobeScene from 2MB to a target determined after Session 36.
+- Implement the approved fix from Session 36
+- Verify with `npm run build` — measure new bundle size
+- Test globe on mobile (physical device or accurate emulation)
+- Do not ship if globe breaks
+
+#### Session 38: Globe IntersectionObserver
+**Goal:** Stop globe from consuming GPU when it's scrolled off-screen.
+- Add IntersectionObserver in GlobeView.tsx
+- When globe is not in viewport: pause the R3F canvas (set `frameloop="never"` or unmount)
+- When globe returns to viewport: resume
+- Test on mobile — confirm no flicker or crash on scroll
+
+---
+
+### Track C: Worker reliability
+
+#### Session 39: Cron early-exit for no-live-activity
+**Goal:** Stop paying API budget when no matches are happening.
+- Add early-exit at top of `handleCron()`: if `all:live` is empty AND tick % 5 !== 0, skip upstream call
+- Keep the 5th-tick schedule pre-population logic running regardless
+- Verify: cron still wakes correctly when a match starts
+- Test with mock KV state
+
+#### Session 40: League schedule cache miss protection
+**Goal:** Prevent concurrent user requests from triggering parallel upstream calls on cold cache.
+- Add KV-based lock: `{comp}:schedule:fetching = "1"` (30s TTL) before upstream call
+- If lock is set on incoming request: return `{ matches: [], message: "Loading..." }`
+- Remove lock after successful write to KV
+- Verify WC still returns `[]` on miss (unchanged)
+
+---
+
+### Track D: Design elevation (design spec required before each session)
+
+Before any design session: write a full design spec following the pre-implementation protocol in CLAUDE.md. Get approval on the spec before implementing.
+
+#### Session 41: Design audit — current state report
+**Goal:** Know exactly what to fix before fixing anything.
+- Read SKILL.md fully
+- Review every major page: Home, Matches, Predictions, Leaderboard, Pools, Profile, Match Detail
+- Rate each component 1-5 on YancoVerse design fidelity
+- List specific components that are generic, inconsistent, or below quality bar
+- Produce a prioritized design debt list. No code changes in this session.
+
+#### Session 42: Match card redesign
+**Goal:** Match cards are the most-seen component. Elevate them first.
+- Design spec first (Step 3 of protocol)
+- Implement to spec
+- All five states: default, live, finished, postponed, empty
+- Test on mobile
+
+#### Session 43: Home page redesign
+**Goal:** First impression. Must make someone go "whoa" immediately.
+- Globe positioning and sizing
+- Competition cards
+- My predictions today widget
+- Countdown to WC
+
+#### Session 44: Leaderboard redesign
+**Goal:** The social core of the app — should feel competitive and alive.
+- Podium
+- User rows (rank movement, streaks, accuracy)
+- Empty state (no predictions yet)
+
+#### Session 45: Profile page redesign
+**Goal:** Makes users feel proud to share.
+- Stats layout
+- Badge display
+- Rivals section
+- Shareable card preview
+
+#### Session 46: Custom thematic SVG icons
+**Goal:** Replace any remaining generic Lucide icons used for sport/thematic purposes.
+- Audit all icon usage across the app
+- Identify icons that should be custom (trophies, balls, shields, competition badges)
+- Design and implement custom inline SVG components
+
+---
+
+### Track E: Codebase health
+
+#### Session 47: Worker god file — extract news pipeline
+**Goal:** Reduce worker/src/index.ts from 2,874 lines.
+- Extract the full news pipeline (RSS fetching, AI rewrite, translation, Supabase storage) to `worker/src/news.ts`
+- Update imports in index.ts
+- Run worker tests — verify nothing breaks
+- Do not touch scores or routes logic in this session
+
+#### Session 48: React Router version resolution
+**Goal:** Resolve the v7/v6 mismatch before it causes a breaking change.
+- Option A: Pin `react-router-dom` to `^6.28.0` in package.json
+- Option B: Lock v7 to a known-good minor via overrides
+- Make the decision, implement, verify app still works end-to-end
+
+---
+
+### Track F: WC-specific preparation (before June 11)
+
+#### Session 49: Cron switch to every-minute for WC
+**Goal:** Switch cron from `*/5 * * * *` to `* * * * *` in wrangler.toml for WC match windows.
+- Update wrangler.toml
+- Verify KV write budget has headroom for 1,440 writes/day during WC
+- Plan to switch back after July 19
+
+#### Session 50: Pre-launch verification run
+**Goal:** Walk through every user flow before WC kickoff.
+- Predict a match end-to-end
+- Verify scoring runs after match completes
+- Verify leaderboard updates
+- Verify pool creation + join + pool leaderboard
+- Verify all 6 language switches work
+- Test on iOS Safari and Android Chrome (physical devices preferred)
+- Verify football-data.org returns WC data: `curl -H "X-Auth-Token: YOUR_KEY" https://api.football-data.org/v4/competitions/WC`
+- Run `npm run test` — all tests green
+- Run `npm run build` — zero errors
+
+---
+
+## Open red team findings (from REDTEAM_FINDINGS.md v3)
+
+| Finding | Severity | Session |
+|---------|----------|---------|
+| #21 GlobeScene 2MB bundle | High | 36-37 |
+| #22 No concurrent cache miss protection | Medium | 40 |
+| #23 RLS undocumented and unaudited | High | 34 |
+| #24 Twitter card `summary` not `summary_large_image` | Low | Quick fix anytime |
+| #25 Worker god file (2,874 lines) | Medium | 47 |
+| #26 No cron early-exit when no live matches | Low | 39 |
+| #12 Cron no early-exit (partial) | Low | 39 |
+| #14 League cache miss hits upstream (partial) | Medium | 40 |
+| #16 React Router v7/v6 mismatch | Low | 48 |
+| #18 CL bracket format | Medium | Before CL knockouts |
+| #20 Arabic RSS unverified | Medium | Manual curl test |
 
 ---
 
@@ -170,80 +246,18 @@ Before June 11, 2026:
 
 ---
 
-## Key architecture decisions
-
-### Rate limit budget (10 req/min)
-
-Using `/v4/matches` (no competition filter) — one call returns ALL competitions:
-
-| Scenario | Calls/min | Notes |
-|----------|-----------|-------|
-| No live matches | 0.2 | Check every 5 min |
-| Matches live (any competition) | 1-2 | Every 60s, all comps in one call |
-| + Standings rotation | +0.2 | One competition's standings per 5 min |
-| **Total max** | **~2.5** | **Well within 10 req/min** |
-
-### Schedule handling
-
-| Competition | Source | Why |
-|-------------|--------|-----|
-| WC | Static JSON (schedule.json) | Fixed 104 matches, venues, known in advance |
-| CL | Worker API | League phase (Swiss model since 2024/25), knockout TBD |
-| PL, PD, BL1, SA, FL1 | Worker API | 300-380 matches, rescheduled frequently |
-
-### Database size (500MB Supabase free tier)
-
-~2,000 matches/season across all competitions. Even with 1,000 users predicting everything: ~300MB. Realistic usage (users predict 1-2 competitions): well under 500MB.
-
----
-
-## Risks and mitigations
-
-| Risk | Mitigation |
-|------|------------|
-| 10 req/min rate limit | `/v4/matches` (all comps, 1 call) + KV caching. Users never hit upstream. |
-| football-data.org doesn't cover WC 2026 | Free tier explicitly lists "Worldcup" as covered. Test API call before launch. |
-| Prediction fatigue (380 league matches) | Matchday UI + quick-predict + auto-fill + joker. |
-| Supabase 500MB limit | Realistic usage well under limit. Monitor with dashboard. |
-| Bundle size growth | Lazy-load competition pages. Only registry (~1KB) in main bundle. |
-| Breaking existing URLs | `/matches` redirects to `/WC/matches`. |
-| Client-side scoring race conditions | Acceptable for V1 friend-group scale. Migrate to Supabase RPC post-launch. |
-| WebGL crash on bad GPU | DONE — React error boundary in `GlobeView.tsx` with fallback UI. |
-| AI news legal risk | Summarize (3-5 sentences), always link to source, never reproduce full articles. Defer to post-launch. |
-| Cron burning free tier during off-peak | Short-circuit when no live matches; consider `*/5` schedule outside match windows. |
-| Workers AI neuron budget | 10K neurons/day ≈ 15 articles per cron run × 6 runs/day = ~90 max. Test actual consumption. |
-| Arabic RSS feeds broken/missing | Verify each RSS URL resolves before building pipeline. Expect 3-4 to be non-functional. |
-
----
-
 ## What NOT to build
 
 | Feature | Why cut |
 |---------|---------|
-| Full fantasy football | Different product entirely |
+| Full fantasy football | Different product |
 | Live chat per match | Activity feed + pool chat is enough |
-| Paid premium tier | Premature. Keep free until product-market fit. |
-| Player predictions (goalscorer) | Not core. Maybe post-WC. |
-| Custom competition creation | Admin adds competitions. Not self-serve. |
-| Native mobile app | Web app with PWA is sufficient |
-| NFT/card trading (Sorare model) | Not aligned with friend-group prediction focus |
-| xG / heatmaps / player ratings | football-data.org free tier doesn't provide these |
-| Original journalism | We aggregate and summarize, not report |
-| Video highlights | Copyright issues, not available via RSS |
-| Light mode | This site is always dark. No light mode. |
-
----
-
-## Copyright / licensing notes
-
-DO NOT include in the project:
-- Team crests/badges (copyrighted by FIFA/federations) — use football-data.org API crest URLs (hotlink only)
-- Player photos (rights issues)
-- Any FIFA branding/logos
-
-Safe to use:
-- Earth textures from three-globe CDN (MIT license)
-- Venue photos from Wikimedia Commons (CC-BY-SA, attribute in footer)
-- circle-flags (MIT)
-- Lucide icons (ISC)
-- Sound FX from freesound.org (CC0)
+| Paid premium tier | Premature |
+| Player predictions (goalscorer) | Not core |
+| Custom competition creation | Admin adds competitions |
+| Native mobile app | PWA is sufficient |
+| xG / heatmaps / player ratings | Not on free tier |
+| Original journalism | Summarize and link only |
+| Video highlights | Copyright issues |
+| Light mode | Always dark |
+| Worker features without extracting modules first | God file is already 2,874 lines |

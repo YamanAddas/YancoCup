@@ -36,14 +36,17 @@ export default function RivalsSection() {
   // Load rival IDs from profiles_public
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("profiles_public")
-      .select("rivals")
-      .eq("id", user.id)
-      .single()
+    Promise.resolve(
+      supabase
+        .from("profiles_public")
+        .select("rivals")
+        .eq("id", user.id)
+        .single(),
+    )
       .then(({ data }) => {
         setRivalIds((data?.rivals as string[] | null) ?? []);
-      });
+      })
+      .catch((err: unknown) => console.error("Failed to load rival IDs:", err));
   }, [user]);
 
   const loadStats = useCallback(async (userId: string): Promise<Omit<RivalStats, "profile">> => {
@@ -63,6 +66,8 @@ export default function RivalsSection() {
         scored++;
         const pts = p.points ?? 0;
         totalPoints += pts;
+        // Known limitation: pts >= 10 can include GD(5)*joker(2x) or GD(5)*QF(2x).
+        // Without tier info in the DB, we accept slight over-count.
         if (pts >= 10) exactScores++;
         if (pts > 0) correct++;
       }
@@ -99,11 +104,12 @@ export default function RivalsSection() {
           .select("id, handle, display_name, avatar_url")
           .in("id", rivalIds);
 
-        const rivalStats: RivalStats[] = [];
-        for (const p of profiles ?? []) {
-          const s = await loadStats(p.id);
-          rivalStats.push({ profile: p, ...s });
-        }
+        const rivalStats = await Promise.all(
+          (profiles ?? []).map(async (p) => {
+            const s = await loadStats(p.id);
+            return { profile: p, ...s };
+          }),
+        );
         setRivals(rivalStats);
       }
 

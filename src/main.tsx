@@ -30,10 +30,12 @@ async function handleAuthRedirect() {
   }
 }
 
-handleAuthRedirect().then(() => {
-  createRoot(document.getElementById("root")!).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  );
-});
+handleAuthRedirect()
+  .catch((err) => console.error("Auth redirect failed:", err))
+  .then(() => {
+    createRoot(document.getElementById("root")!).render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+  });

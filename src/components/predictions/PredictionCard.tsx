@@ -60,8 +60,16 @@ export default function PredictionCard({
     }
   }, [prediction]);
   const [saved, setSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Clean up saved timer on unmount
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
   const hasPrediction = prediction !== undefined;
   const prevScoredRef = useRef(prediction?.scored_at);
@@ -83,9 +91,12 @@ export default function PredictionCard({
 
   const afterSave = () => {
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
     const newCount = hasPrediction ? userPredictionCount : userPredictionCount + 1;
-    checkActivityBadges(userId, newCount).catch(() => {});
+    checkActivityBadges(userId, newCount).catch((err) =>
+      console.error("Badge check failed:", err),
+    );
     onSaved();
   };
 
@@ -98,7 +109,8 @@ export default function PredictionCard({
     }
     setSaving(true);
     setError(null);
-    const err = await upsertPrediction(userId, match.id, h, a, competitionId, isJoker);
+    const kickoffIso = new Date(`${match.date}T${match.time}:00Z`).toISOString();
+    const err = await upsertPrediction(userId, match.id, h, a, competitionId, isJoker, kickoffIso);
     setSaving(false);
     if (err) { setError(err); } else { afterSave(); }
   };
@@ -110,7 +122,8 @@ export default function PredictionCard({
     setQuickPick(pick);
     setSaving(true);
     setError(null);
-    const err = await upsertQuickPrediction(userId, match.id, pick, competitionId, isJoker);
+    const kickoffIso = new Date(`${match.date}T${match.time}:00Z`).toISOString();
+    const err = await upsertQuickPrediction(userId, match.id, pick, competitionId, isJoker, kickoffIso);
     setSaving(false);
     if (err) { setError(err); } else { afterSave(); }
   };

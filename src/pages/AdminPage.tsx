@@ -180,8 +180,8 @@ export default function AdminPage() {
     let scored = 0;
     for (const pred of predictions) {
       const { points } = calculatePoints({
-        predictedHome: pred.home_score,
-        predictedAway: pred.away_score,
+        predictedHome: pred.home_score ?? 0,
+        predictedAway: pred.away_score ?? 0,
         actualHome: h,
         actualAway: a,
       });

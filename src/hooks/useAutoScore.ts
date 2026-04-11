@@ -41,9 +41,11 @@ export function useAutoScore(competitionId = "WC") {
     if (unscored.length === 0) return;
 
     lastRunRef.current = now;
-    scorePredictions(predictions, results).then((count) => {
-      if (count > 0 && mountedRef.current) refresh();
-    });
+    scorePredictions(predictions, results)
+      .then((count) => {
+        if (count > 0 && mountedRef.current) refresh();
+      })
+      .catch((err) => console.error("Auto-scoring failed:", err));
   }, [predsLoading, resultsLoading, predictions, results, scorePredictions, refresh]);
 
   return { predictions, predsLoading, refresh };

@@ -72,14 +72,18 @@ export function useActivityFeed(limit = 10, competitionId?: string) {
 
     fetch();
 
-    // Real-time subscription for new predictions
+    // Real-time subscription for new predictions (filtered by competition if provided)
     const channel = supabase
-      .channel("yc_predictions_feed")
+      .channel(`yc_predictions_feed_${competitionId ?? "all"}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "yc_predictions" },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "yc_predictions",
+          ...(competitionId ? { filter: `competition_id=eq.${competitionId}` } : {}),
+        },
         () => {
-          // Refetch on new prediction
           fetch();
         },
       )

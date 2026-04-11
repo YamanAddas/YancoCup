@@ -21,12 +21,16 @@ export function useCompetitionSchedule(matchday?: number) {
     if (comp.staticSchedule) return; // WC uses static data
 
     let cancelled = false;
+    let controller = new AbortController();
     setLoading(true);
 
     async function fetchSchedule() {
+      // Abort any in-flight request before starting a new one
+      controller.abort();
+      controller = new AbortController();
       try {
         const url = `${WORKER_URL}/api/${comp.id}/matches`;
-        const res = await fetch(url);
+        const res = await fetch(url, { signal: controller.signal });
         if (!res.ok) {
           setLoading(false);
           return;
@@ -94,6 +98,7 @@ export function useCompetitionSchedule(matchday?: number) {
 
     return () => {
       cancelled = true;
+      controller.abort();
       clearInterval(interval);
     };
   }, [comp.id, comp.staticSchedule]);

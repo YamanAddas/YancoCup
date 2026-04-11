@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
 import { useGroups } from "../hooks/useGroups";
 import { useTeams } from "../hooks/useTeams";
 import { useCompetition } from "../lib/CompetitionProvider";
@@ -13,6 +14,11 @@ export default function GroupsPage() {
   const allTeams = useTeams();
   const comp = useCompetition();
   const { t } = useI18n();
+
+  // Guard: redirect to standings if competition doesn't have groups
+  if (!comp.hasGroups) {
+    return <Navigate to={`/${comp.id}/standings`} replace />;
+  }
   const [groupStandings, setGroupStandings] = useState<Map<string, StandingTeam[]>>(new Map());
 
   useEffect(() => {

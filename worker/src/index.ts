@@ -1408,7 +1408,7 @@ async function handleCron(env: Env): Promise<void> {
     // Get tick count for periodic actions
     const tickStr = await env.SCORES_KV.get(KV_TICK);
     const tick = tickStr ? parseInt(tickStr, 10) + 1 : 1;
-    await kvPut(env.SCORES_KV,KV_TICK, String(tick));
+    await kvPut(env.SCORES_KV, KV_TICK, String(tick));
 
     // -----------------------------------------------------------------------
     // Every tick: fetch ALL matches across all competitions (single API call)
@@ -1443,7 +1443,7 @@ async function handleCron(env: Env): Promise<void> {
         }
 
         // Store individual match detail (24h TTL — cron refreshes frequently)
-        await kvPut(env.SCORES_KV,kvMatch(m.id), JSON.stringify(score), {
+        await kvPut(env.SCORES_KV, kvMatch(m.id), JSON.stringify(score), {
           expirationTtl: 86400,
         });
       }
@@ -1462,14 +1462,14 @@ async function handleCron(env: Env): Promise<void> {
           merged = [...kept, ...scores];
         }
 
-        await kvPut(env.SCORES_KV,kvScores(code), JSON.stringify(merged), {
+        await kvPut(env.SCORES_KV, kvScores(code), JSON.stringify(merged), {
           expirationTtl: 86400,
         });
       }
 
-      // Store all live matches (short TTL — ephemeral by nature)
-      await kvPut(env.SCORES_KV,"all:live", JSON.stringify(allLive), {
-        expirationTtl: 120,
+      // Store all live matches — TTL must exceed cron interval (*/5 = 300s)
+      await kvPut(env.SCORES_KV, "all:live", JSON.stringify(allLive), {
+        expirationTtl: 600,
       });
     }
 
@@ -1502,7 +1502,7 @@ async function handleCron(env: Env): Promise<void> {
           byComp.get(score.competitionCode)!.push(score);
 
           // Store individual match detail (24h TTL)
-          await kvPut(env.SCORES_KV,kvMatch(m.id), JSON.stringify(score), {
+          await kvPut(env.SCORES_KV, kvMatch(m.id), JSON.stringify(score), {
             expirationTtl: 86400,
           });
         }
@@ -1519,7 +1519,7 @@ async function handleCron(env: Env): Promise<void> {
             merged = [...kept, ...scores];
           }
 
-          await kvPut(env.SCORES_KV,kvScores(code), JSON.stringify(merged), {
+          await kvPut(env.SCORES_KV, kvScores(code), JSON.stringify(merged), {
             expirationTtl: 86400,
           });
         }
@@ -1659,7 +1659,7 @@ async function handleCron(env: Env): Promise<void> {
     }
 
     // Record last successful poll
-    await kvPut(env.SCORES_KV,KV_LAST_POLL, new Date().toISOString());
+    await kvPut(env.SCORES_KV, KV_LAST_POLL, new Date().toISOString());
   } catch (err) {
     console.error("Cron poll failed:", err);
   }
@@ -2462,7 +2462,7 @@ app.get("/api/h2h/:id", async (c) => {
   }
 
   const data = (await res.json()) as Record<string, unknown>;
-  await kvPut(c.env.SCORES_KV,cacheKey, JSON.stringify(data), {
+  await kvPut(c.env.SCORES_KV, cacheKey, JSON.stringify(data), {
     expirationTtl: 86400,
   });
   return c.json(data);

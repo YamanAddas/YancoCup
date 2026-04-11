@@ -65,12 +65,26 @@ export function useConsensus(
         setConsensus(null);
         return;
       }
-      setConsensus({
-        home: Math.round((home / total) * 100),
-        draw: Math.round((draw / total) * 100),
-        away: Math.round((away / total) * 100),
-        total,
-      });
+      // Largest-remainder method to guarantee sum = 100%
+      const rawHome = (home / total) * 100;
+      const rawDraw = (draw / total) * 100;
+      const rawAway = (away / total) * 100;
+      const floorHome = Math.floor(rawHome);
+      const floorDraw = Math.floor(rawDraw);
+      const floorAway = Math.floor(rawAway);
+      let remainder = 100 - floorHome - floorDraw - floorAway;
+      const parts = [
+        { key: "home" as const, floor: floorHome, frac: rawHome - floorHome },
+        { key: "draw" as const, floor: floorDraw, frac: rawDraw - floorDraw },
+        { key: "away" as const, floor: floorAway, frac: rawAway - floorAway },
+      ].sort((a, b) => b.frac - a.frac);
+      const result = { home: floorHome, draw: floorDraw, away: floorAway };
+      for (const p of parts) {
+        if (remainder <= 0) break;
+        result[p.key]++;
+        remainder--;
+      }
+      setConsensus({ ...result, total });
     }
 
     fetch();

@@ -57,6 +57,7 @@ export async function upsertPrediction(
   awayScore: number,
   competitionId = "WC",
   isJoker = false,
+  kickoffTime?: string,
 ): Promise<string | null> {
   const { error } = await supabase.from("yc_predictions").upsert(
     {
@@ -68,6 +69,7 @@ export async function upsertPrediction(
       quick_pick: null,
       is_joker: isJoker,
       updated_at: new Date().toISOString(),
+      ...(kickoffTime ? { kickoff_time: kickoffTime } : {}),
     },
     { onConflict: "user_id,competition_id,match_id" },
   );
@@ -81,6 +83,7 @@ export async function upsertQuickPrediction(
   pick: "H" | "D" | "A",
   competitionId = "WC",
   isJoker = false,
+  kickoffTime?: string,
 ): Promise<string | null> {
   const { error } = await supabase.from("yc_predictions").upsert(
     {
@@ -92,6 +95,7 @@ export async function upsertQuickPrediction(
       quick_pick: pick,
       is_joker: isJoker,
       updated_at: new Date().toISOString(),
+      ...(kickoffTime ? { kickoff_time: kickoffTime } : {}),
     },
     { onConflict: "user_id,competition_id,match_id" },
   );

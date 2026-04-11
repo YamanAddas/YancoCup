@@ -162,8 +162,8 @@ export default function StandingsPage() {
 
       const results = teamMatches.map((m) => {
         const isHome = m.homeTeam === tla;
-        const gf = isHome ? m.homeScore! : m.awayScore!;
-        const ga = isHome ? m.awayScore! : m.homeScore!;
+        const gf = (isHome ? m.homeScore : m.awayScore) ?? 0;
+        const ga = (isHome ? m.awayScore : m.homeScore) ?? 0;
         return gf > ga ? "W" : gf < ga ? "L" : "D";
       });
 

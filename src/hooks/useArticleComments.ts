@@ -137,9 +137,10 @@ export function useArticleComments(articleSlug: string | undefined) {
     const replyMap = new Map<string, Comment[]>();
     for (const r of replies) {
       const enriched = enrich(r, myVotes.has(r.id));
-      const list = replyMap.get(r.parent_id!) ?? [];
+      if (!r.parent_id) continue;
+      const list = replyMap.get(r.parent_id) ?? [];
       list.push(enriched);
-      replyMap.set(r.parent_id!, list);
+      replyMap.set(r.parent_id, list);
     }
 
     // Assemble top-level comments with replies
