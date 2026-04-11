@@ -119,6 +119,7 @@ const TEAM_NAMES: Record<string, Record<LangCode, string>> = {
   lei: { en: "Leicester City", ar: "ليستر سيتي", es: "Leicester City", fr: "Leicester City", de: "Leicester City", pt: "Leicester City" },
   ips: { en: "Ipswich Town", ar: "إيبسويتش تاون", es: "Ipswich Town", fr: "Ipswich Town", de: "Ipswich Town", pt: "Ipswich Town" },
   sou: { en: "Southampton", ar: "ساوثهامبتون", es: "Southampton", fr: "Southampton", de: "Southampton", pt: "Southampton" },
+  bur: { en: "Burnley", ar: "بيرنلي", es: "Burnley", fr: "Burnley", de: "Burnley", pt: "Burnley" },
 
   // Spain — remaining
   rea: { en: "Real Valladolid", ar: "بلد الوليد", es: "Real Valladolid", fr: "Real Valladolid", de: "Real Valladolid", pt: "Real Valladolid" },
@@ -134,6 +135,9 @@ const TEAM_NAMES: Record<string, Record<LangCode, string>> = {
   ala: { en: "Alavés", ar: "ألافيس", es: "Alavés", fr: "Alavés", de: "Alavés", pt: "Alavés" },
   leg: { en: "Leganés", ar: "ليغانيس", es: "Leganés", fr: "Leganés", de: "Leganés", pt: "Leganés" },
   las: { en: "Las Palmas", ar: "لاس بالماس", es: "Las Palmas", fr: "Las Palmas", de: "Las Palmas", pt: "Las Palmas" },
+  lte: { en: "Levante", ar: "ليفانتي", es: "Levante", fr: "Levante", de: "Levante", pt: "Levante" },
+  elc: { en: "Elche", ar: "إلتشي", es: "Elche", fr: "Elche", de: "Elche", pt: "Elche" },
+  ovi: { en: "Real Oviedo", ar: "ريال أوفييدو", es: "Real Oviedo", fr: "Real Oviedo", de: "Real Oviedo", pt: "Real Oviedo" },
 
   // Germany — remaining
   bay: { en: "Bayern Munich", ar: "بايرن ميونخ", es: "Bayern Múnich", fr: "Bayern Munich", de: "Bayern München", pt: "Bayern de Munique" },
@@ -158,6 +162,7 @@ const TEAM_NAMES: Record<string, Record<LangCode, string>> = {
   hei: { en: "FC Heidenheim", ar: "هايدنهايم", es: "FC Heidenheim", fr: "FC Heidenheim", de: "1. FC Heidenheim", pt: "FC Heidenheim" },
   hol: { en: "Holstein Kiel", ar: "هولشتاين كيل", es: "Holstein Kiel", fr: "Holstein Kiel", de: "Holstein Kiel", pt: "Holstein Kiel" },
   stp: { en: "FC St. Pauli", ar: "سانت باولي", es: "FC St. Pauli", fr: "FC St. Pauli", de: "FC St. Pauli", pt: "FC St. Pauli" },
+  hsv: { en: "Hamburger SV", ar: "هامبورغ", es: "Hamburgo SV", fr: "Hambourg SV", de: "Hamburger SV", pt: "Hamburgo" },
 
   // Italy — remaining
   juv: { en: "Juventus", ar: "يوفنتوس", es: "Juventus", fr: "Juventus", de: "Juventus", pt: "Juventus" },
@@ -181,6 +186,7 @@ const TEAM_NAMES: Record<string, Record<LangCode, string>> = {
   com: { en: "Como 1907", ar: "كومو", es: "Como 1907", fr: "Côme", de: "Como 1907", pt: "Como 1907" },
   ver: { en: "Hellas Verona", ar: "هيلاس فيرونا", es: "Hellas Verona", fr: "Hellas Vérone", de: "Hellas Verona", pt: "Hellas Verona" },
   ven: { en: "Venezia", ar: "فينيسيا", es: "Venezia", fr: "Venise", de: "Venedig", pt: "Venezia" },
+  cre: { en: "Cremonese", ar: "كريمونيزي", es: "Cremonese", fr: "Cremonese", de: "Cremonese", pt: "Cremonese" },
 
   // France — remaining
   psg: { en: "Paris Saint-Germain", ar: "باريس سان جيرمان", es: "Paris Saint-Germain", fr: "Paris Saint-Germain", de: "Paris Saint-Germain", pt: "Paris Saint-Germain" },
@@ -201,6 +207,8 @@ const TEAM_NAMES: Record<string, Record<LangCode, string>> = {
   mtp: { en: "Montpellier", ar: "مونبلييه", es: "Montpellier", fr: "Montpellier HSC", de: "Montpellier", pt: "Montpellier" },
   hav: { en: "Le Havre", ar: "لوهافر", es: "Le Havre", fr: "Le Havre AC", de: "Le Havre", pt: "Le Havre" },
   bre2: { en: "Stade Brestois", ar: "بريست", es: "Stade Brestois", fr: "Stade Brestois", de: "Stade Brest", pt: "Stade Brestois" },
+  mtz: { en: "FC Metz", ar: "ميتز", es: "FC Metz", fr: "FC Metz", de: "FC Metz", pt: "FC Metz" },
+  fcl: { en: "FC Lorient", ar: "لوريان", es: "FC Lorient", fr: "FC Lorient", de: "FC Lorient", pt: "FC Lorient" },
 
   // Portugal
   ben: { en: "Benfica", ar: "بنفيكا", es: "Benfica", fr: "Benfica", de: "Benfica", pt: "Benfica" },
@@ -478,39 +486,39 @@ const API_NAME_ALIASES: Record<string, string> = {
   "nottingham forest": "nfo",
   "crystal palace fc": "cry",
   "afc bournemouth": "bou",
-  "athletic club": "ath",
-  "atletico de madrid": "atl",
-  "atlético de madrid": "atl",
-  "club atlético de madrid": "atl",
+  "athletic club": "atb",
+  "atletico de madrid": "atm",
+  "atlético de madrid": "atm",
+  "club atlético de madrid": "atm",
   "real sociedad de fútbol": "rso",
   "real betis balompié": "bet",
   "real betis": "bet",
   "rcd espanyol de barcelona": "rde",
   "borussia dortmund": "bvb",
-  "bayer 04 leverkusen": "b04",
-  "bayer leverkusen": "b04",
+  "bayer 04 leverkusen": "lev",
+  "bayer leverkusen": "lev",
   "rb leipzig": "rbl",
   "eintracht frankfurt": "sge",
-  "sc freiburg": "scf",
-  "vfb stuttgart": "vfb",
+  "sc freiburg": "fre",
+  "vfb stuttgart": "stu",
   "vfl wolfsburg": "wob",
   "borussia mönchengladbach": "bmg",
   "tsg 1899 hoffenheim": "tsg",
   "hoffenheim": "tsg",
   "tsg hoffenheim": "tsg",
   "1. fsv mainz 05": "m05",
-  "1. fc union berlin": "fcub",
+  "1. fc union berlin": "aue",
   "sv werder bremen": "svw",
   "werder bremen": "svw",
   "fc augsburg": "fca",
   "augsburg": "fca",
   "1. fc heidenheim 1846": "hei",
-  "holstein kiel": "kiel",
-  "fc st. pauli 1910": "pau",
-  "fc st. pauli": "pau",
+  "holstein kiel": "hol",
+  "fc st. pauli 1910": "stp",
+  "fc st. pauli": "stp",
   "fc internazionale milano": "int",
   "inter milan": "int",
-  "ac milan": "acm",
+  "ac milan": "mil",
   "ssc napoli": "nap",
   "as roma": "rom",
   "roma": "rom",
@@ -538,6 +546,69 @@ const API_NAME_ALIASES: Record<string, string> = {
   "sporting clube de portugal": "spo",
   "sporting cp": "spo",
   "afc ajax": "aja",
+
+  // ── TLA aliases (football-data.org TLA → our TEAM_NAMES key) ──────────────
+  // Only non-colliding TLAs — colliding ones (PAR, ESP, MAR, BRE, AJA, LEV)
+  // must be resolved via full team name instead.
+  // England
+  "not": "nfo",           // Nottingham Forest
+  "bur": "bur",           // Burnley
+  // Spain
+  "atl": "atm",           // Atlético Madrid
+  "ath": "atb",           // Athletic Bilbao
+  "elc": "elc",           // Elche
+  "ovi": "ovi",           // Real Oviedo
+  // Germany
+  "vfb": "stu",           // VfB Stuttgart
+  "b04": "lev",           // Bayer 04 Leverkusen
+  "scf": "fre",           // SC Freiburg
+  "unb": "aue",           // 1. FC Union Berlin
+  "hsv": "hsv",           // Hamburger SV
+  // Italy
+  "acm": "mil",           // AC Milan
+  "hve": "ver",           // Hellas Verona
+  "usl": "lec",           // US Lecce
+  "cre": "cre",           // US Cremonese
+  // France
+  "rcl": "len",           // RC Lens
+  "asm": "mon",           // AS Monaco
+  "lyo": "oly",           // Olympique Lyonnais
+  "hac": "hav",           // Le Havre AC
+  "fcl": "fcl",           // FC Lorient (if promoted)
+
+  // ── Full API name aliases for collision-prone teams ───────────────────────
+  "fc bayern münchen": "bay",
+  "fc bayern munchen": "bay",
+  "bayern münchen": "bay",
+  "fc barcelona": "bar",
+  "levante ud": "lte",
+  "rcd espanyol": "rde",
+  "espanyol": "rde",
+  "hamburger sv": "hsv",
+  "burnley fc": "bur",
+  "burnley": "bur",
+  "elche cf": "elc",
+  "elche": "elc",
+  "real oviedo": "ovi",
+  "us cremonese": "cre",
+  "cremonese": "cre",
+  "fc metz": "mtz",
+  "metz": "mtz",
+  "olympique lyonnais": "oly",
+  "olympique de marseille ": "om",
+  "stade de reims": "rms",
+  "aj auxerre": "aux",
+  "le havre ac": "hav",
+  "rc lens": "len",
+  "losc lille": "lil",
+  "lille osc": "lil",
+  "vfb stuttgart 1893": "stu",
+  "1. fc heidenheim": "hei",
+  "union berlin": "aue",
+  "fc union berlin": "aue",
+  "valencia cf": "val",
+  "valencia": "val",
+  "real valladolid cf": "rea",
 };
 
 function getNameToKey(): Map<string, string> {

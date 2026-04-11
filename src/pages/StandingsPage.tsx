@@ -311,7 +311,7 @@ export default function StandingsPage() {
                           size="sm"
                         />
                         <span className="font-medium truncate">
-                          {tTeam(row.team.tla)}
+                          {(() => { const n = tTeam(row.team.name); return n !== row.team.name ? n : tTeam(row.team.tla); })()}
                         </span>
                       </Link>
                     </td>
@@ -427,7 +427,7 @@ export default function StandingsPage() {
                             className="flex items-center gap-1.5 hover:text-yc-green transition-colors"
                           >
                             <TeamCrest tla={s.team.tla} crest={s.team.crest} size="xs" />
-                            <span className="text-yc-text-secondary text-xs truncate">{tTeam(s.team.tla)}</span>
+                            <span className="text-yc-text-secondary text-xs truncate">{(() => { const n = tTeam(s.team.name); return n !== s.team.name ? n : tTeam(s.team.tla); })()}</span>
                           </Link>
                         </td>
                         <td className="py-2.5 px-2 text-center text-yc-text-secondary">

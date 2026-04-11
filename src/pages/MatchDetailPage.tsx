@@ -524,7 +524,7 @@ function H2HTab({ matchId }: { matchId: string }) {
                 >
                   <span className="text-xs text-yc-text-tertiary w-24 shrink-0">{dateStr}</span>
                   <div className="flex items-center gap-2 flex-1 justify-end">
-                    <span className="text-sm text-yc-text-primary truncate">{tTeam(m.homeTeam.tla)}</span>
+                    <span className="text-sm text-yc-text-primary truncate">{(() => { const n = tTeam(m.homeTeam.name); return n !== m.homeTeam.name ? n : tTeam(m.homeTeam.tla); })()}</span>
                     <TeamCrest tla={m.homeTeam.tla} crest={m.homeTeam.crest} size="xs" />
                   </div>
                   <span className="font-mono text-sm font-bold text-yc-text-primary shrink-0 w-12 text-center">
@@ -532,7 +532,7 @@ function H2HTab({ matchId }: { matchId: string }) {
                   </span>
                   <div className="flex items-center gap-2 flex-1">
                     <TeamCrest tla={m.awayTeam.tla} crest={m.awayTeam.crest} size="xs" />
-                    <span className="text-sm text-yc-text-primary truncate">{tTeam(m.awayTeam.tla)}</span>
+                    <span className="text-sm text-yc-text-primary truncate">{(() => { const n = tTeam(m.awayTeam.name); return n !== m.awayTeam.name ? n : tTeam(m.awayTeam.tla); })()}</span>
                   </div>
                 </div>
               );
@@ -693,7 +693,7 @@ export default function MatchDetailPage() {
               size="xl"
             />
             <p className="text-sm sm:text-base font-semibold text-yc-text-primary text-center">
-              {tTeam(match.homeTeam.tla)}
+              {(() => { const n = tTeam(match.homeTeam.name); return n !== match.homeTeam.name ? n : tTeam(match.homeTeam.tla); })()}
             </p>
           </Link>
 
@@ -733,7 +733,7 @@ export default function MatchDetailPage() {
               size="xl"
             />
             <p className="text-sm sm:text-base font-semibold text-yc-text-primary text-center">
-              {tTeam(match.awayTeam.tla)}
+              {(() => { const n = tTeam(match.awayTeam.name); return n !== match.awayTeam.name ? n : tTeam(match.awayTeam.tla); })()}
             </p>
           </Link>
         </div>

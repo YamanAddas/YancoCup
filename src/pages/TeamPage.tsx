@@ -580,7 +580,7 @@ export default function TeamPage() {
       <div className="flex items-center gap-4 mb-8">
         <TeamCrest tla={team.tla} crest={team.crest} size="xl" />
         <div>
-          <h2 className="font-heading text-2xl font-bold">{tTeam(team.tla)}</h2>
+          <h2 className="font-heading text-2xl font-bold">{(() => { const n = tTeam(team.name); return n !== team.name ? n : tTeam(team.tla); })()}</h2>
           <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-yc-text-secondary">
             {team.coach && (
               <span className="flex items-center gap-1">
@@ -689,7 +689,7 @@ export default function TeamPage() {
                     {m.opponentCrest && (
                       <TeamCrest tla={m.opponentTla ?? "?"} crest={m.opponentCrest} size="xs" />
                     )}
-                    <span className="text-yc-text-primary truncate">{tTeam(m.opponentTla ?? m.opponentName ?? "?")}</span>
+                    <span className="text-yc-text-primary truncate">{(() => { if (m.opponentName) { const n = tTeam(m.opponentName); if (n !== m.opponentName) return n; } return tTeam(m.opponentTla ?? "?"); })()}</span>
                   </div>
                   <span className="font-mono font-bold text-yc-text-primary shrink-0">
                     {m.goalsFor}-{m.goalsAgainst}
@@ -722,7 +722,7 @@ export default function TeamPage() {
                   <span className="text-yc-text-secondary text-xs w-6 text-center">{isHome ? "H" : "A"}</span>
                   <div className="flex items-center gap-1.5 flex-1 min-w-0">
                     {opCrest && <TeamCrest tla={opTla ?? "?"} crest={opCrest} size="xs" />}
-                    <span className="text-yc-text-primary truncate">{tTeam(opTla ?? opName ?? "?")}</span>
+                    <span className="text-yc-text-primary truncate">{(() => { if (opName) { const n = tTeam(opName); if (n !== opName) return n; } return tTeam(opTla ?? "?"); })()}</span>
                   </div>
                   <span className="text-xs text-yc-text-tertiary">
                     {formatTimeWithTZ(date, lang)}
@@ -735,7 +735,7 @@ export default function TeamPage() {
       )}
 
       {/* Team Newspaper — AI-curated news */}
-      <TeamNewspaper teamTla={team.tla} teamName={tTeam(team.tla)} teamCrest={team.crest} />
+      <TeamNewspaper teamTla={team.tla} teamName={(() => { const n = tTeam(team.name); return n !== team.name ? n : tTeam(team.tla); })()} teamCrest={team.crest} />
 
       {/* Squad */}
       {team.squad.length > 0 && (
