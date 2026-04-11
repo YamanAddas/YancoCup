@@ -58,8 +58,8 @@ interface City {
   capacity: number;
 }
 
-const EARTH_NIGHT_URL =
-  "https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg";
+const EARTH_IMAGE_URL =
+  "https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg";
 const EARTH_BUMP_URL =
   "https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png";
 
@@ -97,13 +97,15 @@ function GlobeInner({
   // Track mount state to prevent post-unmount state updates
   useEffect(() => {
     mountedRef.current = true;
+    // Kick initial render for frameloop="demand"
+    invalidate();
     return () => {
       mountedRef.current = false;
       clearTimeout(resumeTimerRef.current);
       isFlyingRef.current = false;
       flyTargetRef.current = null;
     };
-  }, []);
+  }, [invalidate]);
 
   // Fly camera to selected city
   useEffect(() => {
@@ -123,7 +125,7 @@ function GlobeInner({
     }
   }, [flyToCity, invalidate]);
 
-  // Animate fly-to each frame
+  // Animate fly-to + keep auto-rotate rendering in demand mode
   useFrame(({ camera }) => {
     if (!mountedRef.current) return;
     if (isFlyingRef.current && flyTargetRef.current) {
@@ -141,6 +143,9 @@ function GlobeInner({
           }, AUTO_ROTATE_RESUME_MS);
         }
       }
+      invalidate();
+    } else if (autoRotate) {
+      // Auto-rotate needs continuous frames in demand mode
       invalidate();
     }
   });
@@ -180,7 +185,7 @@ function GlobeInner({
 
       <Globe
         ref={globeRef}
-        globeImageUrl={EARTH_NIGHT_URL}
+        globeImageUrl={EARTH_IMAGE_URL}
         bumpImageUrl={device.isReduced ? undefined : EARTH_BUMP_URL}
         showAtmosphere={!device.isLowEnd}
         atmosphereColor="#00ff88"
