@@ -442,11 +442,12 @@ export default function HomePage() {
         <GlobeView />
 
         <div className="flex flex-col items-center lg:items-start gap-6">
-          <div>
-            <h2 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight mb-2">
-              {t("home.title")}{" "}
-              <span className="text-yc-green drop-shadow-[0_0_12px_rgba(0,255,136,0.3)]">{t("home.year")}</span>
-            </h2>
+          <div className="flex flex-col items-center lg:items-start gap-2">
+            <img
+              src="https://crests.football-data.org/wm26.png"
+              alt="FIFA World Cup 2026"
+              className="h-24 sm:h-28 w-auto drop-shadow-[0_0_20px_rgba(0,255,136,0.25)]"
+            />
             <p className="text-yc-text-secondary text-sm">
               {t("home.subtitle")}
             </p>
