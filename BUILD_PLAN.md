@@ -201,13 +201,70 @@ Before any design session: write a full design spec following the pre-implementa
 
 ---
 
-## Open red team findings (from REDTEAM_FINDINGS.md v3)
+### Track G: Data pipeline reliability (V4 findings — before WC)
+
+These fix the "data is broken/stale/missing" issues found in the V4 deep dive audit. Ordered by user-facing impact.
+
+#### Session 51: Worker — retry logic + timeout hardening
+**Goal:** Stop losing entire ticks on transient API failures.
+**Findings addressed:** #27 (no retry), #28 (no API-Football timeout), #38 (silent errors)
+- Add retry wrapper: 2 retries with 1s/3s backoff for `fetchFromFootballData()`
+- Add `AbortSignal.timeout(8000)` to `fetchFromApiFootball()`
+- Add `cron:error:count` KV key, expose in `/api/health`
+- Write worker test for retry behavior
+
+#### Session 52: Worker — fix API-Football fixture matching
+**Goal:** Lineups and stats actually appear for top clubs.
+**Findings addressed:** #29 (broken matching), #30 (concurrent cache miss)
+- Replace TLA name-substring matching with a static TLA→API-Football team ID map
+- Deduplicate date fetches: collect all dates first, fetch each once, then match
+- Test with known problem TLAs: MCI, MUN, RMA, FCB, PSG
+
+#### Session 53: Worker — KV write optimization
+**Goal:** Stay within free-tier KV write budget (or upgrade).
+**Findings addressed:** #31 (KV writes exceed limit), #32 (match TTL always 24h), #33 (all:live TTL)
+- Option A: Upgrade to Workers Paid ($5/month) — eliminates all KV write concerns
+- Option B (if staying free): Remove per-match KV writes (use per-competition scores array only). Batch writes. Status-dependent TTL.
+- Increase `all:live` TTL from 600s to 1200s
+- Add KV write failure counter to health endpoint
+
+#### Session 54: Worker — news pipeline fixes
+**Goal:** News articles flow faster and don't get permanently stuck.
+**Findings addressed:** #34 (scrape counter), #35 (slow summarize), #36 (dedup threshold)
+- Reset `scrape_failures: 0` on successful scrape
+- Increase summarize limit from 2 to 5 articles per cycle
+- Raise Jaccard dedup threshold from 0.65 to 0.80
+
+#### Session 55: Worker — admin auth hardening
+**Goal:** Remove hardcoded backdoor, use proper admin secret.
+**Finding addressed:** #37 (admin auth)
+- Add `ADMIN_KEY` via `wrangler secret put`
+- Remove `"yanco2026trigger"` hardcoded string
+- Update admin endpoint auth check
+
+#### Session 56: Frontend — error states and stale indicators
+**Goal:** Users know when data is stale or unavailable.
+**Findings addressed:** #39 (useScores no error), #44 (api.ts null for all errors)
+- Update `apiFetch` to return `{ data, error }` instead of bare `null`
+- Add error state to `useScores` — show "Scores temporarily unavailable" banner
+- Add `lastUpdated` timestamp to score display
+
+#### Session 57: Frontend — hook race conditions
+**Goal:** Fix auto-scoring and comments edge cases.
+**Findings addressed:** #40 (useAutoScore race), #42 (unbounded replies)
+- Move useAutoScore throttle to module-level variable (shared across instances)
+- Add reply pagination (limit 10 per top-level comment)
+
+---
+
+## Open red team findings (from REDTEAM_FINDINGS.md v4)
+
+### V3 findings (still open)
 
 | Finding | Severity | Session |
 |---------|----------|---------|
 | #21 GlobeScene 2MB bundle | High | 36-37 |
 | #22 No concurrent cache miss protection | Medium | 40 |
-| #23 RLS undocumented and unaudited | High | 34 |
 | #24 Twitter card `summary` not `summary_large_image` | Low | Quick fix anytime |
 | #25 Worker god file (2,874 lines) | Medium | 47 |
 | #26 No cron early-exit when no live matches | Low | 39 |
@@ -216,6 +273,29 @@ Before any design session: write a full design spec following the pre-implementa
 | #16 React Router v7/v6 mismatch | Low | 48 |
 | #18 CL bracket format | Medium | Before CL knockouts |
 | #20 Arabic RSS unverified | Medium | Manual curl test |
+
+### V4 findings (data pipeline deep dive)
+
+| Finding | Severity | Session |
+|---------|----------|---------|
+| #27 No retry on football-data.org failure | **Critical** | 51 |
+| #28 No timeout on API-Football fetch | **High** | 51 |
+| #29 Fixture matching broken for top clubs | **High** | 52 |
+| #30 Concurrent API-Football cache miss | Medium | 52 |
+| #31 KV writes exceed free-tier limit | **High** | 53 |
+| #32 Match detail TTL always 24h | Medium | 53 |
+| #33 `all:live` TTL barely above cron | Low | 53 |
+| #34 Scrape failure counter never resets | Medium | 54 |
+| #35 News summarize too slow (2/cycle) | Medium | 54 |
+| #36 Title dedup threshold too lenient | Low | 54 |
+| #37 Admin auth uses API key + backdoor | Medium | 55 |
+| #38 Silent cron errors, no alerting | Medium | 51 |
+| #39 useScores has no error state | Medium | 56 |
+| #40 useAutoScore race on navigation | Medium | 57 |
+| #41 AbortController self-abort | Low | Low priority |
+| #42 Unbounded reply fetch in comments | Medium | 57 |
+| #43 Pool chat profile cache unbounded | Low | Low priority |
+| #44 api.ts returns null for all errors | Medium | 56 |
 
 ---
 

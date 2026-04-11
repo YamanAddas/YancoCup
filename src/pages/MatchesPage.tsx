@@ -197,7 +197,7 @@ function TournamentMatches() {
   const venues = useVenues();
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
-  const { scoreMap } = useScores();
+  const { scoreMap, error: scoreError } = useScores();
   const predictedIds = usePredictedMatchIds(comp.id);
 
   const filters = useMemo(() => {
@@ -268,6 +268,13 @@ function TournamentMatches() {
 
   return (
     <>
+      {/* Score error banner */}
+      {scoreError && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-yc-warning/10 border border-yc-warning/20 text-yc-warning text-sm">
+          Live scores temporarily unavailable. Showing cached data.
+        </div>
+      )}
+
       {/* Sub-header: match count + filter */}
       <div className="flex items-center justify-between mb-4">
         <p className="text-yc-text-secondary text-sm">
@@ -394,7 +401,7 @@ function TournamentMatches() {
 function LeagueMatches() {
   const comp = useCompetition();
   const { t, lang } = useI18n();
-  const { scoreMap } = useScores();
+  const { scoreMap, error: scoreError } = useScores();
   const [selectedMatchday, setSelectedMatchday] = useState<number | undefined>(undefined);
   const { matches, matchdays, loading } = useCompetitionSchedule(selectedMatchday);
   const teamMap = useTeamMap();
@@ -470,6 +477,11 @@ function LeagueMatches() {
 
   return (
     <>
+      {scoreError && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-yc-warning/10 border border-yc-warning/20 text-yc-warning text-sm">
+          Live scores temporarily unavailable. Showing cached data.
+        </div>
+      )}
       {loading ? (
         <div className="flex justify-center py-16">
           <div className="w-8 h-8 rounded-full border-2 border-yc-green border-t-transparent animate-spin" />

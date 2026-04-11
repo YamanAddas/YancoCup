@@ -56,14 +56,23 @@ export interface GroupStanding {
 // API functions
 // ---------------------------------------------------------------------------
 
-async function apiFetch<T>(path: string): Promise<T | null> {
+export type ApiError = "network" | "http" | "parse";
+
+interface ApiResult<T> {
+  data: T | null;
+  error: ApiError | null;
+}
+
+async function apiFetch<T>(path: string): Promise<ApiResult<T>> {
   try {
     const res = await fetch(`${WORKER_URL}${path}`);
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    // Worker unreachable — graceful degradation
-    return null;
+    if (!res.ok) return { data: null, error: "http" };
+    const data = (await res.json()) as T;
+    return { data, error: null };
+  } catch (err) {
+    // Distinguish parse errors from network errors
+    if (err instanceof SyntaxError) return { data: null, error: "parse" };
+    return { data: null, error: "network" };
   }
 }
 
@@ -71,20 +80,20 @@ async function apiFetch<T>(path: string): Promise<T | null> {
 export async function fetchScores(filters?: {
   status?: string;
   date?: string;
-}): Promise<LiveMatchScore[]> {
+}): Promise<{ scores: LiveMatchScore[]; error: ApiError | null }> {
   const params = new URLSearchParams();
   if (filters?.status) params.set("status", filters.status);
   if (filters?.date) params.set("date", filters.date);
   const qs = params.toString();
   const path = `/api/scores${qs ? `?${qs}` : ""}`;
-  const data = await apiFetch<{ matches: LiveMatchScore[] }>(path);
-  return data?.matches ?? [];
+  const { data, error } = await apiFetch<{ matches: LiveMatchScore[] }>(path);
+  return { scores: data?.matches ?? [], error };
 }
 
 /** Fetch group standings for a competition. */
 export async function fetchStandings(comp?: string): Promise<GroupStanding[]> {
   const path = comp ? `/api/${comp}/standings` : "/api/standings";
-  const data = await apiFetch<{ standings: GroupStanding[] }>(path);
+  const { data } = await apiFetch<{ standings: GroupStanding[] }>(path);
   return data?.standings ?? [];
 }
 
@@ -92,7 +101,7 @@ export async function fetchStandings(comp?: string): Promise<GroupStanding[]> {
 export async function fetchMatch(
   apiId: number,
 ): Promise<LiveMatchScore | null> {
-  const data = await apiFetch<{ match: LiveMatchScore }>(
+  const { data } = await apiFetch<{ match: LiveMatchScore }>(
     `/api/match/${apiId}`,
   );
   return data?.match ?? null;
@@ -109,7 +118,7 @@ export interface Scorer {
 
 /** Fetch top scorers for a competition. */
 export async function fetchScorers(comp: string): Promise<Scorer[]> {
-  const data = await apiFetch<{ scorers: Scorer[] }>(`/api/${comp}/scorers`);
+  const { data } = await apiFetch<{ scorers: Scorer[] }>(`/api/${comp}/scorers`);
   return data?.scorers ?? [];
 }
 
@@ -151,7 +160,7 @@ export async function fetchNews(
   if (filters?.featured) params.set("featured", "true");
   if (filters?.limit) params.set("limit", String(filters.limit));
   if (filters?.offset) params.set("offset", String(filters.offset));
-  const data = await apiFetch<{ articles: NewsArticle[]; total: number }>(
+  const { data } = await apiFetch<{ articles: NewsArticle[]; total: number }>(
     `/api/news?${params.toString()}`,
   );
   return data ?? { articles: [], total: 0 };
@@ -159,7 +168,7 @@ export async function fetchNews(
 
 /** Fetch a single article by slug, translated to the user's language. */
 export async function fetchArticle(slug: string, lang: string): Promise<NewsArticle | null> {
-  const data = await apiFetch<{ article: NewsArticle }>(`/api/news/${slug}?lang=${lang}`);
+  const { data } = await apiFetch<{ article: NewsArticle }>(`/api/news/${slug}?lang=${lang}`);
   return data?.article ?? null;
 }
 
@@ -173,7 +182,7 @@ export async function fetchCompetitionNews(
   params.set("lang", lang);
   if (filters?.limit) params.set("limit", String(filters.limit));
   if (filters?.offset) params.set("offset", String(filters.offset));
-  const data = await apiFetch<{ articles: NewsArticle[]; total: number }>(
+  const { data } = await apiFetch<{ articles: NewsArticle[]; total: number }>(
     `/api/${comp}/news?${params.toString()}`,
   );
   return data ?? { articles: [], total: 0 };
@@ -188,7 +197,7 @@ export async function fetchTeamNews(
   const params = new URLSearchParams();
   params.set("lang", lang);
   if (filters?.limit) params.set("limit", String(filters.limit));
-  const data = await apiFetch<{ articles: NewsArticle[]; total: number }>(
+  const { data } = await apiFetch<{ articles: NewsArticle[]; total: number }>(
     `/api/team/${teamId}/news?${params.toString()}`,
   );
   return data ?? { articles: [], total: 0 };
@@ -199,7 +208,7 @@ export async function translateArticleOnDemand(
   slug: string,
   lang: string,
 ): Promise<{ title: string; summary: string; full_content: string | null } | null> {
-  const data = await apiFetch<{ title: string; summary: string; full_content: string | null }>(
+  const { data } = await apiFetch<{ title: string; summary: string; full_content: string | null }>(
     `/api/news/${slug}/translate?lang=${lang}`,
   );
   return data ?? null;
@@ -210,8 +219,17 @@ export async function fetchHealth(): Promise<{
   status: string;
   lastPoll: string | null;
   tickCount: number;
+  cronErrorCount: number;
   competitions: string[];
   timestamp: string;
 } | null> {
-  return apiFetch("/api/health");
+  const { data } = await apiFetch<{
+    status: string;
+    lastPoll: string | null;
+    tickCount: number;
+    cronErrorCount: number;
+    competitions: string[];
+    timestamp: string;
+  }>("/api/health");
+  return data;
 }

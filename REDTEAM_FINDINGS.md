@@ -1,7 +1,8 @@
-# YancoCup — red team findings (v3)
+# YancoCup — red team findings (v4)
 
-> Updated April 2026. V2 audit added findings 11-20. V3 audit (code review, April 11 2026) adds findings 21-26.
-> All V3 findings are verified from source code — no assumptions.
+> Updated April 2026. V2 audit added findings 11-20. V3 audit (code review, April 11 2026) added 21-26.
+> **V4 audit (data pipeline deep dive, April 11 2026) adds findings 27-44.**
+> All findings verified from source code — no assumptions.
 
 ---
 
@@ -166,6 +167,296 @@ This eliminates the majority of unnecessary upstream calls during off-peak hours
 
 ---
 
+---
+
+## V4 findings (data pipeline deep dive, April 11 2026)
+
+### WORKER — Cron & polling
+
+#### 27. No retry logic on football-data.org API failure
+**Severity: Critical**
+**File:** `worker/src/index.ts:1417-1474`
+
+When `fetchFromFootballData("/matches", ...)` fails (429 rate-limited, 500 server error, network timeout), the entire tick is silently skipped. No retry, no backoff. A single API hiccup = 5 minutes of missing score updates.
+
+```typescript
+const res = await fetchFromFootballData("/matches", env.FOOTBALL_DATA_API_KEY);
+if (res.ok) { /* process */ }
+// Silent fallthrough if not res.ok — no retry, no error logging
+```
+
+**Impact:** During a live WC match, one API blip means 5 min of stale scores for all users.
+**Fix:** Add 1-2 retries with exponential backoff (1s, 3s) before giving up on the tick.
+
+#### 28. `fetchFromApiFootball()` has no timeout
+**Severity: High**
+**File:** `worker/src/index.ts:186-193`
+
+```typescript
+async function fetchFromApiFootball(path: string, apiKey: string): Promise<Response> {
+  return fetch(`${AF_BASE}${path}`, {
+    headers: { "x-apisports-key": apiKey },
+  }); // No AbortSignal.timeout()
+}
+```
+
+Other fetches have timeouts (scrapeArticleText: 10s, fetchRSSFeed: 8s) but API-Football has none. If API-Football hangs, the Worker hits the Cloudflare 30s CPU limit and hard-kills, losing ALL work for that tick — including already-fetched football-data.org scores.
+
+**Fix:** Add `signal: AbortSignal.timeout(8000)` to the fetch call.
+
+#### 29. API-Football fixture matching logic is broken for many teams
+**Severity: High**
+**File:** `worker/src/index.ts:237-246`
+
+```typescript
+const homeUp = homeTla.toUpperCase(); // e.g. "MCI"
+const awayUp = awayTla.toUpperCase();
+return fixtures.find((f) => {
+  const hName = (teams?.home?.name ?? "").toUpperCase(); // e.g. "MANCHESTER CITY"
+  return (hName.includes(homeUp) || homeUp.includes(hName.slice(0, 3))) && ...
+});
+```
+
+Tested cases that **fail**:
+- `"MANCHESTER CITY".includes("MCI")` → false, `"MCI".includes("MAN")` → false — **Man City never matches**
+- `"MANCHESTER UNITED".includes("MUN")` → false — **Man United never matches**
+- `"REAL MADRID".includes("RMA")` → false — **Real Madrid never matches**
+- `"FC BARCELONA".includes("FCB")` → false — **Barcelona never matches**
+
+Cases that **accidentally match wrong teams**:
+- TLA "PAR" matches any team name containing "PAR" (Paris, Parma, Paraguay)
+
+**Impact:** Lineups, events, and statistics are silently missing for most top-club matches. Users open match detail and see no lineups even though data exists in API-Football.
+**Fix:** Build a static TLA→API-Football team ID mapping (or match by league + date + kickoff time instead of team names).
+
+#### 30. Concurrent API-Football cache miss causes duplicate upstream calls
+**Severity: Medium**
+**File:** `worker/src/index.ts:209-235`
+
+When 3 matches on the same date all need enrichment on the same tick, all 3 check `af:${compCode}:${matchDate}` cache key — all 3 miss — all 3 call API-Football for the same date. First write wins, other 2 are wasted API calls.
+
+At 100 req/day limit, wasting 2 calls per date is significant during a tournament with 4+ matches/day.
+
+**Fix:** After the first fetch, cache immediately before processing. Or deduplicate by date before entering the enrichment loop.
+
+#### 31. KV write volume may exceed free-tier daily limit
+**Severity: High**
+**File:** `worker/src/index.ts` (throughout cron)
+
+Cloudflare KV free tier: **1,000 writes/day**. Per cron tick:
+- 1 tick counter + 1 last-poll + 1 all:live = 3 writes
+- N individual match writes (today's matches, ~0-30)
+- K per-competition score writes (~1-8)
+
+Every 5th tick adds more (upcoming week: 20-50 match writes + competition writes).
+Every 15th tick: 1 standings write. Every 60th tick: 1 schedule write.
+
+**Conservative estimate (active match day):** ~40 writes/tick × 288 ticks/day = **~11,500 writes/day** — 11x over the 1,000 free limit.
+
+After quota exhaustion, `kvPut()` silently fails (caught in try-catch at line 317). All writes are lost. Users see completely stale data with no warning.
+
+**Impact:** Worker becomes read-only after ~25 ticks (~2 hours) on busy match days. All scores freeze.
+**Fix options:**
+1. Upgrade to Workers Paid ($5/month) — 1,000 writes/second, problem disappears
+2. Batch writes: one KV write per competition per tick instead of per-match
+3. Skip individual match detail writes (use per-competition scores array instead)
+
+#### 32. Individual match KV TTL is 24h regardless of match status
+**Severity: Medium**
+**File:** `worker/src/index.ts:1445-1448`
+
+```typescript
+await kvPut(env.SCORES_KV, kvMatch(m.id), JSON.stringify(score), {
+  expirationTtl: 86400, // Always 24h — even for live matches
+});
+```
+
+A live match changing score every few minutes is cached for 24h. If the match detail endpoint serves from this KV entry instead of the per-competition scores, users see stale individual match data.
+
+**Fix:** TTL should be status-dependent: live=120s, finished=86400s, upcoming=3600s.
+
+#### 33. `all:live` TTL (600s) is barely above cron interval (300s)
+**Severity: Low**
+**File:** `worker/src/index.ts:1471-1473`
+
+600s TTL with 300s cron interval means the window between "TTL expires" and "next cron writes" is 0-300s. If a cron tick fails or is delayed, clients see "no live matches" even during an active game.
+
+**Fix:** Increase TTL to 900s or 1200s.
+
+### WORKER — News pipeline
+
+#### 34. Scrape failure counter never resets on success
+**Severity: Medium**
+**File:** `worker/src/index.ts:1266-1284`
+
+When scraping succeeds (`fullText.length > 100`), only `full_content` is written. The `scrape_failures` counter stays at whatever it was. If an article had 2 prior failures, then succeeds, it stays at 2. One more transient failure → hits 3 → permanently skipped.
+
+**Fix:** Reset `scrape_failures: 0` on successful scrape:
+```typescript
+body: JSON.stringify({ full_content: fullText, scrape_failures: 0 }),
+```
+
+#### 35. News summarize phase only processes 2 articles per cycle
+**Severity: Medium**
+**File:** `worker/src/index.ts:1293`
+
+```
+...&limit=2&select=...
+```
+
+With 4 phases cycling every 24th tick (~2 hours), and news phase 2 (summarize) processing only 2 articles: that's 2 articles per 8-hour cycle = **6 articles/day summarized**. If RSS feeds produce 20+ articles/day, there's an ever-growing backlog.
+
+**Fix:** Increase limit to 5-10. Workers AI free tier (10K neurons/day) can handle it.
+
+#### 36. News title dedup threshold too lenient (Jaccard 0.65)
+**Severity: Low**
+**File:** `worker/src/index.ts:1169-1177`
+
+Two articles about different Chelsea matches (e.g., "Chelsea 2-1 Liverpool" vs "Chelsea 1-3 Arsenal") share many common words and could exceed 0.65 Jaccard similarity, causing one to be incorrectly deduplicated.
+
+**Fix:** Raise threshold to 0.80+ or add source URL dedup as primary check.
+
+### WORKER — Security & error handling
+
+#### 37. Admin endpoints use API key as auth + hardcoded backdoor
+**Severity: Medium**
+**File:** `worker/src/index.ts:1755-1774`
+
+```typescript
+if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
+  return c.json({ error: "Unauthorized" }, 401);
+}
+```
+
+The `"yanco2026trigger"` string is a hardcoded backdoor password. If the API key leaks, admin endpoints (trigger news phases, backfill, etc.) are compromised.
+
+**Fix:** Use a dedicated admin secret via `wrangler secret put ADMIN_KEY`.
+
+#### 38. Silent errors in cron — no alerting, no health degradation signal
+**Severity: Medium**
+**File:** `worker/src/index.ts:1663-1665`
+
+```typescript
+} catch (err) {
+  console.error("Cron poll failed:", err);
+}
+```
+
+The entire cron handler is wrapped in one try-catch that only logs. No structured error reporting, no Sentry integration on the Worker side, no health check that detects stale data.
+
+**Impact:** If cron fails repeatedly, the `lastPoll` timestamp stops updating but no one is alerted. Users see stale data indefinitely.
+
+**Fix:** Write a `cron:error:count` KV key. Expose in `/api/health`. Alert if error count > 3 in a row.
+
+### FRONTEND — Data hooks
+
+#### 39. `useScores` — no error state, no stale indicator
+**Severity: Medium**
+**File:** `src/hooks/useScores.ts:44-76`
+
+```typescript
+const poll = useCallback(async () => {
+  const raw = await fetchScores(); // returns [] on error
+  if (raw.length === 0) { setLoading(false); return; }
+  // ...
+}, []);
+```
+
+If the Worker is down, `fetchScores()` returns `[]` (via api.ts catch). The hook sets `loading=false` with an empty map. The user sees "no matches" — indistinguishable from "API is down." No error state, no stale-data indicator, no retry differentiation.
+
+**Fix:** Return `{ data, error, isStale }` from the hook. Show "Scores temporarily unavailable" banner when error.
+
+#### 40. `useAutoScore` — race condition on rapid navigation
+**Severity: Medium**
+**File:** `src/hooks/useAutoScore.ts:26-49`
+
+If a user navigates: Predictions → Leaderboard → Predictions rapidly, three `useAutoScore` instances may mount/unmount. The 5-min throttle is per-instance (via `useRef`), so each new mount gets a fresh `lastRunRef = 0`. Multiple concurrent `scorePredictions()` calls can fire for the same matches.
+
+Since `scorePredictions` updates rows where `scored_at IS NULL`, concurrent calls could both pass the check before either writes — resulting in double-scoring.
+
+**Fix:** Use a global (module-level) throttle timestamp instead of per-instance ref. Or add a Supabase RPC that scores atomically.
+
+#### 41. `useCompetitionSchedule` — AbortController self-abort on first call
+**Severity: Low**
+**File:** `src/hooks/useCompetitionSchedule.ts:24-29`
+
+```typescript
+let controller = new AbortController();
+async function fetchSchedule() {
+  controller.abort(); // Aborts immediately on first call!
+  controller = new AbortController();
+  const res = await fetch(url, { signal: controller.signal });
+```
+
+On the very first call, `controller.abort()` is called before any request has been made. This is harmless (aborting an unused controller is a no-op) but the pattern is confusing and could cause issues if the first abort somehow races with the new fetch.
+
+**Fix:** Only abort if a previous request is in flight (track with a boolean flag).
+
+#### 42. `useArticleComments` — unbounded reply fetch
+**Severity: Medium**
+**File:** `src/hooks/useArticleComments.ts`
+
+Top-level comments are paginated (limit 20), but ALL replies for the entire article are fetched in a single query with no limit. A viral article with 10,000 replies would fetch all 10,000 in one Supabase call.
+
+**Fix:** Paginate replies per top-level comment (e.g., limit 10 replies, "show more" button).
+
+#### 43. `usePoolChat` — profile cache grows unbounded
+**Severity: Low**
+**File:** `src/hooks/usePoolChat.ts:22`
+
+```typescript
+const profileCache = useRef(new Map<string, ...>());
+```
+
+The profile cache never evicts entries. In a large pool with hundreds of users chatting over time, the Map grows without bound for the lifetime of the component.
+
+**Fix:** Cap at 200 entries with LRU eviction, or clear cache on pool change.
+
+#### 44. `api.ts` — zero error differentiation
+**Severity: Medium**
+**File:** `src/lib/api.ts:59-68`
+
+```typescript
+async function apiFetch<T>(path: string): Promise<T | null> {
+  try {
+    const res = await fetch(`${WORKER_URL}${path}`);
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch { return null; }
+}
+```
+
+Network error, 404, 500, JSON parse error — all return the same `null`. Calling code can't distinguish "no data exists" from "Worker is down" from "malformed response."
+
+**Fix:** Return `{ data: T | null; error: string | null }` or throw typed errors that hooks can handle.
+
+---
+
+## V4 findings summary table
+
+| # | Category | Severity | One-line |
+|---|----------|----------|----------|
+| 27 | Worker/Cron | **Critical** | No retry on football-data.org API failure |
+| 28 | Worker/API-Football | **High** | No timeout on API-Football fetch |
+| 29 | Worker/API-Football | **High** | Fixture matching broken for most top clubs |
+| 30 | Worker/API-Football | Medium | Concurrent cache miss → duplicate calls |
+| 31 | Worker/KV | **High** | KV writes exceed free-tier 1,000/day limit |
+| 32 | Worker/KV | Medium | Match detail TTL always 24h (even live) |
+| 33 | Worker/KV | Low | `all:live` TTL barely above cron interval |
+| 34 | Worker/News | Medium | Scrape failure counter never resets |
+| 35 | Worker/News | Medium | Summarize phase too slow (2 articles/cycle) |
+| 36 | Worker/News | Low | Title dedup threshold too lenient |
+| 37 | Worker/Security | Medium | Admin auth uses API key + hardcoded backdoor |
+| 38 | Worker/Error | Medium | Silent cron errors, no alerting |
+| 39 | Frontend/Hooks | Medium | useScores has no error state |
+| 40 | Frontend/Hooks | Medium | useAutoScore race condition on navigation |
+| 41 | Frontend/Hooks | Low | AbortController self-abort on first call |
+| 42 | Frontend/Hooks | Medium | Unbounded reply fetch in comments |
+| 43 | Frontend/Hooks | Low | Pool chat profile cache unbounded |
+| 44 | Frontend/API | Medium | api.ts returns null for all error types |
+
+---
+
 ## Things that are solid (no changes needed)
 
 - r3f-globe choice ✅
@@ -187,3 +478,7 @@ This eliminates the majority of unnecessary upstream calls during off-peak hours
 - Sentry error monitoring ✅
 - Cloudflare Web Analytics ✅
 - Lazy-loaded pages ✅
+- useCompetitionSchedule: good AbortController cancellation pattern ✅
+- usePoolChat: good realtime subscription with dedup ✅
+- useAutoScore: good 5-min throttle concept ✅
+- useScores: dynamic polling interval (60s live / 5min idle) ✅

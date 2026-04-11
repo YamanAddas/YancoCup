@@ -265,11 +265,50 @@ Dashboard → each table → RLS policies. Check:
 
 ---
 
+## Known data pipeline issues (V4 audit, April 2026)
+
+> Full details in REDTEAM_FINDINGS.md v4, findings 27-44. Sessions mapped in BUILD_PLAN.md.
+
+### Critical/High — must fix before WC
+
+| Issue | Impact | Fix session |
+|-------|--------|-------------|
+| No retry on football-data.org failure (#27) | 5 min of stale scores on any API blip | 51 |
+| No timeout on API-Football fetch (#28) | Worker hard-kill loses all tick data | 51 |
+| API-Football fixture matching broken (#29) | Lineups missing for MCI, MUN, RMA, FCB, etc. | 52 |
+| KV writes may exceed free-tier limit (#31) | Scores freeze after ~2 hours on busy days | 53 |
+
+### Medium — should fix before WC
+
+| Issue | Impact | Fix session |
+|-------|--------|-------------|
+| Match detail TTL always 24h (#32) | Live match KV entry stale | 53 |
+| Scrape failure counter never resets (#34) | Articles permanently stuck | 54 |
+| News summarize too slow (#35) | Backlog grows, articles take days | 54 |
+| Admin auth uses hardcoded backdoor (#37) | Security risk | 55 |
+| Silent cron errors (#38) | Stale data with no alerting | 51 |
+| useScores has no error state (#39) | "No matches" vs "API down" indistinguishable | 56 |
+| useAutoScore race condition (#40) | Possible double-scoring on navigation | 57 |
+| api.ts returns null for all errors (#44) | No error differentiation anywhere | 56 |
+
+### Low — fix when convenient
+
+| Issue | Impact |
+|-------|--------|
+| `all:live` TTL barely above cron interval (#33) | Brief "no live" windows |
+| Title dedup too lenient (#36) | Occasional duplicate articles |
+| AbortController self-abort (#41) | Harmless but confusing code |
+| Pool chat profile cache unbounded (#43) | Slow memory growth |
+| Unbounded reply fetch (#42) | Performance on viral articles |
+
+---
+
 ## Disaster scenarios
 
 **football-data.org down during a match:**
+- **Current reality:** No retry logic — a single failed tick = 5 min stale data (finding #27)
 - KV cache serves last-known data (stale but functional)
-- Show "Live scores temporarily unavailable" badge
+- "Live scores temporarily unavailable" badge is NOT currently shown — frontend can't distinguish error from empty (#39)
 - Static WC schedule keeps predictions working
 - API-Football provides enrichment data (lineups, stats) — it is not an automatic score fallback and requires manual intervention to use as one
 
@@ -281,6 +320,7 @@ Dashboard → each table → RLS policies. Check:
 - KV persists independently
 - GitHub Pages static files always up
 - Worst case: stale scores, but app is usable
+- **No alerting** — Worker failure is only visible via manual `/api/health` check (#38)
 
 ---
 
@@ -384,7 +424,11 @@ Known risk: client-side, exploitable, accepted at current scale.
 ### Cron
 
 Current: `*/5 * * * *` (288 calls/day). Switch to `* * * * *` in wrangler.toml during WC.
-Known gap: no early-exit when no live matches — makes upstream call every tick regardless.
+Known gaps:
+- No early-exit when no live matches — makes upstream call every tick regardless (#26)
+- No retry on API failure — one failed tick = 5 min of stale data (#27)
+- Per-tick KV writes (~40) will exhaust free-tier daily limit in ~2 hours on busy days (#31)
+- Switching to `* * * * *` for WC will 5x the KV write volume — must fix #31 first
 
 ---
 
@@ -393,6 +437,11 @@ Known gap: no early-exit when no live matches — makes upstream call every tick
 - 2,874 lines in a single file — god file. Do not add to it without considering extraction.
 - Cache miss on `/api/:comp/matches` hits upstream once then caches. WC is protected (`[]` on miss). Leagues do hit upstream on cold cache — no concurrent request lock.
 - API-Football used for match enrichment (lineups, stats) on a per-tick budget of max 3 enrichments. Not a score fallback.
+- **No retry logic** on upstream API calls — single failure = entire tick lost (#27)
+- **API-Football fixture matching is broken** — uses TLA substring match against full team names. Fails for MCI, MUN, RMA, FCB, PSG, and many others. Lineups are silently missing (#29)
+- **KV write volume** is ~40 writes/tick. On free tier (1,000 writes/day), exhausts budget in ~2 hours on busy match days (#31)
+- **No timeout** on API-Football fetches — can hard-kill the Worker (#28)
+- **Admin endpoints** use the football-data.org API key as auth + hardcoded string `"yanco2026trigger"` (#37)
 
 ---
 
@@ -468,6 +517,9 @@ SUPABASE_SERVICE_KEY
 - BALLDONTLIE — NBA, not soccer
 - Per-competition polling — use `/v4/matches` (one call)
 - Static schedules for leagues — only WC is static
+- Assuming API-Football fixture matching works — it's broken for most top clubs (#29)
+- Assuming KV writes are unlimited — free tier is 1,000/day, cron uses ~40/tick (#31)
+- Assuming `apiFetch()` returning null means "no data" — it also means "Worker down" (#44)
 - xG, heatmaps, player ratings — not available on free tier
 - Adding to worker/src/index.ts without noting god file concern
 

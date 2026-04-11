@@ -10,6 +10,7 @@ interface Env {
   SCORES_KV: KVNamespace;
   FOOTBALL_DATA_API_KEY: string;
   API_FOOTBALL_KEY: string;
+  ADMIN_KEY: string;
   AI: Ai;
   SUPABASE_URL: string;
   SUPABASE_SERVICE_KEY: string;
@@ -149,6 +150,7 @@ function kvSchedule(comp: string): string {
 }
 const KV_LAST_POLL = "config:last_poll";
 const KV_TICK = "config:tick_count";
+const KV_CRON_ERRORS = "cron:error:count";
 
 // ---------------------------------------------------------------------------
 // Upstream API
@@ -156,11 +158,35 @@ const KV_TICK = "config:tick_count";
 
 const FD_BASE = "https://api.football-data.org/v4";
 
+/** Fetch with retry — 2 retries with 1s/3s backoff for transient failures */
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  retries = 2,
+  backoffMs = [1000, 3000],
+): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      // Retry on 5xx server errors (not 4xx — those are permanent)
+      if (res.ok || res.status < 500) return res;
+      lastError = new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      lastError = err;
+    }
+    if (attempt < retries) {
+      await new Promise((r) => setTimeout(r, backoffMs[attempt] ?? 3000));
+    }
+  }
+  throw lastError;
+}
+
 async function fetchFromFootballData(
   path: string,
   apiKey: string,
 ): Promise<Response> {
-  return fetch(`${FD_BASE}${path}`, {
+  return fetchWithRetry(`${FD_BASE}${path}`, {
     headers: { "X-Auth-Token": apiKey },
   });
 }
@@ -183,13 +209,148 @@ const AF_LEAGUE_IDS: Record<string, number> = {
   EC: 4,
 };
 
+/**
+ * football-data.org TLA → known API-Football name fragments.
+ * Used when simple TLA substring matching fails (most top clubs).
+ * Each entry: TLA → array of uppercase substrings that should match.
+ */
+const TLA_TO_AF_NAMES: Record<string, string[]> = {
+  // Premier League
+  MCI: ["MANCHESTER CITY", "MAN CITY"],
+  MUN: ["MANCHESTER UNITED", "MAN UNITED"],
+  ARS: ["ARSENAL"],
+  LIV: ["LIVERPOOL"],
+  CHE: ["CHELSEA"],
+  TOT: ["TOTTENHAM"],
+  NEW: ["NEWCASTLE"],
+  WHU: ["WEST HAM"],
+  AVL: ["ASTON VILLA"],
+  BHA: ["BRIGHTON"],
+  CRY: ["CRYSTAL PALACE"],
+  EVE: ["EVERTON"],
+  FUL: ["FULHAM"],
+  BOU: ["BOURNEMOUTH"],
+  WOL: ["WOLVERHAMPTON", "WOLVES"],
+  BRE: ["BRENTFORD"],
+  NFO: ["NOTTINGHAM"],
+  LEI: ["LEICESTER"],
+  IPS: ["IPSWICH"],
+  SOU: ["SOUTHAMPTON"],
+  // La Liga
+  RMA: ["REAL MADRID"],
+  FCB: ["BARCELONA"],
+  ATM: ["ATLETICO MADRID", "ATLETICO"],
+  RSO: ["REAL SOCIEDAD"],
+  VIL: ["VILLARREAL"],
+  RBB: ["REAL BETIS", "BETIS"],
+  SEV: ["SEVILLA"],
+  ATH: ["ATHLETIC BILBAO", "ATHLETIC CLUB"],
+  VCF: ["VALENCIA"],
+  GCF: ["GETAFE"],
+  CEL: ["CELTA VIGO", "CELTA"],
+  RCD: ["ESPANYOL"],
+  OSA: ["OSASUNA"],
+  RMV: ["RAYO VALLECANO"],
+  GIR: ["GIRONA"],
+  MLL: ["MALLORCA"],
+  ALA: ["ALAVES"],
+  VLL: ["VALLADOLID"],
+  LPA: ["LAS PALMAS"],
+  LEG: ["LEGANES"],
+  // Bundesliga
+  BAY: ["BAYERN", "FC BAYERN"],
+  BVB: ["BORUSSIA DORTMUND", "DORTMUND"],
+  LEV: ["BAYER LEVERKUSEN", "LEVERKUSEN"],
+  RBL: ["RB LEIPZIG", "RASENBALL"],
+  BMG: ["BORUSSIA MONCHENGLADBACH", "MONCHENGLADBACH", "GLADBACH"],
+  SGE: ["EINTRACHT FRANKFURT", "FRANKFURT"],
+  VFB: ["VFB STUTTGART", "STUTTGART"],
+  WOB: ["WOLFSBURG"],
+  SCF: ["SC FREIBURG", "FREIBURG"],
+  TSG: ["HOFFENHEIM"],
+  UBE: ["UNION BERLIN"],
+  M05: ["FSV MAINZ", "MAINZ"],
+  FCA: ["FC AUGSBURG", "AUGSBURG"],
+  BOC: ["BOCHUM"],
+  SVW: ["WERDER BREMEN", "BREMEN"],
+  HDH: ["HEIDENHEIM"],
+  KIE: ["HOLSTEIN KIEL", "KIEL"],
+  STP: ["ST. PAULI", "ST PAULI"],
+  // Serie A
+  JUV: ["JUVENTUS"],
+  INT: ["INTER", "INTERNAZIONALE"],
+  ACM: ["AC MILAN"],
+  NAP: ["NAPOLI"],
+  ROM: ["AS ROMA", "ROMA"],
+  LAZ: ["LAZIO"],
+  ATA: ["ATALANTA"],
+  FIO: ["FIORENTINA"],
+  TOR: ["TORINO"],
+  BOL: ["BOLOGNA"],
+  UDI: ["UDINESE"],
+  EMP: ["EMPOLI"],
+  SAL: ["SALERNITANA"],
+  SAS: ["SASSUOLO"],
+  LEC: ["LECCE"],
+  VER: ["HELLAS VERONA", "VERONA"],
+  MON: ["MONZA"],
+  CAG: ["CAGLIARI"],
+  GEN: ["GENOA"],
+  FRO: ["FROSINONE"],
+  PAR: ["PARMA"],
+  VEN: ["VENEZIA"],
+  COM: ["COMO"],
+  // Ligue 1
+  PSG: ["PARIS SAINT", "PARIS SG", "PSG"],
+  OLY: ["OLYMPIQUE MARSEILLE", "MARSEILLE"],
+  OL: ["OLYMPIQUE LYON", "LYON"],
+  ASM: ["AS MONACO", "MONACO"],
+  LIL: ["LILLE"],
+  REN: ["RENNES"],
+  LEN: ["LENS"],
+  NIC: ["NICE", "OGC NICE"],
+  STR: ["STRASBOURG"],
+  TOU: ["TOULOUSE"],
+  MON2: ["MONTPELLIER"],
+  NAN: ["NANTES"],
+  REI: ["REIMS"],
+  BRS: ["BREST"],
+  HAC: ["LE HAVRE"],
+  MET: ["METZ"],
+  CLE: ["CLERMONT"],
+  LOR: ["LORIENT"],
+  ANS: ["ANGERS"],
+  AUX: ["AUXERRE"],
+  STE: ["SAINT-ETIENNE", "ST ETIENNE"],
+};
+
 async function fetchFromApiFootball(
   path: string,
   apiKey: string,
 ): Promise<Response> {
   return fetch(`${AF_BASE}${path}`, {
     headers: { "x-apisports-key": apiKey },
+    signal: AbortSignal.timeout(8000),
   });
+}
+
+/** Match a football-data.org TLA against an API-Football team name */
+function matchTeamName(tla: string, afName: string): boolean {
+  // 1. Check alias map first (handles MCI, MUN, RMA, FCB, PSG, etc.)
+  const aliases = TLA_TO_AF_NAMES[tla];
+  if (aliases) {
+    return aliases.some((alias) => afName.includes(alias));
+  }
+  // 2. Fallback: check if the 3-letter TLA appears in the AF name,
+  //    or if the first 3 chars of AF name match the TLA
+  const afWords = afName.replace(/[^A-Z ]/g, "").split(/\s+/);
+  // Try matching TLA against first letters of each word (e.g., PSG → Paris Saint-Germain)
+  if (afWords.length >= tla.length) {
+    const initials = afWords.map((w) => w[0]).join("");
+    if (initials.includes(tla)) return true;
+  }
+  // Simple substring as last resort
+  return afName.includes(tla) || tla.includes(afName.slice(0, 3));
 }
 
 /**
@@ -234,15 +395,14 @@ async function findApiFootballFixture(
     }
   }
 
-  // Match by team TLA codes
+  // Match by team name using alias map (fixes #29 — TLA substring matching broken for top clubs)
   const homeUp = homeTla.toUpperCase();
   const awayUp = awayTla.toUpperCase();
   return fixtures.find((f) => {
     const teams = f.teams as { home?: { name?: string }; away?: { name?: string } } | undefined;
     const hName = (teams?.home?.name ?? "").toUpperCase();
     const aName = (teams?.away?.name ?? "").toUpperCase();
-    return (hName.includes(homeUp) || homeUp.includes(hName.slice(0, 3))) &&
-           (aName.includes(awayUp) || awayUp.includes(aName.slice(0, 3)));
+    return matchTeamName(homeUp, hName) && matchTeamName(awayUp, aName);
   }) ?? null;
 }
 
@@ -1165,7 +1325,7 @@ async function insertArticles(
 // Phase 3: Translate title + AI summary into 6 languages
 // ---------------------------------------------------------------------------
 
-/** Title similarity check — Jaccard on normalized words, threshold 0.65 */
+/** Title similarity check — Jaccard on normalized words, threshold 0.80 (#36) */
 function isSimilarTitle(a: string, b: string): boolean {
   const normalize = (s: string) => s.toLowerCase().replace(/[^\w\s]/g, "").split(/\s+/).filter((w) => w.length > 2);
   const wordsA = new Set(normalize(a));
@@ -1174,7 +1334,7 @@ function isSimilarTitle(a: string, b: string): boolean {
   let intersection = 0;
   for (const w of wordsA) { if (wordsB.has(w)) intersection++; }
   const union = wordsA.size + wordsB.size - intersection;
-  return union > 0 && intersection / union > 0.65;
+  return union > 0 && intersection / union > 0.80;
 }
 
 /** Supabase helper — common headers */
@@ -1266,11 +1426,11 @@ async function newsPhaseScrape(env: Env): Promise<void> {
   for (const row of toScrape) {
     const fullText = await scrapeArticleText(row.source_url);
     if (fullText && fullText.length > 100) {
-      // Success: save content
+      // Success: save content + reset failure counter (#34)
       await fetch(`${env.SUPABASE_URL}/rest/v1/yc_articles?id=eq.${row.id}`, {
         method: "PATCH",
         headers: sbHeaders(env.SUPABASE_SERVICE_KEY),
-        body: JSON.stringify({ full_content: fullText }),
+        body: JSON.stringify({ full_content: fullText, scrape_failures: 0 }),
       });
       scraped++;
     } else {
@@ -1290,7 +1450,7 @@ async function newsPhaseSummarize(env: Env): Promise<void> {
   console.log("News phase 2: AI summarize");
 
   const res = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/yc_articles?full_content=not.is.null&full_content=neq.&ai_summary=is.null&order=published_at.desc&limit=2&select=id,title,full_content,language`,
+    `${env.SUPABASE_URL}/rest/v1/yc_articles?full_content=not.is.null&full_content=neq.&ai_summary=is.null&order=published_at.desc&limit=5&select=id,title,full_content,language`,
     { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}` } },
   );
   if (!res.ok) return;
@@ -1442,10 +1602,8 @@ async function handleCron(env: Env): Promise<void> {
           allLive.push(score);
         }
 
-        // Store individual match detail (24h TTL — cron refreshes frequently)
-        await kvPut(env.SCORES_KV, kvMatch(m.id), JSON.stringify(score), {
-          expirationTtl: 86400,
-        });
+        // Per-match KV writes removed (#31) — per-competition arrays serve the same data.
+        // Individual match lookups (/api/match/:id) now read from competition arrays.
       }
 
       // Write per-competition score KV entries
@@ -1467,9 +1625,9 @@ async function handleCron(env: Env): Promise<void> {
         });
       }
 
-      // Store all live matches — TTL must exceed cron interval (*/5 = 300s)
+      // Store all live matches — TTL well above cron interval (*/5 = 300s)
       await kvPut(env.SCORES_KV, "all:live", JSON.stringify(allLive), {
-        expirationTtl: 600,
+        expirationTtl: 1200,
       });
     }
 
@@ -1500,11 +1658,6 @@ async function handleCron(env: Env): Promise<void> {
           if (!byComp.has(score.competitionCode))
             byComp.set(score.competitionCode, []);
           byComp.get(score.competitionCode)!.push(score);
-
-          // Store individual match detail (24h TTL)
-          await kvPut(env.SCORES_KV, kvMatch(m.id), JSON.stringify(score), {
-            expirationTtl: 86400,
-          });
         }
 
         // Update per-competition scores with full upcoming week
@@ -1662,7 +1815,20 @@ async function handleCron(env: Env): Promise<void> {
     await kvPut(env.SCORES_KV, KV_LAST_POLL, new Date().toISOString());
   } catch (err) {
     console.error("Cron poll failed:", err);
+    // Increment error counter for monitoring
+    const errStr = await env.SCORES_KV.get(KV_CRON_ERRORS);
+    const errCount = errStr ? parseInt(errStr, 10) + 1 : 1;
+    await kvPut(env.SCORES_KV, KV_CRON_ERRORS, String(errCount));
   }
+}
+
+/** Admin auth — check ADMIN_KEY secret (falls back to FD API key for compat) */
+function isAdminAuthed(key: string | undefined, env: Env): boolean {
+  if (!key) return false;
+  // Primary: dedicated ADMIN_KEY secret (set via `wrangler secret put ADMIN_KEY`)
+  if (env.ADMIN_KEY && key === env.ADMIN_KEY) return true;
+  // Fallback: football-data.org API key (legacy, for backward compat)
+  return key === env.FOOTBALL_DATA_API_KEY;
 }
 
 // ---------------------------------------------------------------------------
@@ -1754,7 +1920,7 @@ app.get("/api/live", async (c) => {
 
 app.get("/api/admin/trigger-news", async (c) => {
   const key = c.req.query("key");
-  if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
+  if (!isAdminAuthed(key, c.env)) {
     return c.json({ error: "Unauthorized" }, 401);
   }
   const phase = c.req.query("phase");
@@ -1776,7 +1942,7 @@ app.get("/api/admin/trigger-news", async (c) => {
 // Admin: backfill scrape full article content
 app.get("/api/admin/backfill-scrape", async (c) => {
   const key = c.req.query("key");
-  if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
+  if (!isAdminAuthed(key, c.env)) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
@@ -1820,7 +1986,7 @@ app.get("/api/admin/backfill-scrape", async (c) => {
 // Admin: backfill AI summaries
 app.get("/api/admin/backfill-summarize", async (c) => {
   const key = c.req.query("key");
-  if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
+  if (!isAdminAuthed(key, c.env)) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
@@ -1871,7 +2037,7 @@ app.get("/api/admin/backfill-summarize", async (c) => {
 // Admin: backfill missing translations
 app.get("/api/admin/backfill-translate", async (c) => {
   const key = c.req.query("key");
-  if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
+  if (!isAdminAuthed(key, c.env)) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
@@ -1920,7 +2086,7 @@ app.get("/api/admin/backfill-translate", async (c) => {
 
 app.get("/api/admin/populate", async (c) => {
   const key = c.req.query("key");
-  if (key !== c.env.FOOTBALL_DATA_API_KEY && key !== "yanco2026trigger") {
+  if (!isAdminAuthed(key, c.env)) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
@@ -2103,19 +2269,23 @@ app.get("/api/:comp/standings", async (c) => {
 // ---------------------------------------------------------------------------
 
 app.get("/api/:comp/match/:id", async (c) => {
-  const apiId = c.req.param("id");
-  const cached = await c.env.SCORES_KV.get(kvMatch(parseInt(apiId, 10)));
-  if (cached) {
-    return c.json({ match: safeParse(cached) ?? null });
+  const comp = c.req.param("comp").toUpperCase();
+  const apiId = parseInt(c.req.param("id"), 10);
+
+  // Check per-competition scores array first
+  const compCached = await c.env.SCORES_KV.get(kvScores(comp));
+  if (compCached) {
+    const scores = safeParse<MatchScore[]>(compCached);
+    const match = scores?.find((s) => s.apiId === apiId);
+    if (match) return c.json({ match });
   }
 
-  // KV miss — fetch from upstream
+  // KV miss — fetch from upstream (still write to per-comp array is too complex here, just return)
   try {
     const res = await fetchFromFootballData(`/matches/${apiId}`, c.env.FOOTBALL_DATA_API_KEY);
     if (res.ok) {
       const data = (await res.json()) as FDMatch;
       const match = transformMatch(data);
-      await kvPut(c.env.SCORES_KV, kvMatch(parseInt(apiId, 10)), JSON.stringify(match), { expirationTtl: 86400 });
       return c.json({ match });
     }
   } catch { /* fall through */ }
@@ -2360,15 +2530,21 @@ app.get("/api/standings", async (c) => {
 });
 
 app.get("/api/match/:id", async (c) => {
-  const apiId = c.req.param("id");
-  const cached = await c.env.SCORES_KV.get(kvMatch(parseInt(apiId, 10)));
-  if (!cached) {
-    return c.json(
-      { error: "Match not found or data not yet available." },
-      404,
-    );
+  const apiId = parseInt(c.req.param("id"), 10);
+
+  // Search per-competition score arrays (no more per-match KV keys)
+  for (const code of Object.keys(COMPETITIONS)) {
+    const cached = await c.env.SCORES_KV.get(kvScores(code));
+    if (!cached) continue;
+    const scores = safeParse<MatchScore[]>(cached);
+    const match = scores?.find((s) => s.apiId === apiId);
+    if (match) return c.json({ match });
   }
-  return c.json({ match: safeParse(cached) ?? null });
+
+  return c.json(
+    { error: "Match not found or data not yet available." },
+    404,
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -2817,10 +2993,12 @@ app.get("/api/diag", async (c) => {
 app.get("/api/health", async (c) => {
   const lastPoll = await c.env.SCORES_KV.get(KV_LAST_POLL);
   const tick = await c.env.SCORES_KV.get(KV_TICK);
+  const cronErrors = await c.env.SCORES_KV.get(KV_CRON_ERRORS);
   return c.json({
     status: "ok",
     lastPoll: lastPoll ?? null,
     tickCount: tick ? parseInt(tick, 10) : 0,
+    cronErrorCount: cronErrors ? parseInt(cronErrors, 10) : 0,
     competitions: Object.keys(COMPETITIONS),
     timestamp: new Date().toISOString(),
   });

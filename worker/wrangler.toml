@@ -19,5 +19,7 @@ binding = "AI"
 
 # Secrets (set via `wrangler secret put`):
 # FOOTBALL_DATA_API_KEY — football-data.org API key
+# API_FOOTBALL_KEY — API-Football (api-sports.io) key
+# ADMIN_KEY — admin endpoint authentication secret
 # SUPABASE_URL — Supabase project URL
 # SUPABASE_SERVICE_KEY — Supabase service role key (for article inserts)

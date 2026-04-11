@@ -5,6 +5,11 @@ import { useScoring } from "./useScoring";
 
 const RESCORE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
+// Module-level throttle — shared across all hook instances to prevent
+// double-scoring when rapid navigation creates multiple instances (#40)
+let lastRunGlobal = 0;
+let scoringInProgress = false;
+
 /**
  * Auto-scores unscored predictions when the user views a page.
  * Re-runs if >5 minutes have passed since the last scoring attempt.
@@ -13,7 +18,6 @@ export function useAutoScore(competitionId = "WC") {
   const { predictions, loading: predsLoading, refresh } = useMyPredictions(competitionId);
   const { results, loading: resultsLoading } = useLiveResults();
   const { scorePredictions } = useScoring(competitionId);
-  const lastRunRef = useRef(0);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -28,7 +32,8 @@ export function useAutoScore(competitionId = "WC") {
     if (predictions.length === 0 || results.length === 0) return;
 
     const now = Date.now();
-    if (now - lastRunRef.current < RESCORE_INTERVAL_MS) return;
+    if (now - lastRunGlobal < RESCORE_INTERVAL_MS) return;
+    if (scoringInProgress) return;
 
     // Check if there are any unscored predictions for finished matches
     const finishedIds = new Set(
@@ -40,12 +45,14 @@ export function useAutoScore(competitionId = "WC") {
 
     if (unscored.length === 0) return;
 
-    lastRunRef.current = now;
+    lastRunGlobal = now;
+    scoringInProgress = true;
     scorePredictions(predictions, results)
       .then((count) => {
         if (count > 0 && mountedRef.current) refresh();
       })
-      .catch((err) => console.error("Auto-scoring failed:", err));
+      .catch((err) => console.error("Auto-scoring failed:", err))
+      .finally(() => { scoringInProgress = false; });
   }, [predsLoading, resultsLoading, predictions, results, scorePredictions, refresh]);
 
   return { predictions, predsLoading, refresh };

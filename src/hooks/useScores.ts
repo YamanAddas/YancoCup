@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchScores } from "../lib/api";
-import type { LiveMatchScore } from "../lib/api";
+import type { LiveMatchScore, ApiError } from "../lib/api";
 
 /** Live score keyed by API match ID */
 export interface LocalLiveScore {
@@ -32,6 +32,7 @@ function hasLiveMatch(scores: LiveMatchScore[]): boolean {
  * - Every 60s when a match is live (IN_PLAY or PAUSED)
  * - Every 5 min otherwise
  * - Returns a Map<apiId, LocalLiveScore> for easy lookup
+ * - Exposes `error` state so UI can distinguish "no matches" from "API down"
  */
 export function useScores() {
   const [scoreMap, setScoreMap] = useState<Map<number, LocalLiveScore>>(
@@ -39,10 +40,20 @@ export function useScores() {
   );
   const [loading, setLoading] = useState(true);
   const [hasLive, setHasLive] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const poll = useCallback(async () => {
-    const raw = await fetchScores();
+    const { scores: raw, error: fetchError } = await fetchScores();
+
+    if (fetchError) {
+      setError(fetchError);
+      setLoading(false);
+      return;
+    }
+
+    setError(null);
+
     if (raw.length === 0) {
       setLoading(false);
       return;
@@ -91,5 +102,5 @@ export function useScores() {
     };
   }, [poll, hasLive]);
 
-  return { scoreMap, loading, hasLive };
+  return { scoreMap, loading, hasLive, error };
 }

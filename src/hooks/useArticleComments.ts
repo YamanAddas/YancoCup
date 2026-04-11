@@ -26,6 +26,7 @@ type SortMode = "top" | "newest" | "oldest";
 
 const PAGE_SIZE = 20;
 const REPLY_PREVIEW = 3;
+const MAX_REPLIES_PER_COMMENT = 10;
 
 export function useArticleComments(articleSlug: string | undefined) {
   const { user } = useAuth();
@@ -38,10 +39,15 @@ export function useArticleComments(articleSlug: string | undefined) {
     new Map<string, { handle: string; display_name: string | null; avatar_url: string | null }>(),
   );
 
-  // Batch-fetch profiles for a set of user IDs
+  // Batch-fetch profiles for a set of user IDs (bounded cache, #43)
   const fetchProfiles = useCallback(async (userIds: string[]) => {
     const missing = userIds.filter((id) => !profileCache.current.has(id));
     if (missing.length > 0) {
+      // Evict oldest entries if cache grows too large
+      if (profileCache.current.size > 200) {
+        const keys = [...profileCache.current.keys()];
+        for (let i = 0; i < 50; i++) profileCache.current.delete(keys[i]!);
+      }
       const { data: profiles } = await supabase
         .from("profiles_public")
         .select("id, handle, display_name, avatar_url")
@@ -91,16 +97,20 @@ export function useArticleComments(articleSlug: string | undefined) {
 
     const rows = topLevel ?? [];
 
-    // Fetch all replies for this article
-    const { data: allReplies } = await supabase
-      .from("yc_comments")
-      .select("*")
-      .eq("article_slug", articleSlug)
-      .not("parent_id", "is", null)
-      .eq("is_deleted", false)
-      .order("created_at", { ascending: true });
-
-    const replies = allReplies ?? [];
+    // Fetch replies for visible top-level comments (bounded per parent, #42)
+    const parentIds = rows.map((r) => r.id);
+    let replies: Array<Record<string, unknown>> = [];
+    if (parentIds.length > 0) {
+      const { data: allReplies } = await supabase
+        .from("yc_comments")
+        .select("*")
+        .eq("article_slug", articleSlug)
+        .in("parent_id", parentIds)
+        .eq("is_deleted", false)
+        .order("created_at", { ascending: true })
+        .limit(parentIds.length * MAX_REPLIES_PER_COMMENT);
+      replies = allReplies ?? [];
+    }
 
     // Get total count
     const { count } = await supabase
@@ -136,11 +146,12 @@ export function useArticleComments(articleSlug: string | undefined) {
     // Build reply map
     const replyMap = new Map<string, Comment[]>();
     for (const r of replies) {
-      const enriched = enrich(r, myVotes.has(r.id));
-      if (!r.parent_id) continue;
-      const list = replyMap.get(r.parent_id) ?? [];
+      const enriched = enrich(r, myVotes.has(r.id as string));
+      const parentId = r.parent_id as string | null;
+      if (!parentId) continue;
+      const list = replyMap.get(parentId) ?? [];
       list.push(enriched);
-      replyMap.set(r.parent_id, list);
+      replyMap.set(parentId, list);
     }
 
     // Assemble top-level comments with replies
