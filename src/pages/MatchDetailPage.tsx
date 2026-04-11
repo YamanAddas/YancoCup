@@ -606,9 +606,17 @@ export default function MatchDetailPage() {
     load();
   }, [id]);
 
-  // Auto-refresh for live matches
+  // Auto-refresh: live matches (30s) + imminent matches within 90min of kickoff (2min)
   useEffect(() => {
-    if (!match || (match.status !== "IN_PLAY" && match.status !== "PAUSED")) return;
+    if (!match) return;
+    const isLiveNow = match.status === "IN_PLAY" || match.status === "PAUSED";
+    const kickoffMs = new Date(match.utcDate).getTime();
+    const msUntilKickoff = kickoffMs - Date.now();
+    const isImminent = match.status === "TIMED" && msUntilKickoff > 0 && msUntilKickoff <= 90 * 60_000;
+
+    if (!isLiveNow && !isImminent) return;
+
+    const pollMs = isLiveNow ? 30_000 : 120_000; // 30s live, 2min pre-match
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`${WORKER_URL}/api/match/${id}/detail`);
@@ -617,9 +625,9 @@ export default function MatchDetailPage() {
           setMatch(data);
         }
       } catch { /* silent */ }
-    }, 30_000);
+    }, pollMs);
     return () => clearInterval(interval);
-  }, [match?.status, id]);
+  }, [match?.status, id, match?.utcDate]);
 
   if (loading) return <DetailSkeleton />;
 

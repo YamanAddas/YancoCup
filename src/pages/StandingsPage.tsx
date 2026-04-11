@@ -102,12 +102,17 @@ export default function StandingsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
+    let cancelled = false;
+
+    async function load(silent = false) {
+      if (!silent) setLoading(true);
       try {
         const [standingsRes, scoresRes] = await Promise.all([
           globalThis.fetch(`${WORKER_URL}/api/${comp.id}/standings`),
           globalThis.fetch(`${WORKER_URL}/api/${comp.id}/scores`),
         ]);
+
+        if (cancelled) return;
 
         if (standingsRes.ok) {
           const data = (await standingsRes.json()) as {
@@ -124,13 +129,18 @@ export default function StandingsPage() {
       } catch {
         // Worker unreachable
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
 
       // Fetch scorers (non-blocking)
-      fetchScorers(comp.id).then((s) => setScorers(s));
+      if (!cancelled) fetchScorers(comp.id).then((s) => { if (!cancelled) setScorers(s); });
     }
+
     load();
+
+    // Auto-refresh standings every 5 minutes
+    const interval = setInterval(() => load(true), 5 * 60_000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, [comp.id]);
 
   // Calculate form per team from match results

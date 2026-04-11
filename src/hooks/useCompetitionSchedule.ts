@@ -88,8 +88,13 @@ export function useCompetitionSchedule(matchday?: number) {
     }
 
     fetchSchedule();
+
+    // Auto-refresh league schedules every 10 minutes (picks up rescheduled matches + score updates)
+    const interval = setInterval(() => fetchSchedule(), 10 * 60_000);
+
     return () => {
       cancelled = true;
+      clearInterval(interval);
     };
   }, [comp.id, comp.staticSchedule]);
 

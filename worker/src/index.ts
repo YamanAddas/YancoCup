@@ -1419,11 +1419,12 @@ async function handleCron(env: Env): Promise<void> {
       env.FOOTBALL_DATA_API_KEY,
     );
 
+    const byComp = new Map<string, MatchScore[]>();
+
     if (res.ok) {
       const data = (await res.json()) as { matches: FDMatch[] };
 
       // Group by competition code
-      const byComp = new Map<string, MatchScore[]>();
       const allLive: MatchScore[] = [];
 
       for (const m of data.matches) {
@@ -1521,6 +1522,75 @@ async function handleCron(env: Env): Promise<void> {
           await kvPut(env.SCORES_KV,kvScores(code), JSON.stringify(merged), {
             expirationTtl: 86400,
           });
+        }
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Every 10th tick (~10 min): pre-enrich imminent matches (lineups, events)
+    // Matches within 2 hours get their API-Football detail pre-cached
+    // so users see lineups immediately when opening match detail page.
+    // Budget: max 3 enrichments per tick to stay within API-Football 100 req/day.
+    // -----------------------------------------------------------------------
+    if (tick % 10 === 0 && env.API_FOOTBALL_KEY) {
+      const now = Date.now();
+      const twoHoursMs = 2 * 60 * 60 * 1000;
+      let enrichCount = 0;
+      const MAX_ENRICH_PER_TICK = 3;
+
+      for (const [, scores] of byComp) {
+        if (enrichCount >= MAX_ENRICH_PER_TICK) break;
+        for (const score of scores) {
+          if (enrichCount >= MAX_ENRICH_PER_TICK) break;
+          const kickoff = new Date(score.utcDate).getTime();
+          const diff = kickoff - now;
+
+          // Only pre-enrich matches starting within 2 hours (or currently live)
+          const isImminent = diff > 0 && diff <= twoHoursMs;
+          const isLive = score.status === "IN_PLAY" || score.status === "PAUSED";
+          if (!isImminent && !isLive) continue;
+
+          // Skip if already enriched in KV
+          const enrichedKey = `matchenriched:${score.apiId}`;
+          const existing = await env.SCORES_KV.get(enrichedKey);
+          if (existing) continue;
+
+          // Need team TLAs and competition code to find API-Football fixture
+          if (!score.homeTeam || !score.awayTeam) continue;
+          const matchDate = score.utcDate.slice(0, 10);
+
+          try {
+            const afFixture = await findApiFootballFixture(env, score.competitionCode, matchDate, score.homeTeam, score.awayTeam);
+            if (afFixture) {
+              const fixtureId = ((afFixture.fixture as Record<string, unknown>)?.id as number);
+              if (fixtureId) {
+                const detail = await fetchApiFootballDetail(env, fixtureId);
+                if (detail) {
+                  // Fetch basic data from football-data.org to merge
+                  const basicKey = `matchdetail:${score.apiId}`;
+                  let basicData: Record<string, unknown> = {};
+                  const basicCached = await env.SCORES_KV.get(basicKey);
+                  if (basicCached) {
+                    basicData = safeParse(basicCached) ?? {};
+                  } else {
+                    const fdRes = await fetchFromFootballData(`/matches/${score.apiId}`, env.FOOTBALL_DATA_API_KEY);
+                    if (fdRes.ok) {
+                      basicData = (await fdRes.json()) as Record<string, unknown>;
+                      await kvPut(env.SCORES_KV, basicKey, JSON.stringify(basicData), { expirationTtl: 3600 });
+                    }
+                  }
+
+                  const enriched = { ...basicData, events: detail.events ?? [], lineups: detail.lineups ?? [], statistics: detail.statistics ?? [] };
+                  const ttl = isLive ? 120 : 3600;
+                  await kvPut(env.SCORES_KV, enrichedKey, JSON.stringify(enriched), { expirationTtl: ttl });
+                  console.log(`Cron: pre-enriched match ${score.apiId} (${score.homeTeam} vs ${score.awayTeam})`);
+                  enrichCount++;
+                }
+              }
+            }
+          } catch (err) {
+            console.error(`Cron: enrich failed for ${score.apiId}:`, err);
+          }
         }
       }
     }
