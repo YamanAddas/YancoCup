@@ -2,10 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import scheduleData from "../data/schedule.json";
 import type { Match } from "../types";
-
-const WORKER_URL =
-  import.meta.env.VITE_WORKER_URL ??
-  "https://yancocup-api.catbyte1985.workers.dev";
+import { WORKER_URL } from "../lib/api";
 
 /** WC static schedule — already typed and loaded */
 const wcMatches = scheduleData as Match[];

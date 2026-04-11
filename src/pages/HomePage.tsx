@@ -16,6 +16,7 @@ import { COMPETITION_LIST } from "../lib/competitions";
 import { getRank, getRankStars } from "../lib/ranks";
 import ActivityFeed from "../components/activity/ActivityFeed";
 import type { Match } from "../types";
+import { WORKER_URL } from "../lib/api";
 import {
   Trophy,
   ArrowRight,
@@ -26,10 +27,6 @@ import {
   Target,
   Star,
 } from "lucide-react";
-
-const WORKER_URL =
-  import.meta.env.VITE_WORKER_URL ??
-  "https://yancocup-api.catbyte1985.workers.dev";
 
 function PersonalizedGreeting() {
   const { user, profile } = useAuth();

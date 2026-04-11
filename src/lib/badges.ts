@@ -97,9 +97,7 @@ export async function checkSkillBadges(
   return awarded;
 }
 
-const WORKER_URL =
-  import.meta.env.VITE_WORKER_URL ??
-  "https://yancocup-api.catbyte1985.workers.dev";
+import { WORKER_URL } from "./api";
 
 /** Fetch match list for a competition from Worker (cached in KV) */
 async function fetchCompMatches(

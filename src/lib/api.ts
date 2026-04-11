@@ -5,7 +5,7 @@
  * Match IDs are football-data.org API IDs everywhere — no local ID mapping needed.
  */
 
-const WORKER_URL =
+export const WORKER_URL =
   import.meta.env.VITE_WORKER_URL ?? "https://yancocup-api.catbyte1985.workers.dev";
 
 // ---------------------------------------------------------------------------

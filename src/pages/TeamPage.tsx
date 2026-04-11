@@ -5,11 +5,7 @@ import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import { formatTimeWithTZ, getLocale } from "../lib/formatDate";
 import TeamCrest from "../components/match/TeamCrest";
-import { fetchTeamNews, type NewsArticle } from "../lib/api";
-
-const WORKER_URL =
-  import.meta.env.VITE_WORKER_URL ??
-  "https://yancocup-api.catbyte1985.workers.dev";
+import { fetchTeamNews, WORKER_URL, type NewsArticle } from "../lib/api";
 
 // ---------------------------------------------------------------------------
 // Types — football-data.org /v4/competitions/{code}/teams response

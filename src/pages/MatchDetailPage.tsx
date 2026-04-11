@@ -6,10 +6,7 @@ import { useI18n } from "../lib/i18n";
 import { formatTimeWithTZ, getLocale } from "../lib/formatDate";
 import { useMyPredictions } from "../hooks/usePredictions";
 import TeamCrest from "../components/match/TeamCrest";
-
-const WORKER_URL =
-  import.meta.env.VITE_WORKER_URL ??
-  "https://yancocup-api.catbyte1985.workers.dev";
+import { WORKER_URL } from "../lib/api";
 
 // ---------------------------------------------------------------------------
 // Types — match detail from football-data.org /v4/matches/{id}

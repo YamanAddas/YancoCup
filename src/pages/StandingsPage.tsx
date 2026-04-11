@@ -7,13 +7,10 @@ import type { Scorer } from "../lib/api";
 import TeamCrest from "../components/match/TeamCrest";
 import type { StandingsZones } from "../lib/competitions";
 import { Target, ArrowUp, ArrowDown, Info } from "lucide-react";
+import { WORKER_URL } from "../lib/api";
 
 type SortKey = "position" | "playedGames" | "won" | "draw" | "lost" | "goalsFor" | "goalsAgainst" | "goalDifference" | "points";
 type SortDir = "asc" | "desc";
-
-const WORKER_URL =
-  import.meta.env.VITE_WORKER_URL ??
-  "https://yancocup-api.catbyte1985.workers.dev";
 
 interface StandingRow {
   position: number;
