@@ -1715,6 +1715,9 @@ async function handleCron(env: Env): Promise<void> {
     // Lineups typically drop ~24h before kickoff. Pre-cache via API-Football
     // so users see lineups immediately when opening match detail page.
     // Budget: max 3 enrichments per tick to stay within API-Football 100 req/day.
+    //
+    // Read from KV (not byComp) so we include the full upcoming week from the
+    // 5th-tick schedule fetch — otherwise tomorrow's matches within 24h are missed.
     // -----------------------------------------------------------------------
     if (tick % 10 === 0 && env.API_FOOTBALL_KEY) {
       const now = Date.now();
@@ -1722,9 +1725,12 @@ async function handleCron(env: Env): Promise<void> {
       let enrichCount = 0;
       const MAX_ENRICH_PER_TICK = 3;
 
-      for (const [, scores] of byComp) {
+      for (const code of Object.keys(COMPETITIONS)) {
         if (enrichCount >= MAX_ENRICH_PER_TICK) break;
-        for (const score of scores) {
+        const raw = await env.SCORES_KV.get(kvScores(code));
+        if (!raw) continue;
+        const allScores = safeParse<MatchScore[]>(raw) ?? [];
+        for (const score of allScores) {
           if (enrichCount >= MAX_ENRICH_PER_TICK) break;
           const kickoff = new Date(score.utcDate).getTime();
           const diff = kickoff - now;
