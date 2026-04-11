@@ -197,7 +197,7 @@ function TournamentMatches() {
   const venues = useVenues();
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
-  const { scoreMap, error: scoreError } = useScores();
+  const { scoreMap, error: scoreError } = useScores(comp.id);
   const predictedIds = usePredictedMatchIds(comp.id);
 
   const filters = useMemo(() => {
@@ -401,7 +401,7 @@ function TournamentMatches() {
 function LeagueMatches() {
   const comp = useCompetition();
   const { t, lang } = useI18n();
-  const { scoreMap, error: scoreError } = useScores();
+  const { scoreMap, error: scoreError } = useScores(comp.id);
   const [selectedMatchday, setSelectedMatchday] = useState<number | undefined>(undefined);
   const { matches, matchdays, loading } = useCompetitionSchedule(selectedMatchday);
   const teamMap = useTeamMap();

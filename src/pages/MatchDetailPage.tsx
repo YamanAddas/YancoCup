@@ -606,17 +606,20 @@ export default function MatchDetailPage() {
     load();
   }, [id]);
 
-  // Auto-refresh: live matches (30s) + upcoming matches within 24h of kickoff (5min)
+  // Auto-refresh: live (30s), upcoming within 24h (5min), recently finished within 1h (2min)
   useEffect(() => {
     if (!match) return;
     const isLiveNow = match.status === "IN_PLAY" || match.status === "PAUSED";
     const kickoffMs = new Date(match.utcDate).getTime();
     const msUntilKickoff = kickoffMs - Date.now();
     const isUpcoming = match.status === "TIMED" && msUntilKickoff > 0 && msUntilKickoff <= 24 * 60 * 60_000;
+    // Recently finished: refresh to pick up updated lineups/events/stats
+    const msSinceKickoff = Date.now() - kickoffMs;
+    const isRecentlyFinished = match.status === "FINISHED" && msSinceKickoff < 60 * 60_000;
 
-    if (!isLiveNow && !isUpcoming) return;
+    if (!isLiveNow && !isUpcoming && !isRecentlyFinished) return;
 
-    const pollMs = isLiveNow ? 30_000 : 5 * 60_000; // 30s live, 5min pre-match
+    const pollMs = isLiveNow ? 30_000 : isRecentlyFinished ? 2 * 60_000 : 5 * 60_000;
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`${WORKER_URL}/api/match/${id}/detail`);

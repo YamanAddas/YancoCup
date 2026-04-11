@@ -30,7 +30,9 @@ export function formatTimeWithTZ(date: Date, lang?: string): string {
 export function formatMatchDate(date: string, lang?: string): string {
   const locale = getLocale(lang);
   const dt = new Date(`${date}T00:00:00Z`);
-  return dt.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" });
+  // timeZone: UTC ensures weekday matches the schedule date string,
+  // not the user's local timezone (which can shift the day ±1).
+  return dt.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 }
 
 /** Format a date pill (day/weekday/month) */
@@ -38,8 +40,8 @@ export function formatDatePill(date: string, lang?: string): { day: string; week
   const locale = getLocale(lang);
   const dt = new Date(`${date}T00:00:00Z`);
   return {
-    day: dt.toLocaleDateString(locale, { day: "numeric" }),
-    weekday: dt.toLocaleDateString(locale, { weekday: "short" }),
-    month: dt.toLocaleDateString(locale, { month: "short" }),
+    day: dt.toLocaleDateString(locale, { day: "numeric", timeZone: "UTC" }),
+    weekday: dt.toLocaleDateString(locale, { weekday: "short", timeZone: "UTC" }),
+    month: dt.toLocaleDateString(locale, { month: "short", timeZone: "UTC" }),
   };
 }

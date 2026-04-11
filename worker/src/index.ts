@@ -1632,6 +1632,37 @@ async function handleCron(env: Env): Promise<void> {
     }
 
     // -----------------------------------------------------------------------
+    // Expire stale IN_PLAY / PAUSED entries across ALL competitions.
+    // The /matches endpoint only returns today's matches, so a match that
+    // was IN_PLAY yesterday but finished after midnight UTC keeps its stale
+    // status in KV. No football match lasts >4 hours, so any IN_PLAY entry
+    // whose kickoff was >4h ago is certainly FINISHED.
+    // -----------------------------------------------------------------------
+    const STALE_LIVE_MS = 4 * 60 * 60 * 1000; // 4 hours
+    const nowMs = Date.now();
+    for (const code of Object.keys(COMPETITIONS)) {
+      const raw = await env.SCORES_KV.get(kvScores(code));
+      if (!raw) continue;
+      const arr = safeParse<MatchScore[]>(raw) ?? [];
+      let changed = false;
+      for (const m of arr) {
+        if (m.status === "IN_PLAY" || m.status === "PAUSED") {
+          const kickoff = new Date(m.utcDate).getTime();
+          if (nowMs - kickoff > STALE_LIVE_MS) {
+            m.status = "FINISHED";
+            changed = true;
+            console.log(`Cron: expired stale live match ${m.apiId} (${m.homeTeam} vs ${m.awayTeam}) → FINISHED`);
+          }
+        }
+      }
+      if (changed) {
+        await kvPut(env.SCORES_KV, kvScores(code), JSON.stringify(arr), {
+          expirationTtl: 86400,
+        });
+      }
+    }
+
+    // -----------------------------------------------------------------------
     // Every 5th tick (~5 min): fetch upcoming week for scheduling
     // -----------------------------------------------------------------------
     if (tick % 5 === 0) {
@@ -2560,6 +2591,9 @@ app.get("/api/match/:id/detail", async (c) => {
   if (enrichedCached) return c.json(safeParse(enrichedCached) ?? {});
 
   // Fetch basic data from football-data.org
+  // Short TTL: live=2min, finished=10min, upcoming=5min.
+  // Finished matches use a short TTL so updated lineups/goals are picked up
+  // and enrichment can be retried if API-Football was temporarily down.
   const basicKey = `matchdetail:${id}`;
   let basicData: Record<string, unknown>;
   const basicCached = await c.env.SCORES_KV.get(basicKey);
@@ -2576,7 +2610,9 @@ app.get("/api/match/:id/detail", async (c) => {
     }
     basicData = (await res.json()) as Record<string, unknown>;
     const status = basicData.status as string;
-    const ttl = status === "FINISHED" ? 3600 : status === "IN_PLAY" || status === "PAUSED" ? 120 : 300;
+    const ttl = status === "IN_PLAY" || status === "PAUSED" ? 120
+      : status === "FINISHED" ? 600
+      : 300;
     await kvPut(c.env.SCORES_KV, basicKey, JSON.stringify(basicData), { expirationTtl: ttl });
   }
 
@@ -2595,6 +2631,9 @@ app.get("/api/match/:id/detail", async (c) => {
         if (fixtureId) {
           const detail = await fetchApiFootballDetail(c.env, fixtureId);
           if (detail) {
+            const hasContent = (detail.events as unknown[])?.length > 0
+              || (detail.lineups as unknown[])?.length > 0
+              || (detail.statistics as unknown[])?.length > 0;
             const enriched = {
               ...basicData,
               events: detail.events ?? [],
@@ -2602,7 +2641,11 @@ app.get("/api/match/:id/detail", async (c) => {
               statistics: detail.statistics ?? [],
             };
             const status = basicData.status as string;
-            const ttl = status === "FINISHED" ? 604800 : status === "IN_PLAY" || status === "PAUSED" ? 120 : 3600;
+            // Only cache for 7 days if enrichment actually returned data
+            const ttl = !hasContent ? 300
+              : status === "FINISHED" ? 604800
+              : status === "IN_PLAY" || status === "PAUSED" ? 120
+              : 3600;
             await kvPut(c.env.SCORES_KV, enrichedKey, JSON.stringify(enriched), { expirationTtl: ttl });
             return c.json(enriched);
           }

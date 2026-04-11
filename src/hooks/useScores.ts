@@ -34,7 +34,7 @@ function hasLiveMatch(scores: LiveMatchScore[]): boolean {
  * - Returns a Map<apiId, LocalLiveScore> for easy lookup
  * - Exposes `error` state so UI can distinguish "no matches" from "API down"
  */
-export function useScores() {
+export function useScores(comp?: string) {
   const [scoreMap, setScoreMap] = useState<Map<number, LocalLiveScore>>(
     new Map(),
   );
@@ -44,7 +44,7 @@ export function useScores() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const poll = useCallback(async () => {
-    const { scores: raw, error: fetchError } = await fetchScores();
+    const { scores: raw, error: fetchError } = await fetchScores(comp);
 
     if (fetchError) {
       setError(fetchError);
@@ -84,7 +84,7 @@ export function useScores() {
     setScoreMap(map);
     setHasLive(hasLiveMatch(raw));
     setLoading(false);
-  }, []);
+  }, [comp]);
 
   useEffect(() => {
     poll();

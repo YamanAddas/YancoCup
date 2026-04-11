@@ -253,7 +253,7 @@ export default function BracketPage() {
   const { t, tTeam } = useI18n();
   const { matches } = useCompetitionSchedule();
   const teamMap = useTeamMap();
-  const { scoreMap } = useScores();
+  const { scoreMap } = useScores(comp.id);
   const { predictions } = useMyPredictions(comp.id);
 
   const predMap = useMemo(

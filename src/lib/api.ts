@@ -76,8 +76,8 @@ async function apiFetch<T>(path: string): Promise<ApiResult<T>> {
   }
 }
 
-/** Fetch all match scores. Optionally filter by status or date. */
-export async function fetchScores(filters?: {
+/** Fetch match scores for a competition. Defaults to WC. */
+export async function fetchScores(comp?: string, filters?: {
   status?: string;
   date?: string;
 }): Promise<{ scores: LiveMatchScore[]; error: ApiError | null }> {
@@ -85,7 +85,9 @@ export async function fetchScores(filters?: {
   if (filters?.status) params.set("status", filters.status);
   if (filters?.date) params.set("date", filters.date);
   const qs = params.toString();
-  const path = `/api/scores${qs ? `?${qs}` : ""}`;
+  // Use competition-specific endpoint so league pages get their own scores
+  const base = comp && comp !== "WC" ? `/api/${comp}/scores` : "/api/scores";
+  const path = `${base}${qs ? `?${qs}` : ""}`;
   const { data, error } = await apiFetch<{ matches: LiveMatchScore[] }>(path);
   return { scores: data?.matches ?? [], error };
 }

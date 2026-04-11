@@ -63,7 +63,7 @@ export default function OverviewTab() {
   const { matches, loading } = useCompetitionSchedule();
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
-  const { scoreMap } = useScores();
+  const { scoreMap } = useScores(comp.id);
   const { entries: leaderboard } = useLeaderboard(comp.id);
   const { predictions } = useAutoScore(comp.id);
   const [scorers, setScorers] = useState<Scorer[]>([]);
