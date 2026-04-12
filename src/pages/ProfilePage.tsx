@@ -5,6 +5,7 @@ import { getRank, getRankStars } from "../lib/ranks";
 import { fetchBadges, fetchUserBadges, checkLoyaltyBadges, type Badge, type UserBadge } from "../lib/badges";
 import { shareProfileCard } from "../lib/shareCard";
 import RivalsSection from "../components/predictions/RivalsSection";
+import StateError from "../components/shared/StateError";
 import { requestNotificationPermission, notificationsEnabled } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
 import { COMPETITIONS } from "../lib/competitions";
@@ -374,11 +375,13 @@ export default function ProfilePage() {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [compStats, setCompStats] = useState<CompStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       if (!user) { setLoading(false); return; }
 
+      try {
       const [allBadges, predictionData] = await Promise.all([
         fetchBadges(),
         supabase
@@ -457,8 +460,11 @@ export default function ProfilePage() {
       }
       csList.sort((a, b) => b.points - a.points);
       setCompStats(csList);
-
-      setLoading(false);
+      } catch {
+        setError("Failed to load profile data");
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, [user]);
@@ -484,6 +490,14 @@ export default function ProfilePage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 text-center">
         <Shield size={48} className="text-yc-text-tertiary mx-auto mb-4" />
         <p className="text-yc-text-secondary text-sm">{t("predictions.signInTitle")}</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+        <StateError onRetry={() => window.location.reload()} />
       </div>
     );
   }

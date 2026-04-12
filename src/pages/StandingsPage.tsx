@@ -8,6 +8,7 @@ import TeamCrest from "../components/match/TeamCrest";
 import type { StandingsZones } from "../lib/competitions";
 import { Target, ArrowUp, ArrowDown, Info } from "lucide-react";
 import { WORKER_URL } from "../lib/api";
+import StateError from "../components/shared/StateError";
 
 type SortKey = "position" | "playedGames" | "won" | "draw" | "lost" | "goalsFor" | "goalsAgainst" | "goalDifference" | "points";
 type SortDir = "asc" | "desc";
@@ -100,12 +101,14 @@ export default function StandingsPage() {
   const [matchScores, setMatchScores] = useState<MatchScore[]>([]);
   const [scorers, setScorers] = useState<Scorer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function loadStandings(silent = false) {
     let cancelled = false;
 
-    async function load(silent = false) {
+    async function doLoad() {
       if (!silent) setLoading(true);
+      setError(null);
       try {
         const [standingsRes, scoresRes] = await Promise.all([
           globalThis.fetch(`${WORKER_URL}/api/${comp.id}/standings`),
@@ -120,6 +123,8 @@ export default function StandingsPage() {
           };
           const first = data.standings?.[0];
           if (first) setStandings(first.table ?? []);
+        } else if (!silent) {
+          setError(`Failed to load standings (${standingsRes.status})`);
         }
 
         if (scoresRes.ok) {
@@ -127,7 +132,7 @@ export default function StandingsPage() {
           setMatchScores(data.matches ?? []);
         }
       } catch {
-        // Worker unreachable
+        if (!cancelled && !silent) setError("Could not reach server");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -136,11 +141,16 @@ export default function StandingsPage() {
       if (!cancelled) fetchScorers(comp.id).then((s) => { if (!cancelled) setScorers(s); });
     }
 
-    load();
+    doLoad();
+    return () => { cancelled = true; };
+  }
+
+  useEffect(() => {
+    const cancel = loadStandings();
 
     // Auto-refresh standings every 5 minutes
-    const interval = setInterval(() => load(true), 5 * 60_000);
-    return () => { cancelled = true; clearInterval(interval); };
+    const interval = setInterval(() => loadStandings(true), 5 * 60_000);
+    return () => { cancel(); clearInterval(interval); };
   }, [comp.id]);
 
   // Calculate form per team from match results
@@ -251,6 +261,10 @@ export default function StandingsPage() {
               <div className="w-8 h-4 bg-yc-bg-elevated rounded animate-pulse" />
             </div>
           ))}
+        </div>
+      ) : error ? (
+        <div className="yc-card rounded-xl">
+          <StateError onRetry={() => loadStandings()} />
         </div>
       ) : standings.length === 0 ? (
         <div className="yc-card p-12 rounded-xl text-center">

@@ -484,7 +484,7 @@ function MyPredictionsToday() {
 }
 
 function LeaderboardSnippetInner() {
-  const { entries, loading } = useLeaderboard();
+  const { entries, loading, error } = useLeaderboard();
   const { t } = useI18n();
 
   if (loading) {
@@ -502,7 +502,7 @@ function LeaderboardSnippetInner() {
     );
   }
 
-  if (entries.length === 0) {
+  if (error || entries.length === 0) {
     return (
       <div className="yc-card rounded-xl p-6 text-center">
         <p className="text-yc-text-tertiary text-sm">{t("home.noPlayers")}</p>

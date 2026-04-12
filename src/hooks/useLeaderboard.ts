@@ -69,19 +69,28 @@ export function useLeaderboard(
 ) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Serialize matchday IDs for dependency tracking
   const matchdayKey = matchdayMatchIds?.join(",") ?? "";
 
   useEffect(() => {
     async function fetch() {
+      setError(null);
       // Fetch all scored predictions for this competition
       const { data: allPredictions, error: predErr } = await supabase
         .from("yc_predictions")
         .select("user_id, points, scored_at, match_id")
         .eq("competition_id", competitionId);
 
-      if (predErr || !allPredictions || allPredictions.length === 0) {
+      if (predErr) {
+        setError(predErr.message);
+        setEntries([]);
+        setLoading(false);
+        return;
+      }
+
+      if (!allPredictions || allPredictions.length === 0) {
         setEntries([]);
         setLoading(false);
         return;
@@ -142,5 +151,5 @@ export function useLeaderboard(
     fetch();
   }, [competitionId, period, matchdayKey]);
 
-  return { entries, loading };
+  return { entries, loading, error };
 }

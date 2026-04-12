@@ -469,5 +469,9 @@
   "comments.reason_spam": "محتوى مزعج",
   "comments.reason_abuse": "إساءة",
   "comments.reason_off-topic": "خارج الموضوع",
-  "comments.reason_harassment": "تحرش"
+  "comments.reason_harassment": "تحرش",
+  "state.errorMessage": "حدث خطأ ما",
+  "state.errorHint": "تحقق من اتصالك وحاول مرة أخرى.",
+  "state.retry": "حاول مرة أخرى",
+  "state.loadingFailed": "تعذر تحميل البيانات"
 }

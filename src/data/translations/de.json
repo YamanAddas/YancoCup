@@ -447,5 +447,9 @@
   "comments.reason_spam": "Spam",
   "comments.reason_abuse": "Missbrauch",
   "comments.reason_off-topic": "Off-Topic",
-  "comments.reason_harassment": "Belästigung"
+  "comments.reason_harassment": "Belästigung",
+  "state.errorMessage": "Etwas ist schiefgelaufen",
+  "state.errorHint": "Überprüfe deine Verbindung und versuche es erneut.",
+  "state.retry": "Erneut versuchen",
+  "state.loadingFailed": "Daten konnten nicht geladen werden"
 }

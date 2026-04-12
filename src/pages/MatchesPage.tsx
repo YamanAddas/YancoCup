@@ -11,6 +11,7 @@ import { usePredictedMatchIds } from "../hooks/usePredictions";
 import MatchCard from "../components/match/MatchCard";
 import type { Match } from "../types";
 import { ChevronLeft, ChevronRight, ChevronDown, Filter, X, Check, Circle } from "lucide-react";
+import StateError from "../components/shared/StateError";
 import { formatDatePill, getLocale } from "../lib/formatDate";
 
 // ---------------------------------------------------------------------------
@@ -550,7 +551,7 @@ function LeagueMatches() {
   const { t, lang } = useI18n();
   const { scoreMap, error: scoreError } = useScores(comp.id);
   const [selectedMatchday, setSelectedMatchday] = useState<number | undefined>(undefined);
-  const { matches, matchdays, loading } = useCompetitionSchedule(selectedMatchday);
+  const { matches, matchdays, loading, error: scheduleError } = useCompetitionSchedule(selectedMatchday);
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
   const predictedIds = usePredictedMatchIds(comp.id);
@@ -621,6 +622,8 @@ function LeagueMatches() {
         <div className="flex justify-center py-16">
           <div className="w-8 h-8 rounded-full border-2 border-yc-green border-t-transparent animate-spin" />
         </div>
+      ) : scheduleError ? (
+        <StateError onRetry={() => window.location.reload()} />
       ) : (
         <>
           {/* Matchday stepper + dropdown */}

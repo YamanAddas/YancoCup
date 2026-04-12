@@ -470,5 +470,9 @@
   "comments.reason_spam": "Spam",
   "comments.reason_abuse": "Abuse",
   "comments.reason_off-topic": "Off-topic",
-  "comments.reason_harassment": "Harassment"
+  "comments.reason_harassment": "Harassment",
+  "state.errorMessage": "Something went wrong",
+  "state.errorHint": "Check your connection and try again.",
+  "state.retry": "Try again",
+  "state.loadingFailed": "Couldn't load data"
 }

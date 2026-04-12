@@ -16,6 +16,7 @@ export function useCompetitionSchedule(matchday?: number) {
   const comp = useCompetition();
   const [apiMatches, setApiMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(!comp.staticSchedule);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (comp.staticSchedule) return; // WC uses static data
@@ -29,9 +30,11 @@ export function useCompetitionSchedule(matchday?: number) {
       controller.abort();
       controller = new AbortController();
       try {
+        setError(null);
         const url = `${WORKER_URL}/api/${comp.id}/matches`;
         const res = await fetch(url, { signal: controller.signal });
         if (!res.ok) {
+          setError(`Failed to load schedule (${res.status})`);
           setLoading(false);
           return;
         }
@@ -84,8 +87,10 @@ export function useCompetitionSchedule(matchday?: number) {
         });
 
         setApiMatches(converted);
-      } catch {
-        // Worker unreachable — show empty
+      } catch (err) {
+        // Worker unreachable — only set error for non-abort failures
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (!cancelled) setError("Could not reach server");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -118,7 +123,7 @@ export function useCompetitionSchedule(matchday?: number) {
     return [...mds].sort((a, b) => a - b);
   }, [allMatches]);
 
-  return { matches: filtered, matchdays, loading };
+  return { matches: filtered, matchdays, loading, error };
 }
 
 /** Map football-data.org stage names to our round type */

@@ -18,6 +18,7 @@ export interface ActivityItem {
 export function useActivityFeed(limit = 10, competitionId?: string) {
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetch() {
@@ -31,9 +32,15 @@ export function useActivityFeed(limit = 10, competitionId?: string) {
         query = query.eq("competition_id", competitionId);
       }
 
-      const { data, error } = await query;
+      const { data, error: fetchErr } = await query;
 
-      if (error || !data || data.length === 0) {
+      if (fetchErr) {
+        setError(fetchErr.message);
+        setLoading(false);
+        return;
+      }
+
+      if (!data || data.length === 0) {
         setLoading(false);
         return;
       }
@@ -94,5 +101,5 @@ export function useActivityFeed(limit = 10, competitionId?: string) {
     };
   }, [limit, competitionId]);
 
-  return { items, loading };
+  return { items, loading, error };
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Newspaper, Star, Languages, Clock, ExternalLink, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
+import StateError from "../components/shared/StateError";
 import { useI18n } from "../lib/i18n";
 import { fetchNews, fetchCompetitionNews, type NewsArticle } from "../lib/api";
 import { COMPETITIONS } from "../lib/competitions";
@@ -104,12 +105,14 @@ export default function NewsPage() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [featuredOnly, setFeaturedOnly] = useState(false);
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   const loadArticles = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const filters = {
         featured: featuredOnly || undefined,
@@ -140,6 +143,7 @@ export default function NewsPage() {
       }
     } catch {
       setArticles([]);
+      setError("Failed to load news");
     } finally {
       setLoading(false);
     }
@@ -209,6 +213,8 @@ export default function NewsPage() {
             </div>
           ))}
         </div>
+      ) : error ? (
+        <StateError onRetry={loadArticles} />
       ) : articles.length === 0 ? (
         <div className="text-center py-16">
           <Newspaper size={40} className="text-yc-text-tertiary mx-auto mb-3" />

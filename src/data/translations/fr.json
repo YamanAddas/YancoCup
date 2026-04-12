@@ -447,5 +447,9 @@
   "comments.reason_spam": "Spam",
   "comments.reason_abuse": "Abus",
   "comments.reason_off-topic": "Hors-sujet",
-  "comments.reason_harassment": "Harcèlement"
+  "comments.reason_harassment": "Harcèlement",
+  "state.errorMessage": "Une erreur est survenue",
+  "state.errorHint": "Vérifiez votre connexion et réessayez.",
+  "state.retry": "Réessayer",
+  "state.loadingFailed": "Impossible de charger les données"
 }

@@ -10,6 +10,7 @@ import { useCompetitionSchedule } from "../hooks/useCompetitionSchedule";
 import { useI18n } from "../lib/i18n";
 import { getRank, getRankStars } from "../lib/ranks";
 import { TrendingUp, Target, Award, Star, ArrowUp, ArrowDown, Users } from "lucide-react";
+import StateError from "../components/shared/StateError";
 
 function RankPill({ points }: { points: number }) {
   const { t } = useI18n();
@@ -62,7 +63,7 @@ export default function LeaderboardPage() {
       .map((m) => m.id);
   }, [allMatches, currentMatchday]);
 
-  const { entries: allEntries, loading } = useLeaderboard(comp.id, period, matchdayMatchIds);
+  const { entries: allEntries, loading, error } = useLeaderboard(comp.id, period, matchdayMatchIds);
   const { pools } = useMyPools();
   const compPools = pools.filter((p) => p.competition_id === comp.id);
   const { members: poolMembers } = usePoolMembers(selectedPoolId);
@@ -141,6 +142,10 @@ export default function LeaderboardPage() {
               <div className="w-10 h-4 bg-yc-bg-elevated rounded animate-pulse" />
             </div>
           ))}
+        </div>
+      ) : error ? (
+        <div className="yc-card rounded-xl">
+          <StateError onRetry={() => window.location.reload()} />
         </div>
       ) : entries.length === 0 ? (
         <div className="yc-card p-12 rounded-xl text-center">
