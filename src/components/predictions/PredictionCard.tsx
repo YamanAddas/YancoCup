@@ -4,15 +4,14 @@ import { Lock, Check, Loader2, Users as UsersIcon, Share2, Sparkles, Zap, Star }
 import { upsertPrediction, upsertQuickPrediction, canPredict } from "../../hooks/usePredictions";
 import { useConsensus } from "../../hooks/useConsensus";
 import { checkActivityBadges } from "../../lib/badges";
-import { buildShareText, sharePrediction } from "../../lib/share";
-import { sharePredictionCard, shareStoryCard } from "../../lib/shareCard";
 import { useI18n } from "../../lib/i18n";
 import { formatTimeWithTZ, getLocale } from "../../lib/formatDate";
 import TeamCrest from "../match/TeamCrest";
-import SocialShareButtons from "../pool/SocialShareButtons";
+import ShareCardModal from "./ShareCardModal";
 import PredictionHeatmap from "./PredictionHeatmap";
 import type { Match, Team, Venue } from "../../types";
 import type { Prediction } from "../../hooks/usePredictions";
+import type { ShareCardData } from "../../lib/shareCard";
 
 interface PredictionCardProps {
   match: Match;
@@ -64,7 +63,7 @@ export default function PredictionCard({
   }, [prediction]);
   const [saved, setSaved] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Clean up saved timer on unmount
@@ -141,48 +140,35 @@ export default function PredictionCard({
     if (err) { setError(err); } else { afterSave(); }
   };
 
-  const handleShare = async (storyFormat = false) => {
-    if (!match.homeTeam || !match.awayTeam || !prediction) return;
-    if (!prediction.quick_pick && prediction.home_score == null) return;
+  const buildShareCardData = (): ShareCardData | null => {
+    if (!match.homeTeam || !match.awayTeam || !prediction) return null;
+    if (!prediction.quick_pick && prediction.home_score == null) return null;
 
     const hCode = home?.fifaCode ?? match.homeTeam.toUpperCase();
     const aCode = away?.fifaCode ?? match.awayTeam.toUpperCase();
     const homeName = match.homeTeamName ?? home?.name ?? hCode;
     const awayName = match.awayTeamName ?? away?.name ?? aCode;
 
-    const cardData = {
+    return {
       homeTeam: homeName,
       awayTeam: awayName,
-      homeScore: prediction.home_score!,
-      awayScore: prediction.away_score!,
+      homeCode: hCode,
+      awayCode: aCode,
+      homeIso: home?.isoCode || undefined,
+      awayIso: away?.isoCode || undefined,
+      homeCrest: match.homeCrest,
+      awayCrest: match.awayCrest,
+      homeScore: prediction.home_score ?? 0,
+      awayScore: prediction.away_score ?? 0,
+      quickPick: prediction.quick_pick,
       actualHome: match.homeScore,
       actualAway: match.awayScore,
       points: prediction.points,
       competition: competitionId,
       matchday: match.matchday ? t("match.matchday", { num: match.matchday }) : undefined,
+      round: match.round,
+      isJoker: prediction.is_joker,
     };
-
-    // Use Story format (9:16) on mobile or when explicitly requested
-    const shareFn = storyFormat ? shareStoryCard : sharePredictionCard;
-    const cardResult = await shareFn(cardData);
-
-    if (cardResult === "shared" || cardResult === "downloaded") {
-      setShareStatus(cardResult === "shared" ? "Shared!" : "Saved!");
-      setTimeout(() => setShareStatus(null), 2000);
-      return;
-    }
-
-    const shareHome = home ?? { id: match.homeTeam, name: hCode, fifaCode: hCode, isoCode: "", confederation: "", group: "" };
-    const shareAway = away ?? { id: match.awayTeam, name: aCode, fifaCode: aCode, isoCode: "", confederation: "", group: "" };
-    const text = buildShareText(match, shareHome, shareAway, prediction.home_score!, prediction.away_score!);
-    const result = await sharePrediction(text);
-    if (result === "copied") {
-      setShareStatus(t("predictions.copied"));
-      setTimeout(() => setShareStatus(null), 2000);
-    } else if (result === "failed") {
-      setShareStatus(t("predictions.failed"));
-      setTimeout(() => setShareStatus(null), 2000);
-    }
   };
 
   const kickoff = new Date(`${match.date}T${match.time}:00Z`);
@@ -415,23 +401,14 @@ export default function PredictionCard({
         )}
 
         {hasPrediction && (
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => handleShare(false)}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-yc-text-tertiary hover:text-yc-text-primary transition-colors"
-              title={t("predictions.sharePrediction")}
-            >
-              <Share2 size={12} />
-              {shareStatus ?? t("predictions.share")}
-            </button>
-            <button
-              onClick={() => handleShare(true)}
-              className="px-1.5 py-1.5 rounded-lg text-[9px] font-bold text-yc-text-tertiary hover:text-yc-green transition-colors"
-              title="Share as Story (9:16)"
-            >
-              9:16
-            </button>
-          </div>
+          <button
+            onClick={() => setShareModalOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-yc-text-tertiary hover:text-yc-green hover:bg-yc-green/5 transition-all"
+            title={t("predictions.sharePrediction")}
+          >
+            <Share2 size={12} />
+            {t("predictions.share")}
+          </button>
         )}
 
         {locked && hasPrediction && (
@@ -472,20 +449,6 @@ export default function PredictionCard({
         <p className="mt-2 text-yc-danger text-xs">{error}</p>
       )}
 
-      {locked && hasPrediction && prediction.points !== null && (
-        <div className="mt-2 pt-2 border-t border-yc-border/30">
-          <SocialShareButtons
-            text={buildShareText(
-              match,
-              home ?? { id: match.homeTeam ?? "", name: match.homeTeamName ?? "", fifaCode: match.homeTeam?.toUpperCase() ?? "", isoCode: "", confederation: "", group: "" },
-              away ?? { id: match.awayTeam ?? "", name: match.awayTeamName ?? "", fifaCode: match.awayTeam?.toUpperCase() ?? "", isoCode: "", confederation: "", group: "" },
-              prediction.home_score ?? 0,
-              prediction.away_score ?? 0,
-            )}
-          />
-        </div>
-      )}
-
       {/* Score distribution heatmap — shown after match finishes */}
       {locked && hasPrediction && prediction.points !== null && !prediction.quick_pick && (
         <PredictionHeatmap
@@ -497,6 +460,18 @@ export default function PredictionCard({
           userAway={prediction.away_score}
         />
       )}
+
+      {/* Share card modal */}
+      {hasPrediction && (() => {
+        const cardData = buildShareCardData();
+        return cardData ? (
+          <ShareCardModal
+            open={shareModalOpen}
+            onClose={() => setShareModalOpen(false)}
+            data={cardData}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }
