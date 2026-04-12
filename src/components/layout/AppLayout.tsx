@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import * as Sentry from "@sentry/react";
 import NavBar from "./NavBar";
 import MobileNav from "./MobileNav";
+import Footer from "./Footer";
 import ErrorFallback from "./ErrorFallback";
 import SpotlightCursor from "./SpotlightCursor";
 import { WORKER_URL } from "../../lib/api";
@@ -59,6 +60,7 @@ export default function AppLayout() {
           <Outlet />
         </Sentry.ErrorBoundary>
       </main>
+      <Footer />
       <MobileNav />
     </div>
   );

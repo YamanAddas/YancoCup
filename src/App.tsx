@@ -41,6 +41,9 @@ const ProfilePage = lazyRetry(() => import("./pages/ProfilePage"));
 const NewsPage = lazyRetry(() => import("./pages/NewsPage"));
 const ArticlePage = lazyRetry(() => import("./pages/ArticlePage"));
 const NotFoundPage = lazyRetry(() => import("./pages/NotFoundPage"));
+const TermsPage = lazyRetry(() => import("./pages/TermsPage"));
+const PrivacyPage = lazyRetry(() => import("./pages/PrivacyPage"));
+const HelpPage = lazyRetry(() => import("./pages/HelpPage"));
 
 function PageLoader() {
   return (
@@ -112,6 +115,9 @@ export default function App() {
                 <Route path="watch" element={<WatchPage />} />
                 <Route path="sign-in" element={<SignInPage />} />
                 <Route path="admin" element={<AdminPage />} />
+                <Route path="terms" element={<TermsPage />} />
+                <Route path="privacy" element={<PrivacyPage />} />
+                <Route path="help" element={<HelpPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Routes>
