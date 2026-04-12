@@ -570,6 +570,89 @@ body {
   background: radial-gradient(circle, rgba(30, 60, 120, 0.2) 0%, transparent 70%);
 }
 
+/* ── Parallax tilt hover (lightweight, non-hex cards) ── */
+.yc-tilt {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-style: preserve-3d;
+  perspective: 800px;
+}
+.yc-tilt:hover {
+  transform: perspective(800px) rotateX(2deg) rotateY(-3deg) scale(1.02);
+}
+.yc-tilt:active {
+  transform: perspective(800px) scale(0.98);
+}
+
+/* ── Animated rotating border (featured cards only) ── */
+@property --yc-border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes yc-border-rotate {
+  to { --yc-border-angle: 360deg; }
+}
+
+.yc-animated-border {
+  position: relative;
+  isolation: isolate;
+}
+
+.yc-animated-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--yc-border-angle),
+    rgba(0, 255, 136, 0.3),
+    transparent 25%,
+    transparent 50%,
+    rgba(0, 255, 136, 0.15) 75%,
+    rgba(0, 255, 136, 0.3)
+  );
+  animation: yc-border-rotate 4s linear infinite;
+  z-index: -1;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  padding: 1px;
+}
+
+/* ── Spotlight cursor (desktop only) ── */
+.yc-spotlight {
+  --spot-x: 50vw;
+  --spot-y: 50vh;
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  background: radial-gradient(
+    600px circle at var(--spot-x) var(--spot-y),
+    rgba(0, 255, 136, 0.04),
+    transparent 70%
+  );
+}
+
+/* ── Scroll-triggered reveal ── */
+.yc-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.55s ease-out, transform 0.55s ease-out;
+}
+.yc-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* Stagger children via --i custom property */
+.yc-reveal-stagger {
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { MapPin, Clock, Check } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
 import TeamCrest from "./TeamCrest";
+import ScoreOdometer from "./ScoreOdometer";
 import { formatTimeWithTZ, formatMatchDate as fmtDate } from "../../lib/formatDate";
 import type { Match, Team, Venue } from "../../types";
 import type { LocalLiveScore } from "../../hooks/useScores";
@@ -260,7 +261,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
                         isLive ? "text-yc-green drop-shadow-[0_0_8px_rgba(0,255,136,0.4)]" : isFinished ? "text-yc-text-primary" : "text-yc-text-secondary"
                       }`}
                     >
-                      {scoreHome} - {scoreAway}
+                      <ScoreOdometer value={scoreHome!} /> - <ScoreOdometer value={scoreAway!} />
                     </span>
                     {isFinished && (
                       <span className="text-yc-text-tertiary text-[10px] font-medium">{t("match.ft")}</span>

@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/react";
 import NavBar from "./NavBar";
 import MobileNav from "./MobileNav";
 import ErrorFallback from "./ErrorFallback";
+import SpotlightCursor from "./SpotlightCursor";
 
 export default function AppLayout() {
   return (
@@ -12,6 +13,7 @@ export default function AppLayout() {
       <div className="yc-orb yc-orb-blue w-[600px] h-[600px] top-1/3 -left-60" />
       <div className="yc-orb yc-orb-accent w-[400px] h-[400px] bottom-0 right-1/4" />
 
+      <SpotlightCursor />
       <NavBar />
       <main className="relative z-10 pb-16 sm:pb-0">
         <Sentry.ErrorBoundary fallback={<ErrorFallback />}>

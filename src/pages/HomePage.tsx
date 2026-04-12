@@ -9,6 +9,7 @@ import { useVenueMap } from "../hooks/useVenues";
 import { useScores } from "../hooks/useScores";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { usePredictedMatchIds } from "../hooks/usePredictions";
+import { useScrollReveal } from "../hooks/useScrollReveal";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { getLocale } from "../lib/formatDate";
@@ -27,6 +28,16 @@ import {
   Target,
   Star,
 } from "lucide-react";
+
+/** Wraps a section in a scroll-triggered reveal */
+function RevealSection({ children, className }: { children: React.ReactNode; className?: string }) {
+  const { ref, visible } = useScrollReveal();
+  return (
+    <section ref={ref} className={`yc-reveal ${visible ? "visible" : ""} ${className ?? ""}`}>
+      {children}
+    </section>
+  );
+}
 
 function PersonalizedGreeting() {
   const { user, profile } = useAuth();
@@ -65,9 +76,10 @@ function PersonalizedGreeting() {
 
 function CompetitionCards() {
   const { t, tComp } = useI18n();
+  const { ref, visible } = useScrollReveal();
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <section ref={ref} className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center gap-2 mb-5">
         <Trophy size={18} className="text-yc-green" />
         <h3 className="font-heading text-xl font-bold">
@@ -76,11 +88,12 @@ function CompetitionCards() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {COMPETITION_LIST.map((comp) => (
+        {COMPETITION_LIST.map((comp, i) => (
           <NavLink
             key={comp.id}
             to={`/${comp.id}/overview`}
-            className="group yc-card p-4 rounded-xl transition-all duration-300 hover:border-[var(--yc-border-accent)] hover:shadow-[0_0_20px_rgba(0,255,136,0.06)]"
+            className={`group yc-card yc-tilt p-4 rounded-xl transition-all duration-300 hover:border-[var(--yc-border-accent)] hover:shadow-[0_0_20px_rgba(0,255,136,0.06)] yc-reveal yc-reveal-stagger ${visible ? "visible" : ""}`}
+            style={{ "--i": i } as React.CSSProperties}
           >
             <div className="flex items-center justify-between mb-3">
               <div
@@ -263,8 +276,10 @@ function TodaysMatches() {
   const getMatchComp = (matchId: number) =>
     matchCompMap.get(matchId) || displayMatches.comp || "WC";
 
+  const { ref: matchesRef, visible: matchesVisible } = useScrollReveal();
+
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <section ref={matchesRef} className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <Calendar size={18} className="text-yc-green" />
@@ -290,17 +305,22 @@ function TodaysMatches() {
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {displayMatches.matches.slice(0, 6).map((m) => (
-            <MatchCard
+          {displayMatches.matches.slice(0, 6).map((m, i) => (
+            <div
               key={m.id}
-              match={m}
-              teamMap={teamMap}
-              venueMap={venueMap}
-              liveScore={scoreMap.get(m.id)}
-              competitionId={getMatchComp(m.id)}
-              predicted={predictedIds.has(m.id)}
-              compact
-            />
+              className={`yc-reveal yc-reveal-stagger ${matchesVisible ? "visible" : ""}`}
+              style={{ "--i": i } as React.CSSProperties}
+            >
+              <MatchCard
+                match={m}
+                teamMap={teamMap}
+                venueMap={venueMap}
+                liveScore={scoreMap.get(m.id)}
+                competitionId={getMatchComp(m.id)}
+                predicted={predictedIds.has(m.id)}
+                compact
+              />
+            </div>
           ))}
         </div>
       )}
@@ -453,7 +473,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="yc-card p-4 rounded-xl w-full">
+          <div className="yc-card yc-animated-border p-4 rounded-xl w-full">
             <p className="text-yc-text-tertiary text-xs uppercase tracking-widest mb-3">
               {t("home.kickoffIn")}
             </p>
@@ -462,7 +482,7 @@ export default function HomePage() {
 
           <a
             href="#/WC/predictions"
-            className="inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(0,255,136,0.2)]"
+            className="yc-animated-border inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(0,255,136,0.2)]"
           >
             <Trophy size={18} />
             {t("home.cta")}
@@ -490,7 +510,7 @@ export default function HomePage() {
       </div>
 
       {/* Leaderboard + Activity side by side */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <RevealSection className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
@@ -520,7 +540,7 @@ export default function HomePage() {
             <ActivityFeed />
           </div>
         </div>
-      </section>
+      </RevealSection>
     </div>
   );
 }
