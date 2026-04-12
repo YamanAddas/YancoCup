@@ -51,9 +51,9 @@ function DatePill({
             : "bg-yc-bg-surface text-yc-text-secondary border border-yc-border hover:border-yc-border-hover hover:text-yc-text-primary"
       }`}
     >
-      <span className="text-[9px] uppercase tracking-wider font-medium opacity-60">{weekday}</span>
+      <span className="text-[9px] uppercase tracking-wide font-medium opacity-70">{weekday}</span>
       <span className="text-lg font-bold font-mono leading-none">{day}</span>
-      <span className="text-[9px] uppercase tracking-wider opacity-50">{month}</span>
+      <span className="text-[9px] uppercase tracking-wide opacity-60">{month}</span>
       {hasLive && (
         <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-yc-green animate-pulse" />
       )}

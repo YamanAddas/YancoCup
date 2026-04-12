@@ -339,7 +339,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
               <div className="mt-3 pt-3 border-t border-yc-border flex items-center justify-between text-yc-text-tertiary text-xs">
                 <span>{formatMatchTime(match.date, match.time, lang)}</span>
                 {venue && (
-                  <span className="flex items-center gap-1 truncate ms-2">
+                  <span className="flex items-center gap-1 truncate ms-2 min-w-0">
                     <MapPin size={10} className="shrink-0" />
                     {tVenue(venue.id).name}
                   </span>

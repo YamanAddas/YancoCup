@@ -182,7 +182,7 @@ function PoolActionCard({
             </span>
             <button
               onClick={() => handleCopy(createdPool.join_code)}
-              className="p-2 rounded-lg hover:bg-yc-bg-elevated transition-colors"
+              className="p-2.5 min-h-11 min-w-11 rounded-lg hover:bg-yc-bg-elevated transition-colors"
             >
               {copied ? <Check size={16} className="text-yc-green" /> : <Copy size={16} className="text-yc-text-tertiary" />}
             </button>
@@ -345,7 +345,7 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
         const timeLabel = ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.floor(ago / 60)}h` : `${Math.floor(ago / 1440)}d`;
         return (
           <div key={i} className="flex items-center gap-2 text-xs">
-            <span className="text-yc-text-primary font-medium truncate max-w-[80px]">
+            <span className="text-yc-text-primary font-medium truncate flex-1 min-w-0">
               {p.display_name ?? p.handle}
             </span>
             <span className="text-yc-text-tertiary">{t("pools.predicted")}</span>
@@ -441,7 +441,7 @@ function PoolCard({
           <div className="flex gap-2">
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 text-xs text-yc-text-secondary hover:text-yc-text-primary transition-colors"
+              className="flex items-center gap-1.5 py-2 px-3 text-xs text-yc-text-secondary hover:text-yc-text-primary transition-colors"
             >
               {copied ? <Check size={12} className="text-yc-green" /> : <Copy size={12} />}
               {copied ? t("predictions.copied") : t("pools.copyLink")}

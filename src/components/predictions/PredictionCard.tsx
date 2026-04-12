@@ -272,7 +272,7 @@ export default function PredictionCard({
                 key={pick}
                 onClick={() => handleQuickPick(pick)}
                 disabled={locked || saving}
-                className={`w-11 h-10 rounded-lg font-mono text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                className={`w-11 h-11 rounded-lg font-mono text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                   quickPick === pick
                     ? "bg-yc-green text-yc-bg-deep shadow-[0_0_12px_rgba(0,255,136,0.2)]"
                     : "bg-yc-bg-elevated border border-yc-border text-yc-text-secondary hover:border-yc-green-muted hover:text-yc-text-primary"
@@ -369,7 +369,7 @@ export default function PredictionCard({
                 <button
                   key={level}
                   onClick={() => setConfidence(confidence === level ? null : level)}
-                  className="p-0.5 transition-colors"
+                  className="p-2 min-h-11 min-w-11 flex items-center justify-center transition-colors"
                 >
                   <Star
                     size={12}

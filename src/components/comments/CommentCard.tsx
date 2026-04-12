@@ -159,7 +159,7 @@ export default function CommentCard({
             <div className="relative ml-auto">
               <button
                 onClick={() => { setShowMenu(!showMenu); setShowReport(false); }}
-                className="text-yc-text-tertiary hover:text-yc-text-secondary transition-colors p-0.5"
+                className="text-yc-text-tertiary hover:text-yc-text-secondary transition-colors p-2 min-h-11 min-w-11 flex items-center justify-center"
               >
                 <MoreHorizontal size={14} />
               </button>

@@ -246,7 +246,7 @@ export default function PredictionsPage() {
           {open.length > 1 && (
             <button
               onClick={() => setBatchMode(!batchMode)}
-              className={`p-1.5 rounded-lg border transition-all ${
+              className={`p-2.5 rounded-lg border transition-all ${
                 batchMode
                   ? "bg-yc-green/10 border-yc-green/30 text-yc-green"
                   : "border-yc-border text-yc-text-tertiary hover:text-yc-text-secondary hover:border-yc-border-hover"
@@ -289,7 +289,7 @@ export default function PredictionsPage() {
         <div className="relative flex items-center gap-1 mb-6">
           <button
             onClick={() => scrollRef.current?.scrollBy({ left: -200, behavior: "smooth" })}
-            className="shrink-0 p-1.5 rounded-lg text-yc-text-tertiary hover:text-yc-text-primary hover:bg-yc-bg-elevated transition-colors"
+            className="shrink-0 p-2.5 rounded-lg text-yc-text-tertiary hover:text-yc-text-primary hover:bg-yc-bg-elevated transition-colors"
           >
             <ChevronLeft size={18} />
           </button>
@@ -322,7 +322,7 @@ export default function PredictionsPage() {
 
           <button
             onClick={() => scrollRef.current?.scrollBy({ left: 200, behavior: "smooth" })}
-            className="shrink-0 p-1.5 rounded-lg text-yc-text-tertiary hover:text-yc-text-primary hover:bg-yc-bg-elevated transition-colors"
+            className="shrink-0 p-2.5 rounded-lg text-yc-text-tertiary hover:text-yc-text-primary hover:bg-yc-bg-elevated transition-colors"
           >
             <ChevronRight size={18} />
           </button>

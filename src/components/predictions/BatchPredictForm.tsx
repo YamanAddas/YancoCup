@@ -258,7 +258,7 @@ export default function BatchPredictForm({
               <button
                 disabled={isLocked}
                 onClick={() => toggleJoker(m.id)}
-                className={`shrink-0 w-7 h-7 rounded flex items-center justify-center transition-all ${
+                className={`shrink-0 w-10 h-10 rounded flex items-center justify-center transition-all ${
                   entry.isJoker
                     ? "bg-yc-warning/20 text-yc-warning border border-yc-warning/40"
                     : "text-yc-text-tertiary hover:text-yc-text-secondary"

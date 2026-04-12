@@ -50,7 +50,7 @@ export default function SocialShareButtons({ text, url }: SocialShareButtonsProp
   };
 
   const btnClass =
-    "p-2 rounded-lg bg-yc-bg-elevated hover:bg-yc-border transition-colors text-yc-text-secondary hover:text-yc-text-primary";
+    "p-2.5 rounded-lg bg-yc-bg-elevated hover:bg-yc-border transition-colors text-yc-text-secondary hover:text-yc-text-primary";
 
   return (
     <div className="flex items-center gap-1.5">

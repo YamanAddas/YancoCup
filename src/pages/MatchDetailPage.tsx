@@ -867,7 +867,7 @@ function PredictionsTab({
                   return (
                     <div
                       key={pred.user_id}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg min-w-0 ${
                         isMe
                           ? "bg-yc-green/5 border border-yc-green-muted/20"
                           : "bg-yc-bg-elevated/50"

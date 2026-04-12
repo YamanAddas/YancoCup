@@ -1127,7 +1127,7 @@ export default function TeamPage() {
                           <span className="text-xs sm:text-sm font-semibold text-yc-text-primary text-center line-clamp-1">
                             {isHome ? displayName : resolvedOpName}
                           </span>
-                          <span className="text-[9px] uppercase tracking-wider text-yc-text-tertiary">
+                          <span className="text-[10px] uppercase tracking-wide text-yc-text-tertiary">
                             {isHome ? "Home" : "Away"}
                           </span>
                         </div>
@@ -1161,7 +1161,7 @@ export default function TeamPage() {
                           <span className="text-xs sm:text-sm font-semibold text-yc-text-primary text-center line-clamp-1">
                             {isHome ? resolvedOpName : displayName}
                           </span>
-                          <span className="text-[9px] uppercase tracking-wider text-yc-text-tertiary">
+                          <span className="text-[10px] uppercase tracking-wide text-yc-text-tertiary">
                             {isHome ? "Away" : "Home"}
                           </span>
                         </div>
@@ -1276,7 +1276,7 @@ export default function TeamPage() {
                             <TeamCrest tla={f.opponentTla ?? "?"} crest={f.opponentCrest} size="xs" />
                           </div>
                         )}
-                        <span className="text-[7px] sm:text-[8px] font-mono text-yc-text-tertiary">
+                        <span className="text-[9px] sm:text-[10px] font-mono text-yc-text-tertiary">
                           {f.goalsFor}-{f.goalsAgainst}
                         </span>
                       </div>
