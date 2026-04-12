@@ -281,8 +281,8 @@ function TodaysMatches() {
 
       if (nearest.length > 0) {
         for (const m of nearest) compMap.set(m.apiId, m.competitionCode);
-        setUpcomingLeague(nearest.map(convertWorkerMatch));
       }
+      setUpcomingLeague(nearest.length > 0 ? nearest.map(convertWorkerMatch) : []);
     } catch { /* */ }
 
     setMatchCompMap(compMap);

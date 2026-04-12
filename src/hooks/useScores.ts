@@ -57,6 +57,8 @@ export function useScores(comp?: string) {
     setFetchedAt(ts);
 
     if (raw.length === 0) {
+      setScoreMap(new Map());
+      setHasLive(false);
       setLoading(false);
       return;
     }

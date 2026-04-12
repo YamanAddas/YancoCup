@@ -537,9 +537,9 @@ export default function TeamPage() {
         if (found) setTeam(found);
       } catch { /* */ }
 
-      // Fetch matches for form guide + stats
+      // Fetch full schedule (includes upcoming TIMED + finished matches with scores)
       try {
-        const res = await fetch(`${WORKER_URL}/api/${comp.id}/scores`);
+        const res = await fetch(`${WORKER_URL}/api/${comp.id}/matches`);
         if (res.ok) {
           const data = (await res.json()) as { matches: MatchResult[] };
           setMatches(data.matches ?? []);
