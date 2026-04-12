@@ -26,10 +26,81 @@ import {
   MessageCircle,
   Pencil,
   UserMinus,
+  UserPlus,
+  Target,
+  Trophy,
+  ChevronDown,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import PoolChat from "../components/pool/PoolChat";
 import PoolRecap from "../components/pool/PoolRecap";
+
+function PoolExplainer({ compact = false }: { compact?: boolean }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(!compact);
+
+  const steps = [
+    { icon: UserPlus, title: t("pools.step1Title"), desc: t("pools.step1Desc") },
+    { icon: Target, title: t("pools.step2Title"), desc: t("pools.step2Desc") },
+    { icon: Trophy, title: t("pools.step3Title"), desc: t("pools.step3Desc") },
+  ];
+
+  return (
+    <div className="bg-yc-bg-surface border border-yc-border rounded-xl overflow-hidden">
+      {/* Header — always visible */}
+      <div
+        className={`px-5 pt-5 ${compact ? "pb-0" : "pb-5"}`}
+        onClick={compact ? () => setOpen(!open) : undefined}
+        role={compact ? "button" : undefined}
+        style={compact ? { cursor: "pointer" } : undefined}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-heading text-lg font-bold text-yc-text-primary mb-1">
+              {t("pools.heroTitle")}
+            </h3>
+            <p className="text-yc-text-secondary text-sm leading-relaxed">
+              {t("pools.heroDesc")}
+            </p>
+          </div>
+          {compact && (
+            <ChevronDown
+              size={18}
+              className={`text-yc-text-tertiary shrink-0 mt-1 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Steps — collapsible in compact mode */}
+      {open && (
+        <div className="px-5 pb-5 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {steps.map((step, i) => (
+              <div
+                key={i}
+                className="flex sm:flex-col items-start gap-3 sm:items-center sm:text-center bg-yc-bg-elevated/50 rounded-lg p-3 sm:p-4"
+              >
+                <div className="relative shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-yc-green-dark/30 flex items-center justify-center">
+                    <step.icon size={18} className="text-yc-green" />
+                  </div>
+                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-yc-bg-surface border border-yc-border flex items-center justify-center text-[10px] font-bold text-yc-text-secondary">
+                    {i + 1}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-yc-text-primary text-sm font-semibold mb-0.5">{step.title}</p>
+                  <p className="text-yc-text-tertiary text-xs leading-relaxed">{step.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function CreatePoolForm({
   competitionId,
@@ -463,25 +534,29 @@ export default function PoolsPage() {
 
   if (!user) {
     return (
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16 text-center">
-        <Users size={48} className="text-yc-text-tertiary mx-auto mb-4" />
-        <h2 className="font-heading text-2xl font-bold mb-2">{t("pools.signInTitle")}</h2>
-        <p className="text-yc-text-secondary text-sm mb-6">{t("pools.signInDesc")}</p>
-        <NavLink
-          to="/sign-in"
-          className="inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 transition-all"
-        >
-          {t("nav.signIn")}
-        </NavLink>
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <PoolExplainer />
+        <div className="text-center">
+          <p className="text-yc-text-secondary text-sm mb-4">{t("pools.signInDesc")}</p>
+          <NavLink
+            to="/sign-in"
+            className="inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 transition-all"
+          >
+            {t("nav.signIn")}
+          </NavLink>
+        </div>
       </div>
     );
   }
 
+  const hasPools = !loading && compPools.length > 0;
+
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-      <p className="text-yc-text-secondary text-sm mb-4">{t("pools.subtitle")}</p>
-
       <div className="space-y-4">
+        {/* Explainer — full when no pools, compact/collapsible when user has pools */}
+        <PoolExplainer compact={hasPools} />
+
         {/* Create + Join forms */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <CreatePoolForm
