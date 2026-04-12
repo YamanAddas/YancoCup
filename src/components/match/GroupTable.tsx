@@ -45,13 +45,13 @@ export default function GroupTable({ groupId, teams, standings }: GroupTableProp
       <table className="w-full text-sm">
         <thead>
           <tr className="text-yc-text-tertiary text-xs uppercase tracking-wider">
-            <th className="text-left pl-4 pr-2 py-2">{t("groupTable.team")}</th>
+            <th className="text-start ps-4 pe-2 py-2">{t("groupTable.team")}</th>
             <th className="w-8 text-center py-2">{t("groupTable.played")}</th>
             <th className="w-8 text-center py-2">{t("groupTable.won")}</th>
             <th className="w-8 text-center py-2">{t("groupTable.drawn")}</th>
             <th className="w-8 text-center py-2">{t("groupTable.lost")}</th>
             <th className="w-10 text-center py-2">{t("groupTable.gd")}</th>
-            <th className="w-10 text-center pr-4 py-2 font-bold">{t("groupTable.pts")}</th>
+            <th className="w-10 text-center pe-4 py-2 font-bold">{t("groupTable.pts")}</th>
           </tr>
         </thead>
         <tbody>
@@ -80,7 +80,7 @@ export default function GroupTable({ groupId, teams, standings }: GroupTableProp
                 className={`border-t border-yc-border/30 transition-colors hover:bg-white/[0.02] ${i < 2 ? "bg-yc-green/[0.03]" : ""}`}
                 style={i < 2 ? { borderInlineStart: "3px solid var(--yc-border-accent-bright)" } : undefined}
               >
-                <td className="pl-4 pr-2 py-2.5">
+                <td className="ps-4 pe-2 py-2.5">
                   {teamUrl ? (
                     <Link to={teamUrl} className="hover:text-yc-green transition-colors">
                       {row}
@@ -94,7 +94,7 @@ export default function GroupTable({ groupId, teams, standings }: GroupTableProp
                 <td className="text-center text-yc-text-secondary">{s?.draw ?? 0}</td>
                 <td className="text-center text-yc-text-secondary">{s?.lost ?? 0}</td>
                 <td className="text-center text-yc-text-secondary">{s?.goalDifference ?? 0}</td>
-                <td className="text-center pr-4 text-yc-green font-bold">{s?.points ?? 0}</td>
+                <td className="text-center pe-4 text-yc-green font-bold">{s?.points ?? 0}</td>
               </tr>
             );
           })}

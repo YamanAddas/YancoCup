@@ -87,7 +87,7 @@ function BracketNode({
             {homeName}
           </span>
           {hasScore && (
-            <span className={`text-xs font-mono font-bold min-w-[14px] text-right ${
+            <span className={`text-xs font-mono font-bold min-w-[14px] text-end ${
               isLive ? "text-yc-green" : homeWin ? "text-yc-green" : "text-yc-text-secondary"
             }`}>
               {homeScore}
@@ -103,7 +103,7 @@ function BracketNode({
             {awayName}
           </span>
           {hasScore && (
-            <span className={`text-xs font-mono font-bold min-w-[14px] text-right ${
+            <span className={`text-xs font-mono font-bold min-w-[14px] text-end ${
               isLive ? "text-yc-green" : awayWin ? "text-yc-green" : "text-yc-text-secondary"
             }`}>
               {awayScore}

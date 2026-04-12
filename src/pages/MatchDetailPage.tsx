@@ -277,7 +277,7 @@ function EventsTimeline({ match }: { match: MatchData }) {
           <div
             key={i}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-yc-bg-elevated/30 transition-colors ${
-              ev.side === "away" ? "flex-row-reverse text-right" : ""
+              ev.side === "away" ? "flex-row-reverse text-end" : ""
             }`}
           >
             <EventIcon type={ev.type} />
@@ -356,9 +356,9 @@ function StatsTab({ match }: { match: MatchData }) {
         return (
           <div key={stat.label}>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-mono text-yc-text-primary w-12 text-left">{stat.home}</span>
+              <span className="text-sm font-mono text-yc-text-primary w-12 text-start">{stat.home}</span>
               <span className="text-xs text-yc-text-tertiary">{stat.label}</span>
-              <span className="text-sm font-mono text-yc-text-primary w-12 text-right">{stat.away}</span>
+              <span className="text-sm font-mono text-yc-text-primary w-12 text-end">{stat.away}</span>
             </div>
             <div className="flex h-1.5 rounded-full overflow-hidden bg-yc-bg-elevated">
               <div className="bg-yc-green rounded-l-full" style={{ width: `${homePct}%` }} />
@@ -374,7 +374,7 @@ function StatsTab({ match }: { match: MatchData }) {
 /** Lineup display for one team — uses API-Football data if available */
 function TeamLineup({ team, afLineup, side }: { team: TeamDetail; afLineup?: AFLineup; side: "home" | "away" }) {
   const { t } = useI18n();
-  const align = side === "home" ? "text-left" : "text-right";
+  const align = side === "home" ? "text-start" : "text-end";
 
   // Prefer API-Football lineup (has formation, coach, full starting XI)
   const lineup = afLineup?.startXI?.map((p) => p.player) ?? team.lineup ?? [];
@@ -715,6 +715,7 @@ function PredictionsTab({
   // Fetch pool members' predictions for this match
   const [poolPredictions, setPoolPredictions] = useState<PoolPrediction[]>([]);
   const [poolPredLoading, setPoolPredLoading] = useState(false);
+  const [poolPredError, setPoolPredError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activePoolId || members.length === 0 || !isLocked) {
@@ -723,6 +724,7 @@ function PredictionsTab({
     }
 
     setPoolPredLoading(true);
+    setPoolPredError(null);
     const memberIds = members.map((m) => m.user_id);
 
     supabase
@@ -733,6 +735,10 @@ function PredictionsTab({
       .in("user_id", memberIds)
       .then(({ data }) => {
         setPoolPredictions((data as PoolPrediction[]) ?? []);
+        setPoolPredLoading(false);
+      })
+      .catch(() => {
+        setPoolPredError("Could not load data");
         setPoolPredLoading(false);
       });
   }, [activePoolId, members, matchId, competitionId, isLocked]);
@@ -840,6 +846,7 @@ function PredictionsTab({
             </div>
           )}
 
+          {poolPredError && <p className="text-center text-sm text-yc-danger py-4">{poolPredError}</p>}
           {poolPredLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 3 }).map((_, i) => (

@@ -42,12 +42,12 @@ function Accordion({
           >
             <button
               onClick={() => setOpen(open === i ? null : i)}
-              className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-medium text-yc-text-primary"
+              className="w-full flex items-center justify-between px-4 py-3 text-start text-sm font-medium text-yc-text-primary"
             >
               {item.q}
               <ChevronDown
                 size={16}
-                className={`text-yc-text-tertiary shrink-0 ml-2 transition-transform ${
+                className={`text-yc-text-tertiary shrink-0 ms-2 transition-transform ${
                   open === i ? "rotate-180" : ""
                 }`}
               />

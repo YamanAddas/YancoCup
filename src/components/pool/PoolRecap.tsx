@@ -27,6 +27,7 @@ export default function PoolRecap({
   const { t, lang } = useI18n();
   const [recaps, setRecaps] = useState<MemberRecap[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [matchdayLabel, setMatchdayLabel] = useState("");
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -37,68 +38,73 @@ export default function PoolRecap({
         return;
       }
 
-      const memberIds = members.map((m) => m.user_id);
+      try {
+        const memberIds = members.map((m) => m.user_id);
 
-      // Get the most recent scored predictions for these members in this competition
-      const { data: predictions } = await supabase
-        .from("yc_predictions")
-        .select("user_id, match_id, points, home_score, away_score, scored_at, quick_pick")
-        .eq("competition_id", competitionId)
-        .in("user_id", memberIds)
-        .not("scored_at", "is", null)
-        .order("scored_at", { ascending: false });
+        // Get the most recent scored predictions for these members in this competition
+        const { data: predictions } = await supabase
+          .from("yc_predictions")
+          .select("user_id, match_id, points, home_score, away_score, scored_at, quick_pick")
+          .eq("competition_id", competitionId)
+          .in("user_id", memberIds)
+          .not("scored_at", "is", null)
+          .order("scored_at", { ascending: false });
 
-      if (!predictions || predictions.length === 0) {
+        if (!predictions || predictions.length === 0) {
+          setLoading(false);
+          return;
+        }
+
+        // Find the most recent matchday by grouping by scored_at date
+        const scoredDates = predictions.map((p) => p.scored_at!.slice(0, 10));
+        const latestDate = scoredDates.sort().reverse()[0];
+        setMatchdayLabel(
+          new Date(latestDate + "T12:00:00Z").toLocaleDateString(getLocale(lang), {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            timeZone: "UTC",
+          }),
+        );
+
+        // Filter to that date's predictions
+        const dayPredictions = predictions.filter(
+          (p) => p.scored_at!.slice(0, 10) === latestDate,
+        );
+
+        // Aggregate per member
+        const memberMap = new Map(members.map((m) => [m.user_id, m]));
+        const statsMap = new Map<string, { points: number; predicted: number; exact: number }>();
+
+        for (const p of dayPredictions) {
+          const s = statsMap.get(p.user_id) ?? { points: 0, predicted: 0, exact: 0 };
+          s.points += p.points ?? 0;
+          s.predicted++;
+          if ((p.points ?? 0) === 10) s.exact++;
+          statsMap.set(p.user_id, s);
+        }
+
+        const result: MemberRecap[] = memberIds
+          .map((uid) => {
+            const m = memberMap.get(uid);
+            const s = statsMap.get(uid) ?? { points: 0, predicted: 0, exact: 0 };
+            return {
+              userId: uid,
+              handle: m?.handle ?? "unknown",
+              displayName: m?.display_name ?? null,
+              avatarUrl: m?.avatar_url ?? null,
+              ...s,
+            };
+          })
+          .filter((r) => r.predicted > 0)
+          .sort((a, b) => b.points - a.points);
+
+        setRecaps(result);
+      } catch {
+        setError("Could not load recap");
+      } finally {
         setLoading(false);
-        return;
       }
-
-      // Find the most recent matchday by grouping by scored_at date
-      const scoredDates = predictions.map((p) => p.scored_at!.slice(0, 10));
-      const latestDate = scoredDates.sort().reverse()[0];
-      setMatchdayLabel(
-        new Date(latestDate + "T12:00:00Z").toLocaleDateString(getLocale(lang), {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-          timeZone: "UTC",
-        }),
-      );
-
-      // Filter to that date's predictions
-      const dayPredictions = predictions.filter(
-        (p) => p.scored_at!.slice(0, 10) === latestDate,
-      );
-
-      // Aggregate per member
-      const memberMap = new Map(members.map((m) => [m.user_id, m]));
-      const statsMap = new Map<string, { points: number; predicted: number; exact: number }>();
-
-      for (const p of dayPredictions) {
-        const s = statsMap.get(p.user_id) ?? { points: 0, predicted: 0, exact: 0 };
-        s.points += p.points ?? 0;
-        s.predicted++;
-        if ((p.points ?? 0) === 10) s.exact++;
-        statsMap.set(p.user_id, s);
-      }
-
-      const result: MemberRecap[] = memberIds
-        .map((uid) => {
-          const m = memberMap.get(uid);
-          const s = statsMap.get(uid) ?? { points: 0, predicted: 0, exact: 0 };
-          return {
-            userId: uid,
-            handle: m?.handle ?? "unknown",
-            displayName: m?.display_name ?? null,
-            avatarUrl: m?.avatar_url ?? null,
-            ...s,
-          };
-        })
-        .filter((r) => r.predicted > 0)
-        .sort((a, b) => b.points - a.points);
-
-      setRecaps(result);
-      setLoading(false);
     }
 
     load();
@@ -139,6 +145,10 @@ export default function PoolRecap({
         <Loader2 size={14} className="animate-spin text-yc-text-tertiary" />
       </div>
     );
+  }
+
+  if (error) {
+    return <p className="text-center text-sm text-yc-danger py-4">{error}</p>;
   }
 
   if (recaps.length === 0) {
@@ -183,7 +193,7 @@ export default function PoolRecap({
       <div className="space-y-1.5">
         {recaps.map((r, i) => (
           <div key={r.userId} className="flex items-center gap-2 text-xs">
-            <span className="w-4 text-yc-text-tertiary text-right">{i + 1}.</span>
+            <span className="w-4 text-yc-text-tertiary text-end">{i + 1}.</span>
             {r.avatarUrl ? (
               <img src={r.avatarUrl} alt="" className="w-5 h-5 rounded-full" />
             ) : (

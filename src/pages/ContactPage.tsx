@@ -183,7 +183,7 @@ export default function ContactPage() {
             className="w-full rounded-lg border border-yc-border bg-yc-bg-surface px-4 py-2.5 text-sm text-yc-text-primary placeholder:text-yc-text-tertiary focus:outline-none focus:border-yc-green transition-colors resize-y"
             required
           />
-          <p className="text-xs text-yc-text-tertiary mt-1 text-right">
+          <p className="text-xs text-yc-text-tertiary mt-1 text-end">
             {message.length}/5000
           </p>
         </div>

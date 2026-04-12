@@ -201,7 +201,7 @@ export default function RivalsSection() {
                 <button
                   key={p.id}
                   onClick={() => addRival(p.id)}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-yc-bg-elevated/50 hover:bg-yc-bg-elevated transition-colors text-left"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-yc-bg-elevated/50 hover:bg-yc-bg-elevated transition-colors text-start"
                 >
                   {p.avatar_url ? (
                     <img src={p.avatar_url} alt="" className="w-6 h-6 rounded-full" />
@@ -227,7 +227,7 @@ export default function RivalsSection() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-yc-text-tertiary text-xs border-b border-yc-border">
-                <th className="text-left py-2 px-2">{t("groupTable.team")}</th>
+                <th className="text-start py-2 px-2">{t("groupTable.team")}</th>
                 <th className="text-center py-2 px-2"><Trophy size={12} className="inline" /></th>
                 <th className="text-center py-2 px-2"><Target size={12} className="inline" /></th>
                 <th className="text-center py-2 px-2"><Crosshair size={12} className="inline" /></th>
@@ -253,7 +253,7 @@ export default function RivalsSection() {
                         )}
                         <span className={`truncate ${isMe ? "text-yc-green font-medium" : "text-yc-text-primary"}`}>
                           {entry.profile.display_name ?? entry.profile.handle}
-                          {isMe && <span className="text-yc-text-tertiary ml-1 text-xs">{t("leaderboard.you")}</span>}
+                          {isMe && <span className="text-yc-text-tertiary ms-1 text-xs">{t("leaderboard.you")}</span>}
                         </span>
                         {!isMe && (
                           <button

@@ -55,7 +55,7 @@ export default function CommentCard({
   };
 
   return (
-    <div className={`flex gap-3 ${isReply ? "ml-8 sm:ml-11" : ""}`}>
+    <div className={`flex gap-3 ${isReply ? "ms-8 sm:ms-11" : ""}`}>
       {/* Avatar */}
       <div className="flex-shrink-0 pt-0.5">
         {comment.avatar_url ? (
@@ -203,7 +203,7 @@ export default function CommentCard({
                     <button
                       key={reason}
                       onClick={() => { handleReport(reason); setShowMenu(false); }}
-                      className="block w-full text-left px-3 py-1.5 text-xs text-yc-text-secondary hover:text-yc-text-primary hover:bg-white/[0.03] transition-colors capitalize"
+                      className="block w-full text-start px-3 py-1.5 text-xs text-yc-text-secondary hover:text-yc-text-primary hover:bg-white/[0.03] transition-colors capitalize"
                     >
                       {t(`comments.reason_${reason}`)}
                     </button>

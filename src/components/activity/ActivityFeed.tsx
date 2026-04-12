@@ -138,14 +138,14 @@ export default function ActivityFeed() {
               {away && (
                 <TeamCrest tla={away.fifaCode} isoCode={away.isoCode} size="xs" />
               )}
-              <span className="text-yc-text-tertiary text-[10px] ml-1">
+              <span className="text-yc-text-tertiary text-[10px] ms-1">
                 {timeAgo(item.createdAt)}
               </span>
             </div>
 
             {/* Reactions */}
             {user && (
-              <div className="flex items-center gap-0.5 shrink-0 ml-1">
+              <div className="flex items-center gap-0.5 shrink-0 ms-1">
                 {(["fire", "laugh", "clown"] as ReactionType[]).map((r) => {
                   const c = counts.get(item.id)?.[r] ?? 0;
                   const active = mine.get(item.id)?.[r] ?? false;

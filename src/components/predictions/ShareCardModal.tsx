@@ -268,7 +268,7 @@ export default function ShareCardModal({ open, onClose, data }: ShareCardModalPr
 
           {/* Social share buttons */}
           <div className="flex items-center gap-2">
-            <span className="text-yc-text-tertiary text-xs mr-1">{t("share.title")}</span>
+            <span className="text-yc-text-tertiary text-xs me-1">{t("share.title")}</span>
             <button
               onClick={handleWhatsApp}
               className="p-2.5 rounded-xl bg-yc-bg-elevated hover:bg-yc-border transition-colors text-[#25D366]"

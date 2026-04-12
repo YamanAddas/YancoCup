@@ -79,7 +79,7 @@ export default function PredictionHeatmap({
         {/* Rows (away goals) */}
         {grid.map((row, a) => (
           <div key={a} className="contents">
-            <span className="text-[9px] text-yc-text-tertiary font-mono flex items-center justify-end pr-1">{a}</span>
+            <span className="text-[9px] text-yc-text-tertiary font-mono flex items-center justify-end pe-1">{a}</span>
             {row.map((count, h) => {
               const intensity = count / maxCount;
               const isActual = actualHome === h && actualAway === a;

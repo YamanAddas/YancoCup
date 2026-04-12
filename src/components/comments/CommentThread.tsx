@@ -52,7 +52,7 @@ export default function CommentThread({
 
       {/* Reply composer */}
       {replyOpen && (
-        <div className="ml-8 sm:ml-11">
+        <div className="ms-8 sm:ms-11">
           <CommentComposer
             onSubmit={handleReply}
             placeholder={t("comments.replyPlaceholder")}
@@ -67,7 +67,7 @@ export default function CommentThread({
       {!showAllReplies && hiddenCount > 0 && (
         <button
           onClick={() => setShowAllReplies(true)}
-          className="ml-8 sm:ml-11 flex items-center gap-1 text-xs text-yc-green hover:underline"
+          className="ms-8 sm:ms-11 flex items-center gap-1 text-xs text-yc-green hover:underline"
         >
           <ChevronDown size={12} />
           {t("comments.showReplies", { count: String(hiddenCount) })}

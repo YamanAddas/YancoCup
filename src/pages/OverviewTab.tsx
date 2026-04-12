@@ -63,13 +63,13 @@ export default function OverviewTab() {
   const { matches, loading } = useCompetitionSchedule();
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
-  const { scoreMap } = useScores(comp.id);
+  const { scoreMap, fetchedAt } = useScores(comp.id);
   const { entries: leaderboard } = useLeaderboard(comp.id);
   const { predictions } = useAutoScore(comp.id);
   const [scorers, setScorers] = useState<Scorer[]>([]);
 
   useEffect(() => {
-    fetchScorers(comp.id).then((s) => setScorers(s));
+    fetchScorers(comp.id).then((s) => setScorers(s)).catch(() => {});
   }, [comp.id]);
 
   const predictedIds = useMemo(
@@ -271,6 +271,7 @@ export default function OverviewTab() {
                 liveScore={scoreMap.get(m.id)}
                 competitionId={comp.id}
                 predicted={predictedIds.has(m.id)}
+                fetchedAt={fetchedAt}
                 compact
               />
             ))}
@@ -299,7 +300,7 @@ export default function OverviewTab() {
                 key={s.player.id}
                 className={`flex items-center gap-3 px-4 py-2.5 ${i > 0 ? "border-t border-yc-border/30" : ""} ${i === 0 ? "bg-yc-green/[0.02]" : ""}`}
               >
-                <span className={`font-mono text-xs w-5 text-right ${i === 0 ? "text-yc-green font-bold" : "text-yc-text-tertiary"}`}>
+                <span className={`font-mono text-xs w-5 text-end ${i === 0 ? "text-yc-green font-bold" : "text-yc-text-tertiary"}`}>
                   {i + 1}
                 </span>
                 <TeamCrest tla={s.team.tla} crest={s.team.crest} size="xs" />
@@ -345,7 +346,7 @@ export default function OverviewTab() {
                 }`}
               >
                 <span
-                  className={`font-mono text-xs w-5 text-right ${
+                  className={`font-mono text-xs w-5 text-end ${
                     i === 0
                       ? "text-yc-green font-bold"
                       : "text-yc-text-tertiary"
@@ -367,7 +368,7 @@ export default function OverviewTab() {
                 <span className="text-sm text-yc-text-primary font-medium flex-1 truncate">
                   {entry.displayName ?? entry.handle}
                   {entry.userId === user?.id && (
-                    <span className="text-yc-text-tertiary text-xs ml-1">
+                    <span className="text-yc-text-tertiary text-xs ms-1">
                       {t("leaderboard.you")}
                     </span>
                   )}

@@ -110,7 +110,7 @@ export default function PoolChat({ poolId }: { poolId: string }) {
                   <p className="break-words whitespace-pre-wrap">{msg.content}</p>
                   <p
                     className={`text-[9px] mt-0.5 ${
-                      isOwn ? "text-yc-green-muted/60 text-right" : "text-yc-text-tertiary"
+                      isOwn ? "text-yc-green-muted/60 text-end" : "text-yc-text-tertiary"
                     }`}
                   >
                     {time}

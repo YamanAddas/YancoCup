@@ -224,7 +224,7 @@ export default function LeaderboardPage() {
                   </th>
                   <th className="text-center py-3 w-20 hidden sm:table-cell">{t("leaderboard.correct")}</th>
                   <th className="text-center py-3 w-16 hidden sm:table-cell">{t("leaderboard.accuracy")}</th>
-                  <th className="text-center py-3 w-16 pr-4">
+                  <th className="text-center py-3 w-16 pe-4">
                     <span title="Points Per Prediction" className="cursor-help">{t("leaderboard.ppp")}</span>
                   </th>
                 </tr>
@@ -239,7 +239,7 @@ export default function LeaderboardPage() {
                         isMe ? "bg-yc-green/[0.05]" : i < 3 ? "bg-white/[0.01]" : ""
                       } hover:bg-white/[0.02]`}
                     >
-                      <td className="pl-4 py-3 font-mono text-yc-text-tertiary">
+                      <td className="ps-4 py-3 font-mono text-yc-text-tertiary">
                         <div className="flex items-center gap-1">
                           {i + 1}
                           {period !== "all" && entry.previousRank !== undefined && (() => {
@@ -291,7 +291,7 @@ export default function LeaderboardPage() {
                       <td className="text-center py-3 text-yc-text-secondary hidden sm:table-cell">
                         {entry.accuracy}%
                       </td>
-                      <td className="text-center py-3 pr-4 font-mono text-yc-text-secondary">
+                      <td className="text-center py-3 pe-4 font-mono text-yc-text-secondary">
                         {entry.pointsPerPrediction}
                       </td>
                     </tr>

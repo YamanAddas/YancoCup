@@ -76,7 +76,7 @@ export default function WatchPage() {
             setSelectedCountry(null);
           }}
           placeholder={t("watch.search")}
-          className="w-full bg-yc-bg-elevated border border-yc-border rounded-lg pl-9 pr-4 py-3 text-sm text-yc-text-primary placeholder:text-yc-text-tertiary focus:outline-none focus:border-yc-green-muted transition-colors"
+          className="w-full bg-yc-bg-elevated border border-yc-border rounded-lg ps-9 pe-4 py-3 text-sm text-yc-text-primary placeholder:text-yc-text-tertiary focus:outline-none focus:border-yc-green-muted transition-colors"
         />
       </div>
 

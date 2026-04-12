@@ -1049,7 +1049,7 @@ export default function TeamPage() {
       {/* ── Sticky section nav ── */}
       <nav className="sticky top-0 z-30 border-b border-yc-border" style={{ background: "var(--yc-bg-glass)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 flex items-center h-12 overflow-x-auto">
-          <div className={`shrink-0 mr-3 transition-all duration-200 overflow-hidden ${heroVisible ? "w-0 opacity-0" : "w-6 opacity-100"}`}>
+          <div className={`shrink-0 me-3 transition-all duration-200 overflow-hidden ${heroVisible ? "w-0 opacity-0" : "w-6 opacity-100"}`}>
             <TeamCrest tla={team.tla} crest={team.crest} size="xs" />
           </div>
           <div className="flex gap-1">
@@ -1327,7 +1327,7 @@ export default function TeamPage() {
                           </div>
 
                           {/* Score */}
-                          <div className="shrink-0 text-right">
+                          <div className="shrink-0 text-end">
                             <span className={`font-mono text-base font-bold ${
                               m.result === "W" ? "text-yc-green" : m.result === "L" ? "text-yc-danger" : "text-yc-text-secondary"
                             }`}>

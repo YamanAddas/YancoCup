@@ -38,7 +38,7 @@ export default function HowToPlay() {
           <div key={r.labelKey} className="flex items-center justify-between text-sm">
             <div>
               <span className="text-yc-text-primary">{t(r.labelKey)}</span>
-              <span className="text-yc-text-tertiary ml-2 text-xs">
+              <span className="text-yc-text-tertiary ms-2 text-xs">
                 ({t("howToPlay.exampleYou", { score: r.you })}, {t("howToPlay.exampleResult", { score: r.result })})
               </span>
             </div>
@@ -53,7 +53,7 @@ export default function HowToPlay() {
           <div key={b.labelKey} className="flex items-center justify-between text-sm">
             <div>
               <span className="text-yc-text-primary">{t(b.labelKey)}</span>
-              <span className="text-yc-text-tertiary ml-2 text-xs">— {t(b.descKey)}</span>
+              <span className="text-yc-text-tertiary ms-2 text-xs">— {t(b.descKey)}</span>
             </div>
             <span className="text-yc-warning font-mono font-bold">{b.points}</span>
           </div>
@@ -65,7 +65,7 @@ export default function HowToPlay() {
         {modifiers.map((m) => (
           <div key={m.labelKey} className="text-sm">
             <span className="text-yc-text-primary">{t(m.labelKey)}</span>
-            <span className="text-yc-text-tertiary ml-2 text-xs">— {t(m.descKey)}</span>
+            <span className="text-yc-text-tertiary ms-2 text-xs">— {t(m.descKey)}</span>
           </div>
         ))}
       </div>

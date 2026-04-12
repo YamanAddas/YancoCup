@@ -54,7 +54,7 @@ export default function SocialShareButtons({ text, url }: SocialShareButtonsProp
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[10px] text-yc-text-tertiary mr-1">{t("share.title")}</span>
+      <span className="text-[10px] text-yc-text-tertiary me-1">{t("share.title")}</span>
       <a
         href={whatsappUrl}
         target="_blank"

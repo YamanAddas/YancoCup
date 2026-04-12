@@ -133,7 +133,7 @@ function MyTeamsMatches() {
   const wcMatches = useSchedule();
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
-  const { scoreMap } = useScores();
+  const { scoreMap, fetchedAt } = useScores();
   const predictedIds = usePredictedMatchIds();
   const { t } = useI18n();
   const { ref, visible } = useScrollReveal();
@@ -169,6 +169,7 @@ function MyTeamsMatches() {
             liveScore={scoreMap.get(m.id)}
             competitionId="WC"
             predicted={predictedIds.has(m.id)}
+            fetchedAt={fetchedAt}
             compact
           />
         ))}
@@ -218,7 +219,7 @@ function TodaysMatches() {
   const wcMatches = useSchedule();
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
-  const { scoreMap } = useScores();
+  const { scoreMap, fetchedAt } = useScores();
   const predictedIds = usePredictedMatchIds();
   const { t, lang } = useI18n();
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
@@ -410,6 +411,7 @@ function TodaysMatches() {
                 liveScore={scoreMap.get(m.id)}
                 competitionId={getMatchComp(m.id)}
                 predicted={predictedIds.has(m.id)}
+                fetchedAt={fetchedAt}
                 kickoffUtc={kickoffMap.get(m.id)}
                 compact
               />

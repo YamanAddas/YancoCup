@@ -138,7 +138,7 @@ export default function StandingsPage() {
       }
 
       // Fetch scorers (non-blocking)
-      if (!cancelled) fetchScorers(comp.id).then((s) => { if (!cancelled) setScorers(s); });
+      if (!cancelled) fetchScorers(comp.id).then((s) => { if (!cancelled) setScorers(s); }).catch(() => {});
     }
 
     doLoad();

@@ -295,36 +295,43 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
   const { t } = useI18n();
   const [predictions, setPredictions] = useState<PoolPrediction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       if (members.length === 0) { setLoading(false); return; }
-      const memberIds = members.map((m) => m.user_id);
-      const { data } = await supabase
-        .from("yc_predictions")
-        .select("user_id, match_id, home_score, away_score, created_at")
-        .eq("competition_id", competitionId)
-        .in("user_id", memberIds)
-        .order("created_at", { ascending: false })
-        .limit(8);
+      try {
+        const memberIds = members.map((m) => m.user_id);
+        const { data } = await supabase
+          .from("yc_predictions")
+          .select("user_id, match_id, home_score, away_score, created_at")
+          .eq("competition_id", competitionId)
+          .in("user_id", memberIds)
+          .order("created_at", { ascending: false })
+          .limit(8);
 
-      if (data) {
-        const memberMap = new Map(members.map((m) => [m.user_id, m]));
-        setPredictions(data.map((p) => ({
-          handle: memberMap.get(p.user_id)?.handle ?? "?",
-          display_name: memberMap.get(p.user_id)?.display_name ?? null,
-          match_id: p.match_id,
-          home_score: p.home_score,
-          away_score: p.away_score,
-          created_at: p.created_at,
-        })));
+        if (data) {
+          const memberMap = new Map(members.map((m) => [m.user_id, m]));
+          setPredictions(data.map((p) => ({
+            handle: memberMap.get(p.user_id)?.handle ?? "?",
+            display_name: memberMap.get(p.user_id)?.display_name ?? null,
+            match_id: p.match_id,
+            home_score: p.home_score,
+            away_score: p.away_score,
+            created_at: p.created_at,
+          })));
+        }
+      } catch {
+        setError("Could not load activity");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     load();
   }, [members, competitionId]);
 
   if (loading) return <div className="h-12 bg-yc-bg-elevated rounded animate-pulse" />;
+  if (error) return <p className="text-center text-sm text-yc-danger py-4">{error}</p>;
   if (predictions.length === 0) return <p className="text-xs text-yc-text-tertiary">{t("pools.noPredictions")}</p>;
 
   return (
@@ -409,7 +416,7 @@ function PoolCard({
     <div className="bg-yc-bg-surface border border-yc-border rounded-xl overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-yc-bg-elevated/30 transition-colors"
+        className="w-full flex items-center justify-between p-4 text-start hover:bg-yc-bg-elevated/30 transition-colors"
       >
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-9 h-9 rounded-lg bg-yc-green-dark/30 flex items-center justify-center shrink-0">
@@ -418,7 +425,7 @@ function PoolCard({
           <div className="min-w-0">
             <p className="text-yc-text-primary font-medium text-sm truncate">
               {pool.name}
-              {isCreator && <Crown size={12} className="inline ml-1.5 text-yc-warning" />}
+              {isCreator && <Crown size={12} className="inline ms-1.5 text-yc-warning" />}
             </p>
             <p className="text-yc-text-tertiary text-xs">
               {pool.competition_id} · {pool.member_count ?? 0} {t("pools.members")}

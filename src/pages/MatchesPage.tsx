@@ -198,7 +198,7 @@ function TournamentMatches() {
   const venues = useVenues();
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
-  const { scoreMap, error: scoreError } = useScores(comp.id);
+  const { scoreMap, error: scoreError, fetchedAt } = useScores(comp.id);
   const predictedIds = usePredictedMatchIds(comp.id);
 
   const filters = useMemo(() => {
@@ -294,7 +294,7 @@ function TournamentMatches() {
           {hasFilters && (
             <button
               onClick={(e) => { e.stopPropagation(); clearFilters(); }}
-              className="ml-1 hover:text-white"
+              className="ms-1 hover:text-white"
             >
               <X size={12} />
             </button>
@@ -388,6 +388,7 @@ function TournamentMatches() {
               liveScore={scoreMap.get(m.id)}
               competitionId={comp.id}
               predicted={predictedIds.has(m.id)}
+              fetchedAt={fetchedAt}
             />
           ))}
         </div>
@@ -549,7 +550,7 @@ function MatchdayStepper({
 function LeagueMatches() {
   const comp = useCompetition();
   const { t, lang } = useI18n();
-  const { scoreMap, error: scoreError } = useScores(comp.id);
+  const { scoreMap, error: scoreError, fetchedAt } = useScores(comp.id);
   const [selectedMatchday, setSelectedMatchday] = useState<number | undefined>(undefined);
   const { matches, matchdays, loading, error: scheduleError } = useCompetitionSchedule(selectedMatchday);
   const teamMap = useTeamMap();
@@ -667,6 +668,7 @@ function LeagueMatches() {
                         liveScore={scoreMap.get(m.id)}
                         competitionId={comp.id}
                         predicted={predictedIds.has(m.id)}
+                        fetchedAt={fetchedAt}
                       />
                     ))}
                   </div>
