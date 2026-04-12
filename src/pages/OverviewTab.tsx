@@ -212,7 +212,7 @@ export default function OverviewTab() {
               })}
             </span>
             <Link
-              to="predictions"
+              to="../predictions"
               className="text-yc-green hover:underline flex items-center gap-1"
             >
               {t("predictions.title")} <ArrowRight size={12} />
@@ -255,7 +255,7 @@ export default function OverviewTab() {
               {matchSectionLabel}
             </h3>
             <Link
-              to="matches"
+              to="../matches"
               className="text-xs text-yc-green hover:underline flex items-center gap-1"
             >
               {t("home.allMatches")} <ArrowRight size={12} />
@@ -287,7 +287,7 @@ export default function OverviewTab() {
               {t("stats.topScorers")}
             </h3>
             <Link
-              to="standings"
+              to="../standings"
               className="text-xs text-yc-green hover:underline flex items-center gap-1"
             >
               {t("overview.fullTable")} <ArrowRight size={12} />
@@ -324,7 +324,7 @@ export default function OverviewTab() {
               {t("home.leaderboard")}
             </h3>
             <Link
-              to="leaderboard"
+              to="../leaderboard"
               className="text-xs text-yc-green hover:underline flex items-center gap-1"
             >
               {t("home.fullStandings")} <ArrowRight size={12} />
