@@ -118,13 +118,6 @@ const POS_LABELS: Record<string, string> = {
 const POS_COLORS: Record<string, string> = {
   Goalkeeper: "text-amber-400", Defence: "text-sky-400", Midfield: "text-yc-green", Offence: "text-red-400", Unknown: "text-yc-text-tertiary",
 };
-const POS_BG: Record<string, string> = {
-  Goalkeeper: "bg-amber-400/15 text-amber-400 border-amber-400/30",
-  Defence: "bg-sky-400/15 text-sky-400 border-sky-400/30",
-  Midfield: "bg-yc-green/15 text-yc-green border-yc-green/30",
-  Offence: "bg-red-400/15 text-red-400 border-red-400/30",
-  Unknown: "bg-yc-bg-elevated text-yc-text-tertiary border-yc-border",
-};
 
 /** Position-specific gradient accent for card top */
 const POS_GRADIENT: Record<string, string> = {
@@ -147,15 +140,7 @@ function PlayerCard({ player, position, photoUrl, lang }: { player: Player; posi
   const [imgError, setImgError] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { t } = useI18n();
-  const initials = player.name
-    .split(" ")
-    .filter(Boolean)
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
   const posColor = POS_COLORS[position] ?? "text-yc-text-tertiary";
-  const posBg = POS_BG[position] ?? POS_BG.Unknown!;
   const posLabel = position === "Goalkeeper" ? "GK" : position === "Defence" ? "DEF" : position === "Midfield" ? "MID" : position === "Offence" ? "FWD" : "—";
   const gradient = POS_GRADIENT[position] ?? POS_GRADIENT.Unknown!;
   const ring = POS_RING[position] ?? POS_RING.Unknown!;
@@ -173,79 +158,80 @@ function PlayerCard({ player, position, photoUrl, lang }: { player: Player; posi
       className="group yc-card rounded-xl overflow-hidden transition-all duration-300 hover:border-[var(--yc-border-accent)] hover:shadow-[0_0_20px_rgba(0,255,136,0.06)] text-start w-full cursor-pointer"
     >
       {/* Gradient top accent */}
-      <div className={`h-1.5 bg-gradient-to-b ${gradient}`} />
+      <div className={`h-1 bg-gradient-to-b ${gradient}`} />
 
       {/* Main content */}
-      <div className="p-3 flex flex-col items-center text-center gap-2">
-        {/* Photo with position-colored ring */}
-        <div className="relative mt-1">
+      <div className="px-2 py-3 flex flex-col items-center text-center gap-1.5">
+        {/* Photo or silhouette placeholder */}
+        <div className="relative">
           {hasPhoto ? (
             <img
               src={photoUrl}
               alt={player.name}
               onError={() => setImgError(true)}
-              className={`w-[72px] h-[72px] rounded-full object-cover ring-2 ${ring} transition-transform duration-300 group-hover:scale-105`}
+              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover ring-2 ${ring} transition-transform duration-300 group-hover:scale-105`}
               loading="lazy"
             />
           ) : (
-            <div className={`w-[72px] h-[72px] rounded-full border-2 flex items-center justify-center ${posBg} transition-transform duration-300 group-hover:scale-105`}>
-              <span className="text-xl font-bold font-mono">{initials}</span>
+            <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-yc-bg-elevated border border-yc-border flex items-center justify-center transition-transform duration-300 group-hover:scale-105`}>
+              <User size={24} className="text-yc-text-tertiary" />
             </div>
           )}
           {/* Shirt number badge */}
           {player.shirtNumber != null && (
-            <span className={`absolute -bottom-1 -end-1 min-w-[24px] h-[24px] flex items-center justify-center rounded-full bg-yc-bg-deep border-2 border-yc-border text-[11px] font-mono font-bold text-yc-text-primary px-1 ${posColor}`}>
+            <span className={`absolute -bottom-1 -end-0.5 min-w-[20px] h-[20px] flex items-center justify-center rounded-full bg-yc-bg-deep border border-yc-border text-[10px] font-mono font-bold px-0.5 ${posColor}`}>
               {player.shirtNumber}
             </span>
           )}
         </div>
 
-        {/* Name — last name prominent */}
-        <div className="w-full min-w-0">
+        {/* Name — last name prominent, allow wrapping */}
+        <div className="w-full min-w-0 px-0.5">
           {firstName && (
-            <p className="text-[10px] text-yc-text-tertiary leading-tight truncate">{firstName}</p>
+            <p className="text-[9px] sm:text-[10px] text-yc-text-tertiary leading-tight truncate">{firstName}</p>
           )}
-          <p className="text-sm font-bold text-yc-text-primary leading-tight truncate">{lastName}</p>
+          <p className="text-[11px] sm:text-xs font-bold text-yc-text-primary leading-snug line-clamp-2">{lastName}</p>
         </div>
 
-        {/* Position badge + flag */}
-        <div className="flex items-center gap-2">
-          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${posBg}`}>{posLabel}</span>
+        {/* Position + age inline */}
+        <div className="flex items-center gap-1.5 flex-wrap justify-center">
+          <span className={`text-[9px] sm:text-[10px] font-mono font-bold ${posColor}`}>{posLabel}</span>
           <NationalityFlag nationality={player.nationality} />
+          {age != null && <span className="text-[9px] sm:text-[10px] font-mono text-yc-text-tertiary">{age}</span>}
         </div>
       </div>
 
       {/* Expandable detail panel */}
       <div className={`grid ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"} transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]`}>
         <div className="overflow-hidden min-h-0">
-          <div className="border-t border-yc-border/50 px-3 py-3 space-y-2">
+          <div className="border-t border-yc-border/50 px-2.5 py-2.5 space-y-1.5">
             {/* Nationality */}
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase tracking-wider text-yc-text-tertiary">{t("team.nationality")}</span>
-              <span className="text-xs text-yc-text-primary flex items-center gap-1.5">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[9px] uppercase tracking-wider text-yc-text-tertiary shrink-0">{t("team.nationality")}</span>
+              <span className="text-[11px] text-yc-text-primary flex items-center gap-1 truncate">
                 <NationalityFlag nationality={player.nationality} />
-                {player.nationality}
+                <span className="truncate">{player.nationality}</span>
               </span>
             </div>
             {/* Age */}
             {age != null && (
               <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase tracking-wider text-yc-text-tertiary">{t("team.age")}</span>
-                <span className="text-xs font-mono text-yc-text-primary">{age}</span>
+                <span className="text-[9px] uppercase tracking-wider text-yc-text-tertiary">{t("team.age")}</span>
+                <span className="text-[11px] font-mono text-yc-text-primary">{age}</span>
               </div>
             )}
             {/* Position */}
             {player.position && (
               <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase tracking-wider text-yc-text-tertiary">{t("team.position")}</span>
-                <span className={`text-xs font-medium ${posColor}`}>{player.position}</span>
+                <span className="text-[9px] uppercase tracking-wider text-yc-text-tertiary">{t("team.position")}</span>
+                <span className={`text-[11px] font-medium ${posColor}`}>{player.position}</span>
               </div>
             )}
             {/* Date of birth */}
             {player.dateOfBirth && (
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase tracking-wider text-yc-text-tertiary">{t("team.dob")}</span>
-                <span className="text-xs text-yc-text-secondary">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[9px] uppercase tracking-wider text-yc-text-tertiary shrink-0">{t("team.dob")}</span>
+                <span className="text-[11px] text-yc-text-secondary truncate">
                   {new Date(player.dateOfBirth).toLocaleDateString(getLocale(lang), { year: "numeric", month: "short", day: "numeric" })}
                 </span>
               </div>
@@ -1448,7 +1434,7 @@ export default function TeamPage() {
                   </div>
 
                   {/* Player hex card grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
                     {players.map((p) => (
                       <PlayerCard
                         key={p.id}
