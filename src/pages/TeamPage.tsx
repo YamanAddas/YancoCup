@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, User, MapPin, Calendar, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star, Activity, Users, BarChart3, MessageCircle, TrendingUp, Shield, Crosshair, Lock, Heart } from "lucide-react";
+import { ArrowLeft, User, MapPin, Calendar, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star, Activity, Users, BarChart3, MessageCircle, TrendingUp, Shield, Crosshair, Lock, Heart, Target } from "lucide-react";
 import { useFollowedTeams } from "../hooks/useFollowedTeams";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
