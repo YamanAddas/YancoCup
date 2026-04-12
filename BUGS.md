@@ -31,9 +31,10 @@
 **What:** Some components use `margin-left` / `padding-right` instead of logical properties. Match cards may not mirror correctly in RTL.
 **Fix:** Replace physical properties with logical (`margin-inline-start`, `padding-inline-end`). Test every page in Arabic mode.
 
-### BUG-006: Globe performance on low-end mobile
+### BUG-006: Globe performance on low-end mobile — PARTIALLY RESOLVED
 **What:** The R3F globe can cause frame drops and battery drain on older phones.
-**Fix:** Already using `frameloop="demand"`. Additionally: hide globe entirely below 640px width. Add `loading="lazy"` to the Canvas. Consider replacing with a static SVG map on mobile.
+**Status:** `frameloop="demand"` active. `dpr` scaling for mobile. `GlobeErrorBoundary` catches WebGL crashes. Device detection reduces quality on low-end.
+**Remaining:** IntersectionObserver to stop rendering when globe scrolls off-screen. Consider static SVG map for mobile.
 
 ### BUG-007: Inconsistent design tokens
 **What:** Some components use hardcoded hex values instead of CSS custom properties. The design tokens in globals.css may not match STYLE.md exactly.
@@ -41,10 +42,9 @@
 
 ## Medium (improve when possible)
 
-### DEBT-001: No automated tests
-**What:** Zero test coverage. No unit tests, no integration tests, no E2E tests.
-**Impact:** Every change is a potential regression. Scoring logic is especially risky without tests.
-**Fix:** Start with unit tests for `scoring.ts` (most critical logic). Add component tests for match cards and prediction forms later.
+### DEBT-001: ~~No automated tests~~ RESOLVED
+**Status:** 13 test files covering scoring, i18n, badges, ranks, formatting, hooks, and worker logic. See CLAUDE.md "Confirmed test coverage" for full list.
+**Remaining gap:** No component/page tests, no E2E tests.
 
 ### DEBT-002: No Supabase migrations in repo
 **What:** Database schema is managed via Supabase dashboard. No version-controlled migration files.
@@ -63,9 +63,9 @@
 
 ## Low (backlog)
 
-### DEBT-005: Bundle size
-**What:** Three.js + R3F adds significant bundle weight, even for users who never interact with the globe.
-**Fix:** Code-split the globe component behind React.lazy. Only load Three.js when the globe is visible.
+### DEBT-005: ~~Bundle size — globe code splitting~~ RESOLVED
+**Status:** GlobeScene is lazy-loaded via `React.lazy()` + `Suspense` in `GlobeView.tsx`. Three.js is only loaded when the globe renders. `GlobeScene.js` chunk is 2MB — still large but isolated.
+**Remaining concern:** The 2MB chunk itself. Bundle composition analysis not yet done.
 
 ### DEBT-006: SEO limitations
 **What:** GitHub Pages + HashRouter + SPA means no server-side rendering. Social media link previews show generic metadata.

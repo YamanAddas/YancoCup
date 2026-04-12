@@ -266,7 +266,7 @@ export default function StandingsPage() {
                 <span className="text-yc-text-primary font-medium">
                   {t("standings.ifEnded")}
                 </span>
-                <span className="text-yc-text-secondary ml-2">
+                <span className="text-yc-text-secondary ms-2">
                   {t("standings.matchdayProgress", { current: seasonBanner.matchday, total: seasonBanner.total, pct: seasonBanner.pct })}
                 </span>
               </div>
@@ -277,8 +277,8 @@ export default function StandingsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-yc-text-tertiary text-xs uppercase tracking-wider border-b border-yc-border">
-                  <SortHeader k="position" label="#" current={sortKey} dir={sortDir} onClick={handleSort} className="text-left py-3 px-3 w-8" />
-                  <th className="text-left py-3 px-2">{t("groupTable.team")}</th>
+                  <SortHeader k="position" label="#" current={sortKey} dir={sortDir} onClick={handleSort} className="text-start py-3 px-3 w-8" />
+                  <th className="text-start py-3 px-2">{t("groupTable.team")}</th>
                   <SortHeader k="playedGames" label={t("groupTable.played")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-8" />
                   <SortHeader k="won" label={t("groupTable.won")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-8" />
                   <SortHeader k="draw" label={t("groupTable.drawn")} current={sortKey} dir={sortDir} onClick={handleSort} className="text-center py-3 px-2 w-8" />
@@ -341,7 +341,7 @@ export default function StandingsPage() {
                     <td className="py-2.5 px-2 text-center font-bold text-yc-green">
                       <span>{row.points}</span>
                       {gapMap.has(row.position) && (
-                        <span className={`ml-1 text-[9px] font-normal ${
+                        <span className={`ms-1 text-[9px] font-normal ${
                           gapMap.get(row.position)!.label === "CL" ? "text-yc-text-tertiary" : "text-yc-warning"
                         }`} title={
                           gapMap.get(row.position)!.label === "CL"
@@ -401,9 +401,9 @@ export default function StandingsPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-yc-text-tertiary text-xs uppercase tracking-wider border-b border-yc-border">
-                      <th className="text-left py-3 px-3 w-8">#</th>
-                      <th className="text-left py-3 px-2">{t("stats.player")}</th>
-                      <th className="text-left py-3 px-2 hidden sm:table-cell">{t("stats.team")}</th>
+                      <th className="text-start py-3 px-3 w-8">#</th>
+                      <th className="text-start py-3 px-2">{t("stats.player")}</th>
+                      <th className="text-start py-3 px-2 hidden sm:table-cell">{t("stats.team")}</th>
                       <th className="text-center py-3 px-2 w-10">{t("stats.mp")}</th>
                       <th className="text-center py-3 px-2 w-10 font-bold">{t("stats.goals")}</th>
                       <th className="text-center py-3 px-2 w-10">{t("stats.assists")}</th>

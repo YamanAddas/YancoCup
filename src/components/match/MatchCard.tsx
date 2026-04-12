@@ -27,7 +27,7 @@ function TeamBadge({
   side: "home" | "away";
   teamUrl?: string | null;
 }) {
-  const align = side === "home" ? "items-end text-right" : "items-start text-left";
+  const align = side === "home" ? "items-end text-end" : "items-start text-start";
   const code = team?.fifaCode ?? tla?.toUpperCase() ?? "?";
   const label = displayName ?? team?.name ?? code;
 
@@ -56,7 +56,7 @@ function TeamBadge({
 }
 
 function Placeholder({ label, side }: { label: string; side: "home" | "away" }) {
-  const align = side === "home" ? "items-end text-right" : "items-start text-left";
+  const align = side === "home" ? "items-end text-end" : "items-start text-start";
   return (
     <div className={`flex flex-col ${align} gap-1 min-w-0 flex-1`}>
       <div className="w-10 h-10 rounded-full bg-yc-bg-elevated border border-yc-border flex items-center justify-center">
@@ -299,7 +299,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
               <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between text-yc-text-tertiary text-xs">
                 <span>{formatMatchTime(match.date, match.time, lang)}</span>
                 {venue && (
-                  <span className="flex items-center gap-1 truncate ml-2">
+                  <span className="flex items-center gap-1 truncate ms-2">
                     <MapPin size={10} className="shrink-0" />
                     {tVenue(venue.id).name}
                   </span>

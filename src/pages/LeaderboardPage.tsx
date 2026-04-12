@@ -180,8 +180,8 @@ export default function LeaderboardPage() {
             <table className="w-full text-sm min-w-[400px]">
               <thead>
                 <tr className="text-yc-text-tertiary text-xs uppercase tracking-wider border-b border-yc-border">
-                  <th className="text-left pl-4 py-3 w-12">{t("leaderboard.rank")}</th>
-                  <th className="text-left py-3">{t("leaderboard.player")}</th>
+                  <th className="text-start ps-4 py-3 w-12">{t("leaderboard.rank")}</th>
+                  <th className="text-start py-3">{t("leaderboard.player")}</th>
                   <th className="text-center py-3 w-16">
                     <span className="hidden sm:inline">{t("leaderboard.points")}</span>
                     <span className="sm:hidden">{t("leaderboard.pts")}</span>
@@ -240,7 +240,7 @@ export default function LeaderboardPage() {
                               className={`font-medium truncate ${isMe ? "text-yc-green" : "text-yc-text-primary"}`}
                             >
                               {entry.displayName ?? entry.handle}
-                              {isMe && <span className="text-yc-text-tertiary text-xs ml-1">{t("leaderboard.you")}</span>}
+                              {isMe && <span className="text-yc-text-tertiary text-xs ms-1">{t("leaderboard.you")}</span>}
                             </span>
                             <RankPill points={entry.totalPoints} />
                           </div>

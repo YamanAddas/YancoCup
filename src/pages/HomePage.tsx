@@ -308,8 +308,8 @@ function TodaysMatches() {
           {displayMatches.matches.slice(0, 6).map((m, i) => (
             <div
               key={m.id}
-              className={`yc-reveal yc-reveal-stagger ${matchesVisible ? "visible" : ""}`}
-              style={{ "--i": i } as React.CSSProperties}
+              className={`yc-reveal yc-reveal-stagger yc-float ${matchesVisible ? "visible" : ""}`}
+              style={{ "--i": i, "--float-delay": `${i * 0.7}s`, "--float-duration": `${5 + i * 0.4}s` } as React.CSSProperties}
             >
               <MatchCard
                 match={m}
@@ -426,7 +426,7 @@ function LeaderboardSnippetInner() {
           key={entry.userId}
           className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-yc-border/50" : ""} ${i === 0 ? "bg-yc-green/[0.03]" : ""}`}
         >
-          <span className={`font-mono text-sm w-5 text-right ${i === 0 ? "text-yc-green font-bold" : "text-yc-text-tertiary"}`}>
+          <span className={`font-mono text-sm w-5 text-end ${i === 0 ? "text-yc-green font-bold" : "text-yc-text-tertiary"}`}>
             {i + 1}
           </span>
           {entry.avatarUrl ? (

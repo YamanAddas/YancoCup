@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Lock, Check, Loader2, Users as UsersIcon, Share2, Sparkles, Zap } from "lucide-react";
+import confetti from "canvas-confetti";
+import { Lock, Check, Loader2, Users as UsersIcon, Share2, Sparkles, Zap, Star } from "lucide-react";
 import { upsertPrediction, upsertQuickPrediction, canPredict } from "../../hooks/usePredictions";
 import { useConsensus } from "../../hooks/useConsensus";
 import { checkActivityBadges } from "../../lib/badges";
@@ -9,6 +10,7 @@ import { useI18n } from "../../lib/i18n";
 import { formatTimeWithTZ, getLocale } from "../../lib/formatDate";
 import TeamCrest from "../match/TeamCrest";
 import SocialShareButtons from "../pool/SocialShareButtons";
+import PredictionHeatmap from "./PredictionHeatmap";
 import type { Match, Team, Venue } from "../../types";
 import type { Prediction } from "../../hooks/usePredictions";
 
@@ -49,6 +51,7 @@ export default function PredictionCard({
   const [awayScore, setAwayScore] = useState<string>("");
   const [quickPick, setQuickPick] = useState<"H" | "D" | "A" | null>(null);
   const [isJoker, setIsJoker] = useState(false);
+  const [confidence, setConfidence] = useState<1 | 2 | 3 | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -78,11 +81,21 @@ export default function PredictionCard({
   useEffect(() => {
     if (prevScoredRef.current === null && prediction?.scored_at) {
       setJustScored(true);
+      // Fire confetti on exact score (10+ pts)
+      if (prediction.points !== null && prediction.points >= 10) {
+        confetti({
+          particleCount: 80,
+          spread: 60,
+          origin: { y: 0.7 },
+          colors: ["#00ff88", "#ffc800", "#4488ff"],
+          disableForReducedMotion: true,
+        });
+      }
       const timer = setTimeout(() => setJustScored(false), 1500);
       return () => clearTimeout(timer);
     }
     prevScoredRef.current = prediction?.scored_at ?? null;
-  }, [prediction?.scored_at]);
+  }, [prediction?.scored_at, prediction?.points]);
 
   const consensus = useConsensus(match.id, hasPrediction, competitionId, locked);
   const hasChanged =
@@ -206,6 +219,10 @@ export default function PredictionCard({
     (prediction.home_score !== null && prediction.away_score !== null && prediction.away_score > prediction.home_score)
   );
 
+  // Upset Radar: highlight knockout matches where upset bonus is available
+  const isKnockout = match.round !== "group" && match.round !== "playoff";
+  const showUpsetRadar = isKnockout && !locked && match.homeTeam && match.awayTeam;
+
   return (
     <div
       className={`yc-card p-4 transition-all duration-300 ${
@@ -226,6 +243,15 @@ export default function PredictionCard({
             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-yc-warning/15 text-yc-warning border border-yc-warning/20">
               <Zap size={8} />
               {t("predictions.bold")}
+            </span>
+          )}
+          {showUpsetRadar && (
+            <span
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-yc-danger/10 text-yc-danger/80 border border-yc-danger/15"
+              title={t("predictions.upsetRadarTip") ?? "Pick the underdog to earn +3 bonus points!"}
+            >
+              <Zap size={8} />
+              +3 {t("predictions.upsetBonus") ?? "upset"}
             </span>
           )}
         </div>
@@ -293,7 +319,7 @@ export default function PredictionCard({
         )}
 
         <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-          <span className="text-yc-text-primary text-sm font-semibold truncate text-right">
+          <span className="text-yc-text-primary text-sm font-semibold truncate text-end">
             {awayCode}
           </span>
           <TeamCrest
@@ -331,21 +357,42 @@ export default function PredictionCard({
         </div>
 
         {!locked && (
-          <button
-            onClick={() => !jokerUsedThisMatchday && setIsJoker(!isJoker)}
-            disabled={jokerUsedThisMatchday && !isJoker}
-            className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              isJoker
-                ? "bg-yc-warning/15 text-yc-warning border border-yc-warning/30"
-                : jokerUsedThisMatchday
-                  ? "text-yc-text-tertiary opacity-40 cursor-not-allowed"
-                  : "text-yc-text-tertiary hover:text-yc-warning"
-            }`}
-            title={jokerUsedThisMatchday && !isJoker ? t("predictions.jokerUsed") : t("predictions.jokerTip")}
-          >
-            <Sparkles size={12} />
-            {isJoker ? "2x" : jokerUsedThisMatchday ? t("predictions.jokerUsed") : t("predictions.joker")}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => !jokerUsedThisMatchday && setIsJoker(!isJoker)}
+              disabled={jokerUsedThisMatchday && !isJoker}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                isJoker
+                  ? "bg-yc-warning/15 text-yc-warning border border-yc-warning/30"
+                  : jokerUsedThisMatchday
+                    ? "text-yc-text-tertiary opacity-40 cursor-not-allowed"
+                    : "text-yc-text-tertiary hover:text-yc-warning"
+              }`}
+              title={jokerUsedThisMatchday && !isJoker ? t("predictions.jokerUsed") : t("predictions.jokerTip")}
+            >
+              <Sparkles size={12} />
+              {isJoker ? "2x" : jokerUsedThisMatchday ? t("predictions.jokerUsed") : t("predictions.joker")}
+            </button>
+            {/* Confidence stars */}
+            <div className="flex items-center gap-0.5" title={t("predictions.confidenceTip") ?? "How confident are you?"}>
+              {([1, 2, 3] as const).map((level) => (
+                <button
+                  key={level}
+                  onClick={() => setConfidence(confidence === level ? null : level)}
+                  className="p-0.5 transition-colors"
+                >
+                  <Star
+                    size={12}
+                    className={`transition-colors ${
+                      confidence !== null && level <= confidence
+                        ? "text-yc-warning fill-yc-warning"
+                        : "text-yc-text-tertiary hover:text-yc-warning/50"
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {!locked && !quickMode && (
@@ -383,19 +430,21 @@ export default function PredictionCard({
                 : `${prediction.home_score} : ${prediction.away_score}`}
             </span>
             {prediction.points !== null ? (
-              <span
-                className={`font-mono text-xs font-bold px-1.5 py-0.5 rounded transition-all duration-500 ${
-                  justScored ? "animate-points-reveal scale-125" : ""
-                } ${
-                  prediction.points >= 10
-                    ? "text-yc-green bg-yc-green/10"
-                    : prediction.points > 0
-                      ? "text-yc-warning bg-yc-warning/10"
-                      : "text-yc-text-tertiary bg-yc-bg-elevated"
-                }`}
-              >
-                {t("predictions.pts", { count: prediction.points })}
-              </span>
+              <div className="yc-flip-container">
+                <span
+                  className={`yc-flip-inner inline-block font-mono text-xs font-bold px-1.5 py-0.5 rounded transition-all duration-500 ${
+                    justScored ? "flipped animate-points-reveal" : ""
+                  } ${
+                    prediction.points >= 10
+                      ? "text-yc-green bg-yc-green/10"
+                      : prediction.points > 0
+                        ? "text-yc-warning bg-yc-warning/10"
+                        : "text-yc-text-tertiary bg-yc-bg-elevated"
+                  }`}
+                >
+                  {t("predictions.pts", { count: prediction.points })}
+                </span>
+              </div>
             ) : (
               <span className="text-yc-text-tertiary text-xs flex items-center gap-1">
                 <Loader2 size={10} className="animate-spin" />
@@ -422,6 +471,18 @@ export default function PredictionCard({
             )}
           />
         </div>
+      )}
+
+      {/* Score distribution heatmap — shown after match finishes */}
+      {locked && hasPrediction && prediction.points !== null && !prediction.quick_pick && (
+        <PredictionHeatmap
+          matchId={match.id}
+          competitionId={competitionId}
+          actualHome={match.homeScore}
+          actualAway={match.awayScore}
+          userHome={prediction.home_score}
+          userAway={prediction.away_score}
+        />
       )}
     </div>
   );
