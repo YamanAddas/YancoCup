@@ -2518,7 +2518,7 @@ app.get("/api/team/:teamId/photos", async (c) => {
   }
 
   // 1. Check KV cache
-  const cacheKey = `photos:${fdTeamId}`;
+  const cacheKey = `photos-v2:${fdTeamId}`;
   const cached = await c.env.SCORES_KV.get(cacheKey);
   if (cached) {
     const parsed = safeParse(cached);
@@ -2608,10 +2608,12 @@ app.get("/api/team/:teamId/photos", async (c) => {
         }>;
       };
       // Read ALL response entries (some teams have multiple sub-arrays for reserves/loans)
+      // Convert api-sports.io URLs to Worker proxy URLs to bypass hotlink protection
+      const workerBase = new URL(c.req.url).origin;
       for (const entry of squadData.response ?? []) {
         for (const p of entry.players ?? []) {
-          if (p.photo) {
-            photos[p.name] = p.photo;
+          if (p.photo && p.id) {
+            photos[p.name] = `${workerBase}/api/player-photo/${p.id}`;
           }
         }
       }
@@ -2627,6 +2629,56 @@ app.get("/api/team/:teamId/photos", async (c) => {
   });
 
   return c.json(result);
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/player-photo/:playerId — proxy player photos from api-sports.io
+// Bypasses hotlink protection by fetching server-side and caching in KV.
+// ---------------------------------------------------------------------------
+
+app.get("/api/player-photo/:playerId", async (c) => {
+  const playerId = c.req.param("playerId");
+  if (!/^\d+$/.test(playerId)) {
+    return c.json({ error: "Invalid player ID" }, 400);
+  }
+
+  const cacheKey = `photo-img:${playerId}`;
+
+  // Check KV cache for the image binary
+  const cached = await c.env.SCORES_KV.get(cacheKey, "arrayBuffer");
+  if (cached) {
+    return new Response(cached, {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=2592000", // 30 days
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  }
+
+  // Fetch from api-sports.io (no Referer → no 403)
+  try {
+    const imgRes = await fetch(`https://media.api-sports.io/football/players/${playerId}.png`);
+    if (!imgRes.ok) {
+      return c.json({ error: "Photo not found" }, 404);
+    }
+    const imgBuffer = await imgRes.arrayBuffer();
+
+    // Cache in KV for 30 days
+    await c.env.SCORES_KV.put(cacheKey, imgBuffer, {
+      expirationTtl: 2592000,
+    });
+
+    return new Response(imgBuffer, {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=2592000",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  } catch {
+    return c.json({ error: "Failed to fetch photo" }, 500);
+  }
 });
 
 // ---------------------------------------------------------------------------

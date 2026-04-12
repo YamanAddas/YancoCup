@@ -126,8 +126,27 @@ const POS_BG: Record<string, string> = {
   Unknown: "bg-yc-bg-elevated text-yc-text-tertiary border-yc-border",
 };
 
-function PlayerHexCard({ player, position, photoUrl }: { player: Player; position: string; photoUrl?: string }) {
+/** Position-specific gradient accent for card top */
+const POS_GRADIENT: Record<string, string> = {
+  Goalkeeper: "from-amber-500/30 to-amber-500/0",
+  Defence: "from-sky-500/30 to-sky-500/0",
+  Midfield: "from-emerald-500/30 to-emerald-500/0",
+  Offence: "from-red-500/30 to-red-500/0",
+  Unknown: "from-yc-text-tertiary/20 to-transparent",
+};
+
+const POS_RING: Record<string, string> = {
+  Goalkeeper: "ring-amber-400/40",
+  Defence: "ring-sky-400/40",
+  Midfield: "ring-yc-green/40",
+  Offence: "ring-red-400/40",
+  Unknown: "ring-yc-border",
+};
+
+function PlayerCard({ player, position, photoUrl, lang }: { player: Player; position: string; photoUrl?: string; lang: string }) {
   const [imgError, setImgError] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const { t } = useI18n();
   const initials = player.name
     .split(" ")
     .filter(Boolean)
@@ -138,52 +157,103 @@ function PlayerHexCard({ player, position, photoUrl }: { player: Player; positio
   const posColor = POS_COLORS[position] ?? "text-yc-text-tertiary";
   const posBg = POS_BG[position] ?? POS_BG.Unknown!;
   const posLabel = position === "Goalkeeper" ? "GK" : position === "Defence" ? "DEF" : position === "Midfield" ? "MID" : position === "Offence" ? "FWD" : "—";
+  const gradient = POS_GRADIENT[position] ?? POS_GRADIENT.Unknown!;
+  const ring = POS_RING[position] ?? POS_RING.Unknown!;
   const hasPhoto = photoUrl && !imgError;
-  const age = player.dateOfBirth ? new Date().getFullYear() - new Date(player.dateOfBirth).getFullYear() : null;
+  const age = player.dateOfBirth
+    ? Math.floor((Date.now() - new Date(player.dateOfBirth).getTime()) / 31557600000)
+    : null;
+  const nameParts = player.name.split(" ").filter(Boolean);
+  const lastName = nameParts.length > 1 ? nameParts.slice(-1).join(" ") : player.name;
+  const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(" ") : "";
 
   return (
-    <div className="hex-sm-3d">
-      <div className="hex-sm-wrap group">
-        <div className="hex-sm-border" />
-        <div className="hex-sm-card p-3 flex flex-col items-center text-center gap-1.5">
-          <div className="hex-sm-glass" />
-          <div className="relative z-10 flex flex-col items-center gap-1.5 w-full">
-            {/* Photo or monogram */}
-            <div className="relative">
-              {hasPhoto ? (
-                <img
-                  src={photoUrl}
-                  alt={player.name}
-                  onError={() => setImgError(true)}
-                  className="w-16 h-16 rounded-full object-cover border-2 border-yc-border"
-                  loading="lazy"
-                />
-              ) : (
-                <div className={`w-16 h-16 rounded-full border-2 flex items-center justify-center ${posBg}`}>
-                  <span className="text-lg font-bold font-mono">{initials}</span>
-                </div>
-              )}
-              {/* Shirt number badge */}
-              {player.shirtNumber != null && (
-                <span className="absolute -bottom-1 -end-1 min-w-[22px] h-[22px] flex items-center justify-center rounded-full bg-yc-bg-deep border border-yc-border text-[10px] font-mono font-bold text-yc-text-primary px-1">
-                  {player.shirtNumber}
+    <button
+      onClick={() => setExpanded((v) => !v)}
+      className="group yc-card rounded-xl overflow-hidden transition-all duration-300 hover:border-[var(--yc-border-accent)] hover:shadow-[0_0_20px_rgba(0,255,136,0.06)] text-start w-full cursor-pointer"
+    >
+      {/* Gradient top accent */}
+      <div className={`h-1.5 bg-gradient-to-b ${gradient}`} />
+
+      {/* Main content */}
+      <div className="p-3 flex flex-col items-center text-center gap-2">
+        {/* Photo with position-colored ring */}
+        <div className="relative mt-1">
+          {hasPhoto ? (
+            <img
+              src={photoUrl}
+              alt={player.name}
+              onError={() => setImgError(true)}
+              className={`w-[72px] h-[72px] rounded-full object-cover ring-2 ${ring} transition-transform duration-300 group-hover:scale-105`}
+              loading="lazy"
+            />
+          ) : (
+            <div className={`w-[72px] h-[72px] rounded-full border-2 flex items-center justify-center ${posBg} transition-transform duration-300 group-hover:scale-105`}>
+              <span className="text-xl font-bold font-mono">{initials}</span>
+            </div>
+          )}
+          {/* Shirt number badge */}
+          {player.shirtNumber != null && (
+            <span className={`absolute -bottom-1 -end-1 min-w-[24px] h-[24px] flex items-center justify-center rounded-full bg-yc-bg-deep border-2 border-yc-border text-[11px] font-mono font-bold text-yc-text-primary px-1 ${posColor}`}>
+              {player.shirtNumber}
+            </span>
+          )}
+        </div>
+
+        {/* Name — last name prominent */}
+        <div className="w-full min-w-0">
+          {firstName && (
+            <p className="text-[10px] text-yc-text-tertiary leading-tight truncate">{firstName}</p>
+          )}
+          <p className="text-sm font-bold text-yc-text-primary leading-tight truncate">{lastName}</p>
+        </div>
+
+        {/* Position badge + flag */}
+        <div className="flex items-center gap-2">
+          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${posBg}`}>{posLabel}</span>
+          <NationalityFlag nationality={player.nationality} />
+        </div>
+      </div>
+
+      {/* Expandable detail panel */}
+      <div className={`grid ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"} transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]`}>
+        <div className="overflow-hidden min-h-0">
+          <div className="border-t border-yc-border/50 px-3 py-3 space-y-2">
+            {/* Nationality */}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-wider text-yc-text-tertiary">{t("team.nationality")}</span>
+              <span className="text-xs text-yc-text-primary flex items-center gap-1.5">
+                <NationalityFlag nationality={player.nationality} />
+                {player.nationality}
+              </span>
+            </div>
+            {/* Age */}
+            {age != null && (
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase tracking-wider text-yc-text-tertiary">{t("team.age")}</span>
+                <span className="text-xs font-mono text-yc-text-primary">{age}</span>
+              </div>
+            )}
+            {/* Position */}
+            {player.position && (
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase tracking-wider text-yc-text-tertiary">{t("team.position")}</span>
+                <span className={`text-xs font-medium ${posColor}`}>{player.position}</span>
+              </div>
+            )}
+            {/* Date of birth */}
+            {player.dateOfBirth && (
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase tracking-wider text-yc-text-tertiary">{t("team.dob")}</span>
+                <span className="text-xs text-yc-text-secondary">
+                  {new Date(player.dateOfBirth).toLocaleDateString(getLocale(lang), { year: "numeric", month: "short", day: "numeric" })}
                 </span>
-              )}
-            </div>
-
-            {/* Name */}
-            <p className="text-xs font-semibold text-yc-text-primary leading-tight truncate w-full">{player.name}</p>
-
-            {/* Position + nationality */}
-            <div className="flex items-center gap-1.5">
-              <span className={`text-[10px] font-mono font-bold ${posColor}`}>{posLabel}</span>
-              <NationalityFlag nationality={player.nationality} />
-              {age != null && <span className="text-[10px] font-mono text-yc-text-tertiary">{age}</span>}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -1378,13 +1448,14 @@ export default function TeamPage() {
                   </div>
 
                   {/* Player hex card grid */}
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {players.map((p) => (
-                      <PlayerHexCard
+                      <PlayerCard
                         key={p.id}
                         player={p}
                         position={position}
                         photoUrl={findPhoto(p.name, playerPhotos)}
+                        lang={lang}
                       />
                     ))}
                   </div>
