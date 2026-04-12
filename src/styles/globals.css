@@ -545,6 +545,16 @@ body {
   );
 }
 
+/* Ogee arch silhouette — Prediction CTA card */
+.yc-arch-card {
+  clip-path: polygon(
+    0% 12%, 2% 6%, 6% 2%, 14% 0%,
+    86% 0%, 94% 2%, 98% 6%, 100% 12%,
+    100% 100%, 0% 100%
+  );
+  border-radius: 0 0 12px 12px;
+}
+
 /* ── Orb glow (background decoration) ── */
 .yc-orb {
   position: absolute;

@@ -487,6 +487,7 @@ const TEAM_SECTIONS = [
   { id: "fixtures", label: "Fixtures" },
   { id: "news", label: "News" },
   { id: "squad", label: "Squad" },
+  { id: "venue", label: "Venue" },
   { id: "community", label: "Community" },
 ] as const;
 
@@ -512,7 +513,9 @@ export default function TeamPage() {
     nextMatchOpponent: string | null;
     nextMatchIsHome: boolean;
     userPredictions: { total: number; correct: number; accuracy: number } | null;
-  }>({ nextMatchConsensus: null, nextMatchOpponent: null, nextMatchIsHome: true, userPredictions: null });
+    userNextPrediction: { homeScore: number; awayScore: number; quickPick?: string } | null;
+    nextMatchId: number | null;
+  }>({ nextMatchConsensus: null, nextMatchOpponent: null, nextMatchIsHome: true, userPredictions: null, userNextPrediction: null, nextMatchId: null });
   const [communityLoading, setCommunityLoading] = useState(true);
   const heroRef = useRef<HTMLDivElement>(null);
   const [heroVisible, setHeroVisible] = useState(true);
@@ -617,8 +620,11 @@ export default function TeamPage() {
         }
       }
 
-      // User prediction history for this team
+      // User prediction history for this team + next match prediction
       let userPredictions: typeof communityData.userPredictions = null;
+      let userNextPrediction: typeof communityData.userNextPrediction = null;
+      const nextMatchId = upcomingMatches.length > 0 ? upcomingMatches[0]!.apiId : null;
+
       if (user) {
         const finishedIds = finishedMatches.map((m) => m.apiId);
         if (finishedIds.length > 0) {
@@ -635,10 +641,29 @@ export default function TeamPage() {
             userPredictions = { total, correct, accuracy: Math.round((correct / total) * 100) };
           }
         }
+
+        // User's prediction for next match (for CTA)
+        if (nextMatchId) {
+          const { data: nextPred } = await supabase
+            .from("yc_predictions")
+            .select("home_score, away_score, quick_pick")
+            .eq("user_id", user.id)
+            .eq("match_id", nextMatchId)
+            .eq("competition_id", comp.id)
+            .maybeSingle();
+
+          if (nextPred && (nextPred.home_score != null || nextPred.quick_pick)) {
+            userNextPrediction = {
+              homeScore: nextPred.home_score ?? 0,
+              awayScore: nextPred.away_score ?? 0,
+              quickPick: nextPred.quick_pick ?? undefined,
+            };
+          }
+        }
       }
 
       if (!cancelled) {
-        setCommunityData({ nextMatchConsensus, nextMatchOpponent, nextMatchIsHome, userPredictions });
+        setCommunityData({ nextMatchConsensus, nextMatchOpponent, nextMatchIsHome, userPredictions, userNextPrediction, nextMatchId });
         setCommunityLoading(false);
       }
     }
@@ -1355,6 +1380,35 @@ export default function TeamPage() {
           )}
         </Accordion>
 
+        {/* ── Venue accordion ── */}
+        {team.venue && (
+          <Accordion
+            id="section-venue"
+            icon={<MapPin size={16} />}
+            title="Venue"
+            summary={team.venue}
+          >
+            <div className="relative overflow-hidden rounded-xl border border-yc-border/50 p-5" style={{ background: "var(--yc-bg-glass-light)" }}>
+              <ArabesqueLattice className="absolute inset-0 text-yc-green opacity-[0.03] pointer-events-none hidden sm:block" />
+              <div className="relative z-10">
+                <h4 className="font-heading text-lg font-semibold text-yc-text-primary">{team.venue}</h4>
+                {team.address && (
+                  <p className="text-sm text-yc-text-secondary mt-1">{team.address}</p>
+                )}
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(team.venue + (team.address ? ", " + team.address : ""))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 mt-3 text-xs text-yc-green hover:text-yc-green-muted transition-colors"
+                >
+                  <ExternalLink size={12} />
+                  View on Google Maps
+                </a>
+              </div>
+            </div>
+          </Accordion>
+        )}
+
         {/* ── Community accordion ── */}
         <Accordion
           id="section-community"
@@ -1445,6 +1499,84 @@ export default function TeamPage() {
             </div>
           )}
         </Accordion>
+
+        {/* ── Prediction CTA — arch-shaped, always visible ── */}
+        {upcoming.length > 0 && (() => {
+          const nm = upcoming[0]!;
+          const isHome = nm.homeTeam === team.tla;
+          const opCrest = isHome ? nm.awayCrest : nm.homeCrest;
+          const opName = (() => {
+            const raw = isHome ? nm.awayTeamName : nm.homeTeamName;
+            if (raw) { const t = tTeam(raw); if (t !== raw) return t; }
+            return tTeam((isHome ? nm.awayTeam : nm.homeTeam) ?? "?");
+          })();
+          const opTla = isHome ? nm.awayTeam : nm.homeTeam;
+          const date = new Date(nm.utcDate);
+          const pred = communityData.userNextPrediction;
+
+          return (
+            <div className="mt-8 mb-2">
+              <div
+                className="relative overflow-hidden yc-arch-card"
+                style={{ background: "var(--yc-bg-glass-light)" }}
+              >
+                {/* Ornate geometric frame — most decorated element */}
+                <ArabesqueLattice className="absolute inset-0 text-yc-green opacity-[0.04] pointer-events-none hidden sm:block" />
+                <CornerAccent position="top-left" className="text-yc-green opacity-10" />
+                <CornerAccent position="top-right" className="text-yc-green opacity-10" />
+                <GeometricBand className="absolute top-0 left-0 w-full text-yc-green opacity-[0.08]" />
+
+                <div className="relative z-10 px-6 pt-8 pb-6 text-center">
+                  {/* Star ornament */}
+                  <div className="flex justify-center mb-3">
+                    <StarDivider gold className="scale-150" />
+                  </div>
+
+                  <h3 className="font-heading text-lg sm:text-xl font-bold text-yc-text-primary">
+                    Predict {displayName}'s Next Match
+                  </h3>
+
+                  {/* Opponent info */}
+                  <div className="flex items-center justify-center gap-3 mt-4">
+                    <TeamCrest tla={team.tla} crest={team.crest} size="md" />
+                    <span className="text-xs text-yc-text-tertiary font-medium">{isHome ? "vs" : "@"}</span>
+                    {opCrest && <TeamCrest tla={opTla ?? "?"} crest={opCrest} size="md" />}
+                    <span className="text-sm font-medium text-yc-text-primary">{opName}</span>
+                  </div>
+
+                  <div className="text-xs text-yc-text-secondary mt-2 font-mono">
+                    {date.toLocaleDateString(getLocale(lang), { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}
+                    {" · "}
+                    {formatTimeWithTZ(date, lang)}
+                  </div>
+
+                  {/* User prediction status */}
+                  {pred && (
+                    <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-yc-bg-elevated/80 border border-yc-border/50 text-xs">
+                      <Star size={12} className="text-yc-warning" />
+                      <span className="text-yc-text-secondary">
+                        Your prediction: {pred.quickPick
+                          ? (pred.quickPick === "H" ? "Home" : pred.quickPick === "D" ? "Draw" : "Away")
+                          : `${pred.homeScore}–${pred.awayScore}`
+                        }
+                      </span>
+                    </div>
+                  )}
+
+                  {/* CTA button */}
+                  <Link
+                    to={`/${comp.id}/match/${nm.apiId}`}
+                    className="mt-4 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-yc-green text-yc-bg-deep font-heading font-bold text-sm hover:bg-yc-green-muted transition-colors"
+                  >
+                    {pred ? "Change Prediction" : user ? "Make Your Prediction" : "Sign In to Predict"}
+                  </Link>
+                </div>
+
+                <GeometricBand className="absolute bottom-0 left-0 w-full text-yc-green opacity-[0.08]" />
+              </div>
+            </div>
+          );
+        })()}
 
       </div>
     </div>
