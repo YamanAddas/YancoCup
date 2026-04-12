@@ -2656,18 +2656,31 @@ app.get("/api/player-photo/:playerId", async (c) => {
     });
   }
 
-  // Fetch from api-sports.io (no Referer → no 403)
+  // Fetch from api-sports.io media CDN
+  // CDN requires User-Agent and/or Accept headers to return images
+  const url = `https://media.api-sports.io/football/players/${playerId}.png`;
   try {
-    const imgRes = await fetch(`https://media.api-sports.io/football/players/${playerId}.png`);
-    if (!imgRes.ok) {
-      return c.json({ error: "Photo not found" }, 404);
-    }
-    const imgBuffer = await imgRes.arrayBuffer();
+    const imgRes = await fetch(new Request(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; YancoCup/1.0)",
+        "Accept": "image/png,image/*,*/*",
+      },
+    }));
 
-    // Cache in KV for 30 days
-    await c.env.SCORES_KV.put(cacheKey, imgBuffer, {
-      expirationTtl: 2592000,
-    });
+    if (!imgRes.ok) {
+      console.error(`[photo-proxy] CDN returned ${imgRes.status} for player ${playerId}`);
+      return c.json({ error: "Photo not found", status: imgRes.status }, 404);
+    }
+
+    const imgBuffer = await imgRes.arrayBuffer();
+    if (imgBuffer.byteLength < 100) {
+      return c.json({ error: "Empty image response" }, 404);
+    }
+
+    // Cache in KV for 30 days (best-effort — may hit daily write limit on free tier)
+    try {
+      await c.env.SCORES_KV.put(cacheKey, imgBuffer, { expirationTtl: 2592000 });
+    } catch { /* KV write limit — serve uncached */ }
 
     return new Response(imgBuffer, {
       headers: {
@@ -2676,8 +2689,9 @@ app.get("/api/player-photo/:playerId", async (c) => {
         "Access-Control-Allow-Origin": "*",
       },
     });
-  } catch {
-    return c.json({ error: "Failed to fetch photo" }, 500);
+  } catch (err) {
+    console.error(`[photo-proxy] Error for player ${playerId}:`, String(err));
+    return c.json({ error: "Failed to fetch photo", detail: String(err) }, 500);
   }
 });
 
