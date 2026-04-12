@@ -10,8 +10,11 @@ import { supabase } from "../lib/supabase";
 import { COMPETITIONS } from "../lib/competitions";
 import {
   Trophy, Target, TrendingUp, Flame, Award, Shield, Globe, Medal,
-  Eye, Zap, Crosshair, CheckCircle, Shuffle, Star, Bell, History, ChevronDown, Share2,
+  Eye, Zap, Crosshair, CheckCircle, Shuffle, Star, Bell, History, ChevronDown, Share2, Heart, X,
 } from "lucide-react";
+import { useFollowedTeams } from "../hooks/useFollowedTeams";
+import { useTeamMap } from "../hooks/useTeams";
+import TeamCrest from "../components/match/TeamCrest";
 import type { LucideIcon } from "lucide-react";
 
 // Map badge icon names to Lucide components
@@ -181,6 +184,57 @@ function AccuracyBar({ stats }: { stats: UserStats }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function FollowedTeamsSection() {
+  const { follows, unfollowTeam, loading } = useFollowedTeams();
+  const teamMap = useTeamMap();
+  const { t } = useI18n();
+
+  if (loading) return null;
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center gap-2 mb-3">
+        <Heart size={16} className="text-yc-green" fill="currentColor" />
+        <h3 className="text-sm font-medium text-yc-text-tertiary uppercase tracking-wider">
+          {t("profile.followedTeams")}
+        </h3>
+      </div>
+      {follows.length === 0 ? (
+        <p className="text-yc-text-tertiary text-sm">{t("profile.noFollowedTeams")}</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {follows.map((f) => {
+            const wcTeam = teamMap.get(f.team_id);
+            return (
+              <a
+                key={f.team_id}
+                href={`#/WC/team/${f.team_id}`}
+                className="group flex items-center gap-2 px-3 py-2 rounded-lg bg-yc-bg-elevated border border-yc-border hover:border-yc-green/30 transition-colors"
+              >
+                <TeamCrest
+                  tla={wcTeam?.fifaCode ?? f.team_id.toUpperCase()}
+                  isoCode={wcTeam?.isoCode}
+                  size="sm"
+                />
+                <span className="text-sm text-yc-text-primary font-medium">
+                  {wcTeam?.fifaCode ?? f.team_id.toUpperCase()}
+                </span>
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); unfollowTeam(f.team_id); }}
+                  className="p-0.5 rounded text-yc-text-tertiary opacity-0 group-hover:opacity-100 hover:text-yc-danger transition-all"
+                  title={t("team.unfollow")}
+                >
+                  <X size={12} />
+                </button>
+              </a>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -557,6 +611,9 @@ export default function ProfilePage() {
           </button>
         </div>
       )}
+
+      {/* Followed teams */}
+      <FollowedTeamsSection />
 
       {/* Badge collection */}
       <div className="space-y-6 mb-8">

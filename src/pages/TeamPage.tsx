@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, User, MapPin, Calendar, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star, Activity, Users, ChevronDown, BarChart3, MessageCircle, TrendingUp, Shield, Crosshair, Lock } from "lucide-react";
+import { ArrowLeft, User, MapPin, Calendar, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star, Activity, Users, ChevronDown, BarChart3, MessageCircle, TrendingUp, Shield, Crosshair, Lock, Heart } from "lucide-react";
+import { useFollowedTeams } from "../hooks/useFollowedTeams";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import { useAuth } from "../lib/auth";
@@ -520,6 +521,9 @@ export default function TeamPage() {
   const heroRef = useRef<HTMLDivElement>(null);
   const [heroVisible, setHeroVisible] = useState(true);
   const [activeSection, setActiveSection] = useState("overview");
+  const { isFollowing, followTeam, unfollowTeam } = useFollowedTeams();
+  const teamType = comp.id === "WC" ? "national" as const : "club" as const;
+  const isFollowed = isFollowing(teamId ?? "");
 
   // Fetch team data from /api/:comp/teams
   useEffect(() => {
@@ -890,6 +894,19 @@ export default function TeamPage() {
                   </span>
                 )}
               </div>
+              {user && teamId && (
+                <button
+                  onClick={() => isFollowed ? unfollowTeam(teamId) : followTeam(teamId, teamType)}
+                  className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    isFollowed
+                      ? "bg-yc-green/12 text-yc-green border border-yc-green/25 hover:bg-yc-danger/12 hover:text-yc-danger hover:border-yc-danger/25"
+                      : "bg-yc-bg-elevated text-yc-text-secondary border border-yc-border hover:border-yc-green/40 hover:text-yc-green"
+                  }`}
+                >
+                  <Heart size={14} fill={isFollowed ? "currentColor" : "none"} />
+                  {isFollowed ? t("team.following") : t("team.follow")}
+                </button>
+              )}
             </div>
           </div>
 

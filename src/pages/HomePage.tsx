@@ -9,6 +9,7 @@ import { useVenueMap } from "../hooks/useVenues";
 import { useScores } from "../hooks/useScores";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { usePredictedMatchIds } from "../hooks/usePredictions";
+import { useFollowedTeams } from "../hooks/useFollowedTeams";
 import { useScrollReveal } from "../hooks/useScrollReveal";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -27,6 +28,7 @@ import {
   ChevronRight,
   Target,
   Star,
+  Heart,
 } from "lucide-react";
 
 /** Wraps a section in a scroll-triggered reveal */
@@ -119,6 +121,56 @@ function CompetitionCards() {
               {comp.seasonLabel}
             </p>
           </NavLink>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function MyTeamsMatches() {
+  const { user } = useAuth();
+  const { follows, loading: followsLoading, followedIds } = useFollowedTeams();
+  const wcMatches = useSchedule();
+  const teamMap = useTeamMap();
+  const venueMap = useVenueMap();
+  const { scoreMap } = useScores();
+  const predictedIds = usePredictedMatchIds();
+  const { t } = useI18n();
+  const { ref, visible } = useScrollReveal();
+
+  const myMatches = useMemo(() => {
+    if (followedIds.size === 0) return [];
+    const today = new Date().toISOString().slice(0, 10);
+    return wcMatches
+      .filter(
+        (m) =>
+          m.date >= today &&
+          ((m.homeTeam && followedIds.has(m.homeTeam)) ||
+            (m.awayTeam && followedIds.has(m.awayTeam))),
+      )
+      .slice(0, 4);
+  }, [wcMatches, followedIds]);
+
+  if (!user || followsLoading || follows.length === 0 || myMatches.length === 0) return null;
+
+  return (
+    <section ref={ref} className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Heart size={18} className="text-yc-green" fill="currentColor" />
+        <h3 className="font-heading text-xl font-bold">{t("home.myTeams")}</h3>
+      </div>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 yc-reveal ${visible ? "visible" : ""}`}>
+        {myMatches.map((m) => (
+          <MatchCard
+            key={m.id}
+            match={m}
+            teamMap={teamMap}
+            venueMap={venueMap}
+            liveScore={scoreMap.get(m.id)}
+            competitionId="WC"
+            predicted={predictedIds.has(m.id)}
+            compact
+          />
         ))}
       </div>
     </section>
@@ -491,6 +543,8 @@ export default function HomePage() {
       </section>
 
       <PersonalizedGreeting />
+
+      <MyTeamsMatches />
 
       {/* Competition cards */}
       <CompetitionCards />
