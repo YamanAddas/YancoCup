@@ -1006,7 +1006,7 @@ export default function TeamPage() {
               </div>
               {user && teamId && (
                 <button
-                  onClick={() => isFollowed ? unfollowTeam(teamId) : followTeam(teamId, teamType)}
+                  onClick={() => isFollowed ? unfollowTeam(teamId) : followTeam(teamId, teamType, { competitionId: comp.id, teamName: team.shortName || team.name, teamCrest: team.crest })}
                   className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     isFollowed
                       ? "bg-yc-green/12 text-yc-green border border-yc-green/25 hover:bg-yc-danger/12 hover:text-yc-danger hover:border-yc-danger/25"

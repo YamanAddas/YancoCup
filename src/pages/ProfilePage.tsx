@@ -14,7 +14,6 @@ import {
   Eye, Zap, Crosshair, CheckCircle, Shuffle, Star, Bell, History, ChevronDown, Share2, Heart, X,
 } from "lucide-react";
 import { useFollowedTeams } from "../hooks/useFollowedTeams";
-import { useTeamMap } from "../hooks/useTeams";
 import TeamCrest from "../components/match/TeamCrest";
 import type { LucideIcon } from "lucide-react";
 
@@ -191,7 +190,6 @@ function AccuracyBar({ stats }: { stats: UserStats }) {
 
 function FollowedTeamsSection() {
   const { follows, unfollowTeam, loading } = useFollowedTeams();
-  const teamMap = useTeamMap();
   const { t } = useI18n();
 
   if (loading) return null;
@@ -209,20 +207,20 @@ function FollowedTeamsSection() {
       ) : (
         <div className="flex flex-wrap gap-2">
           {follows.map((f) => {
-            const wcTeam = teamMap.get(f.team_id);
+            const compId = f.competition_id ?? "WC";
             return (
               <a
                 key={f.team_id}
-                href={`#/WC/team/${f.team_id}`}
+                href={`#/${compId}/team/${f.team_id}`}
                 className="group flex items-center gap-2 px-3 py-2 rounded-lg bg-yc-bg-elevated border border-yc-border hover:border-yc-green/30 transition-colors"
               >
                 <TeamCrest
-                  tla={wcTeam?.fifaCode ?? f.team_id.toUpperCase()}
-                  isoCode={wcTeam?.isoCode}
+                  tla={f.team_name ?? f.team_id}
+                  crest={f.team_crest ?? undefined}
                   size="sm"
                 />
                 <span className="text-sm text-yc-text-primary font-medium">
-                  {wcTeam?.fifaCode ?? f.team_id.toUpperCase()}
+                  {f.team_name ?? f.team_id}
                 </span>
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); unfollowTeam(f.team_id); }}

@@ -6,6 +6,9 @@ export interface TeamFollow {
   id: string;
   team_id: string;
   team_type: "national" | "club";
+  competition_id: string | null;
+  team_name: string | null;
+  team_crest: string | null;
   created_at: string;
 }
 
@@ -26,7 +29,7 @@ export function useFollowedTeams() {
     }
     const { data, error } = await supabase
       .from("yc_team_follows")
-      .select("id, team_id, team_type, created_at")
+      .select("id, team_id, team_type, competition_id, team_name, team_crest, created_at")
       .eq("user_id", user.id)
       .order("created_at");
     if (error) {
@@ -49,13 +52,16 @@ export function useFollowedTeams() {
   );
 
   const followTeam = useCallback(
-    async (teamId: string, teamType: "national" | "club") => {
+    async (teamId: string, teamType: "national" | "club", meta?: { competitionId?: string; teamName?: string; teamCrest?: string }) => {
       if (!user) return;
       // Optimistic insert
       const optimistic: TeamFollow = {
         id: crypto.randomUUID(),
         team_id: teamId,
         team_type: teamType,
+        competition_id: meta?.competitionId ?? null,
+        team_name: meta?.teamName ?? null,
+        team_crest: meta?.teamCrest ?? null,
         created_at: new Date().toISOString(),
       };
       setFollows((prev) => [...prev, optimistic]);
@@ -64,6 +70,9 @@ export function useFollowedTeams() {
         user_id: user.id,
         team_id: teamId,
         team_type: teamType,
+        competition_id: meta?.competitionId ?? null,
+        team_name: meta?.teamName ?? null,
+        team_crest: meta?.teamCrest ?? null,
       });
 
       if (error) {
