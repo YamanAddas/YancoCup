@@ -150,9 +150,9 @@ function AccuracyBar({ stats }: { stats: UserStats }) {
 
   const segments = [
     { label: t("howToPlay.exactScore"), count: stats.exactScores, color: "bg-yc-green" },
-    { label: t("howToPlay.correctGD"), count: stats.correctGD, color: "bg-emerald-500" },
+    { label: t("howToPlay.correctGD"), count: stats.correctGD, color: "bg-yc-green-muted" },
     { label: t("howToPlay.correctWinner"), count: stats.correctResult, color: "bg-yc-warning" },
-    { label: t("howToPlay.wrong"), count: stats.wrong, color: "bg-red-500/70" },
+    { label: t("howToPlay.wrong"), count: stats.wrong, color: "bg-yc-danger/70" },
   ];
 
   return (

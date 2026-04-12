@@ -229,7 +229,7 @@ export default function PredictionsPage() {
               <span
                 className={`flex items-center gap-1 text-xs ${
                   streak.freeze_available
-                    ? "text-blue-400"
+                    ? "text-yc-info"
                     : "text-yc-text-tertiary line-through"
                 }`}
                 title={streak.freeze_available ? t("predictions.freezeAvailable") : t("predictions.freezeUsed")}
@@ -261,7 +261,7 @@ export default function PredictionsPage() {
             <div className="flex items-center bg-yc-bg-surface border border-yc-border rounded-lg p-0.5">
               <button
                 onClick={() => setQuickMode(false)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   !quickMode
                     ? "bg-yc-green text-yc-bg-deep"
                     : "text-yc-text-tertiary hover:text-yc-text-secondary"
@@ -271,7 +271,7 @@ export default function PredictionsPage() {
               </button>
               <button
                 onClick={() => setQuickMode(true)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   quickMode
                     ? "bg-yc-green text-yc-bg-deep"
                     : "text-yc-text-tertiary hover:text-yc-text-secondary"

@@ -350,7 +350,7 @@ export default function BracketPage() {
       )}
 
       {/* Bracket tree — horizontally scrollable */}
-      <div className="yc-card p-6 overflow-x-auto overflow-y-hidden">
+      <div className="yc-card p-4 sm:p-5 overflow-x-auto overflow-y-hidden">
         <div className="flex items-stretch min-w-max" style={{ minHeight }}>
           {bracketRounds.map((round, i) => {
             const isFirst = i === 0;

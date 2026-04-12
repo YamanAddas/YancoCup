@@ -159,7 +159,7 @@ export default function ArticlePage() {
         </button>
       )}
       {translateError && (
-        <p className="text-sm text-red-400">{t("news.translateError")}</p>
+        <p className="text-sm text-yc-danger">{t("news.translateError")}</p>
       )}
 
       {/* Image */}
@@ -177,7 +177,7 @@ export default function ArticlePage() {
       )}
 
       {/* Article content */}
-      <div className="yc-card p-6">
+      <div className="yc-card p-4 sm:p-5">
         {article.full_content ? (
           <div className="space-y-4">
             {/* AI Summary header */}

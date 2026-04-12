@@ -87,7 +87,7 @@ export default function PredictionHeatmap({
               return (
                 <div
                   key={h}
-                  className={`aspect-square rounded-sm flex items-center justify-center text-[8px] font-mono transition-all ${
+                  className={`aspect-square rounded flex items-center justify-center text-[8px] font-mono transition-all ${
                     isActual
                       ? "ring-1 ring-yc-warning"
                       : isUser
@@ -114,10 +114,10 @@ export default function PredictionHeatmap({
       </div>
       <div className="flex items-center gap-3 mt-1.5 text-[9px] text-yc-text-tertiary">
         <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-sm ring-1 ring-yc-warning" /> {t("predictions.heatmapActual") ?? "Actual"}
+          <span className="w-2 h-2 rounded-full ring-1 ring-yc-warning" /> {t("predictions.heatmapActual") ?? "Actual"}
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-sm ring-1 ring-yc-green/60" /> {t("predictions.heatmapYours") ?? "Yours"}
+          <span className="w-2 h-2 rounded-full ring-1 ring-yc-green/60" /> {t("predictions.heatmapYours") ?? "Yours"}
         </span>
       </div>
     </div>

@@ -101,7 +101,7 @@ export default function LeaderboardPage() {
             <button
               key={p.key}
               onClick={() => setPeriod(p.key)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 period === p.key
                   ? "bg-yc-green text-yc-bg-deep"
                   : "text-yc-text-secondary hover:text-yc-text-primary"
@@ -200,7 +200,7 @@ export default function LeaderboardPage() {
                       className={`${heights[i]} w-full mt-2 rounded-t-lg yc-card flex items-start justify-center pt-3 ${glows[i]}`}
                     >
                       <span className={`font-heading text-2xl font-bold ${
-                        rank === 1 ? "text-yc-green" : rank === 2 ? "text-gray-400" : "text-amber-600"
+                        rank === 1 ? "text-yc-green" : rank === 2 ? "text-yc-text-secondary" : "text-amber-600"
                       }`}>
                         #{rank}
                       </span>

@@ -153,11 +153,11 @@ function StatusBadge({ status, minute }: { status: string; minute?: string }) {
 function EventIcon({ type }: { type: "goal" | "own_goal" | "penalty" | "yellow" | "yellow_red" | "red" | "sub" }) {
   const icons: Record<string, { bg: string; text: string; label: string }> = {
     goal: { bg: "bg-yc-green/20", text: "text-yc-green", label: "⚽" },
-    own_goal: { bg: "bg-red-500/20", text: "text-red-400", label: "⚽" },
+    own_goal: { bg: "bg-yc-danger/20", text: "text-yc-danger", label: "⚽" },
     penalty: { bg: "bg-yc-green/20", text: "text-yc-green", label: "P" },
-    yellow: { bg: "bg-yellow-500/20", text: "text-yellow-400", label: "▮" },
-    yellow_red: { bg: "bg-red-500/20", text: "text-red-400", label: "▮▮" },
-    red: { bg: "bg-red-500/20", text: "text-red-400", label: "▮" },
+    yellow: { bg: "bg-yc-warning/20", text: "text-yc-warning", label: "▮" },
+    yellow_red: { bg: "bg-yc-danger/20", text: "text-yc-danger", label: "▮▮" },
+    red: { bg: "bg-yc-danger/20", text: "text-yc-danger", label: "▮" },
     sub: { bg: "bg-sky-500/20", text: "text-sky-400", label: "⇄" },
   };
   const style = icons[type] ?? icons["goal"];
@@ -1042,7 +1042,7 @@ export default function MatchDetailPage() {
 
       {/* Score header */}
       <div
-        className={`bg-yc-bg-surface border rounded-xl p-6 mb-6 ${
+        className={`bg-yc-bg-surface border rounded-xl p-4 sm:p-5 mb-6 ${
           isLive ? "border-yc-green-muted/50 shadow-[0_0_16px_rgba(0,255,136,0.1)]" : "border-yc-border"
         }`}
       >

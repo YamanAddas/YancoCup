@@ -60,7 +60,7 @@ function DiagnosticsPanel() {
       )}
 
       {error && (
-        <div className="flex items-center gap-2 text-red-400 text-sm py-2">
+        <div className="flex items-center gap-2 text-yc-danger text-sm py-2">
           <AlertTriangle size={14} />
           {error}
         </div>
@@ -71,7 +71,7 @@ function DiagnosticsPanel() {
           {/* Status row */}
           <div className="flex items-center justify-between">
             <span className="text-yc-text-tertiary text-sm">Status</span>
-            <span className={`text-sm font-medium ${health.status === "ok" ? "text-yc-green" : "text-red-400"}`}>
+            <span className={`text-sm font-medium ${health.status === "ok" ? "text-yc-green" : "text-yc-danger"}`}>
               {health.status === "ok" ? "Healthy" : health.status}
             </span>
           </div>
@@ -80,8 +80,8 @@ function DiagnosticsPanel() {
           <div className="flex items-center justify-between">
             <span className="text-yc-text-tertiary text-sm">Last Cron Poll</span>
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${pollHealthy ? "bg-yc-green" : "bg-red-400"}`} />
-              <span className={`text-sm font-mono ${pollHealthy ? "text-yc-text-primary" : "text-red-400"}`}>
+              <span className={`w-2 h-2 rounded-full ${pollHealthy ? "bg-yc-green" : "bg-yc-danger"}`} />
+              <span className={`text-sm font-mono ${pollHealthy ? "text-yc-text-primary" : "text-yc-danger"}`}>
                 {pollAge !== null ? (pollAge < 60 ? `${pollAge}s ago` : `${Math.round(pollAge / 60)}m ago`) : "never"}
               </span>
             </div>
@@ -119,9 +119,9 @@ function DiagnosticsPanel() {
 
           {/* Warning if cron is stale */}
           {!pollHealthy && (
-            <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mt-2">
-              <AlertTriangle size={14} className="text-red-400 shrink-0" />
-              <span className="text-red-400 text-xs">
+            <div className="flex items-center gap-2 bg-yc-danger/10 border border-yc-danger/20 rounded-lg px-3 py-2 mt-2">
+              <AlertTriangle size={14} className="text-yc-danger shrink-0" />
+              <span className="text-yc-danger text-xs">
                 Cron hasn't polled in over 2 minutes. Check Cloudflare Worker logs.
               </span>
             </div>

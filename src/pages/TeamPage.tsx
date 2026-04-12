@@ -117,7 +117,7 @@ const POS_LABELS: Record<string, string> = {
   Goalkeeper: "Goalkeepers", Defence: "Defenders", Midfield: "Midfielders", Offence: "Forwards", Unknown: "Other",
 };
 const POS_COLORS: Record<string, string> = {
-  Goalkeeper: "text-amber-400", Defence: "text-sky-400", Midfield: "text-yc-green", Offence: "text-red-400", Unknown: "text-yc-text-tertiary",
+  Goalkeeper: "text-amber-400", Defence: "text-sky-400", Midfield: "text-yc-green", Offence: "text-yc-danger", Unknown: "text-yc-text-tertiary",
 };
 
 /** Position-specific gradient accent for card top */
@@ -306,7 +306,7 @@ function findPhoto(name: string, photos: Record<string, string>): string | undef
 }
 
 function FormDot({ result }: { result: "W" | "D" | "L" }) {
-  const colors = { W: "bg-yc-green", D: "bg-yc-text-tertiary", L: "bg-red-500" };
+  const colors = { W: "bg-yc-green", D: "bg-yc-text-tertiary", L: "bg-yc-danger" };
   return <span className={`inline-block w-3 h-3 rounded-full ${colors[result]}`} title={result} />;
 }
 
@@ -1211,7 +1211,7 @@ export default function TeamPage() {
                   {stats.streak && (
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${
                       stats.streak.endsWith("W") ? "bg-yc-green/10 text-yc-green border-yc-green/20" :
-                      stats.streak.endsWith("L") ? "bg-red-500/10 text-red-400 border-red-500/20" :
+                      stats.streak.endsWith("L") ? "bg-yc-danger/10 text-yc-danger border-yc-danger/20" :
                       "bg-yc-bg-elevated text-yc-text-secondary border-yc-border"
                     }`}>
                       {stats.streak} streak
@@ -1299,7 +1299,7 @@ export default function TeamPage() {
                       <span key={i} className={`text-[10px] font-medium px-2.5 py-1 rounded-full border ${
                         tag.positive
                           ? "bg-yc-green/8 text-yc-green border-yc-green/15"
-                          : "bg-red-500/8 text-red-400 border-red-500/15"
+                          : "bg-yc-danger/8 text-yc-danger border-yc-danger/15"
                       }`}>
                         {tag.label}
                       </span>

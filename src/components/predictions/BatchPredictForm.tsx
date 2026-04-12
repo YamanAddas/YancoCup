@@ -203,10 +203,10 @@ export default function BatchPredictForm({
                         className={`w-8 h-8 rounded text-xs font-bold transition-all ${
                           entry.quickPick === pick
                             ? pick === "H"
-                              ? "bg-blue-500/20 text-blue-400 border border-blue-500/40"
+                              ? "bg-yc-info/20 text-yc-info border border-yc-info/40"
                               : pick === "D"
                                 ? "bg-yc-warning/20 text-yc-warning border border-yc-warning/40"
-                                : "bg-red-500/20 text-red-400 border border-red-500/40"
+                                : "bg-yc-danger/20 text-yc-danger border border-yc-danger/40"
                             : "bg-yc-bg-elevated text-yc-text-tertiary border border-transparent hover:text-yc-text-secondary"
                         }`}
                       >

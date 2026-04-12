@@ -112,7 +112,7 @@ export default function WatchPage() {
 
       {/* Selected country detail */}
       {selected && (
-        <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-6 animate-in fade-in duration-200">
+        <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-4 sm:p-5 animate-in fade-in duration-200">
           <div className="flex items-center gap-3 mb-4">
             <img
               src={`${FLAG_BASE}/${selected.isoCode}.svg`}

@@ -41,7 +41,7 @@ function FormDot({ result }: { result: string }) {
   const colors: Record<string, string> = {
     W: "bg-yc-green",
     D: "bg-yc-text-tertiary",
-    L: "bg-red-500",
+    L: "bg-yc-danger",
   };
   return (
     <span
@@ -348,7 +348,7 @@ export default function StandingsPage() {
                       {row.goalsAgainst}
                     </td>
                     <td className="py-2.5 px-2 text-center font-mono">
-                      <span className={row.goalDifference > 0 ? "text-yc-green" : row.goalDifference < 0 ? "text-red-400" : "text-yc-text-secondary"}>
+                      <span className={row.goalDifference > 0 ? "text-yc-green" : row.goalDifference < 0 ? "text-yc-danger" : "text-yc-text-secondary"}>
                         {row.goalDifference > 0 ? "+" : ""}{row.goalDifference}
                       </span>
                     </td>
@@ -398,7 +398,7 @@ export default function StandingsPage() {
               )}
               {zones.relegation.length > 0 && (
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-red-500" />
+                  <span className="w-2 h-2 rounded-full bg-yc-danger" />
                   {t("standings.relegation")}
                 </span>
               )}

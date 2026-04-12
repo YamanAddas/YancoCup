@@ -223,7 +223,7 @@ export default function OverviewTab() {
 
       {/* Sign in prompt */}
       {!user && (
-        <div className="yc-card p-6 rounded-xl text-center">
+        <div className="yc-card p-4 sm:p-5 rounded-xl text-center">
           <LogIn
             size={32}
             className="text-yc-text-tertiary mx-auto mb-3 opacity-50"

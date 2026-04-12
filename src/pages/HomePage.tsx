@@ -504,7 +504,7 @@ function LeaderboardSnippetInner() {
 
   if (error || entries.length === 0) {
     return (
-      <div className="yc-card rounded-xl p-6 text-center">
+      <div className="yc-card rounded-xl p-4 sm:p-5 text-center">
         <p className="text-yc-text-tertiary text-sm">{t("home.noPlayers")}</p>
       </div>
     );

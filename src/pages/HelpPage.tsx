@@ -216,7 +216,7 @@ export default function HelpPage() {
           items={troubleshooting}
         />
 
-        <section className="rounded-lg border border-yc-border-accent bg-yc-bg-surface p-6 text-center">
+        <section className="rounded-lg border border-yc-border-accent bg-yc-bg-surface p-4 sm:p-5 text-center">
           <h2 className="font-heading text-lg font-semibold text-yc-text-primary mb-2">
             {t("help.stillNeedHelp")}
           </h2>

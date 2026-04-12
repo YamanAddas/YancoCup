@@ -258,7 +258,7 @@ export default function RivalsSection() {
                         {!isMe && (
                           <button
                             onClick={() => removeRival(entry.profile.id)}
-                            className="text-yc-text-tertiary hover:text-red-400 ml-auto shrink-0"
+                            className="text-yc-text-tertiary hover:text-yc-danger ms-auto shrink-0"
                             title="Remove"
                           >
                             <X size={12} />

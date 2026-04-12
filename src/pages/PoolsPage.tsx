@@ -170,7 +170,7 @@ function PoolActionCard({
       <div className="relative bg-yc-bg-surface border border-yc-green-muted/30 rounded-xl overflow-hidden">
         <CornerAccent position="top-right" className="text-yc-green/20" />
         <CornerAccent position="bottom-left" className="text-yc-green/20" />
-        <div className="p-6 text-center">
+        <div className="p-4 sm:p-5 text-center">
           <div className="w-12 h-12 rounded-full bg-yc-green-dark/30 flex items-center justify-center mx-auto mb-3">
             <Check size={24} className="text-yc-green" />
           </div>

@@ -172,7 +172,7 @@ export default function ShareCardModal({ open, onClose, data }: ShareCardModalPr
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-yc-bg-surface border border-yc-border rounded-2xl overflow-hidden animate-[yc-slide-up_300ms_ease-out] shadow-2xl shadow-black/40">
+      <div className="relative w-full max-w-md bg-yc-bg-surface border border-yc-border rounded-xl overflow-hidden animate-[yc-slide-up_300ms_ease-out] shadow-2xl shadow-black/40">
         {/* Green accent bar */}
         <div className="h-1 bg-gradient-to-r from-yc-green/30 via-yc-green to-yc-green/30" />
 
