@@ -34,6 +34,7 @@ import {
 import { NavLink } from "react-router-dom";
 import PoolChat from "../components/pool/PoolChat";
 import PoolRecap from "../components/pool/PoolRecap";
+import { CornerAccent } from "../components/ui/ArabesquePatterns";
 
 function PoolExplainer({ compact = false }: { compact?: boolean }) {
   const { t } = useI18n();
@@ -102,144 +103,181 @@ function PoolExplainer({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function CreatePoolForm({
+function PoolActionCard({
   competitionId,
   userId,
   onCreated,
+  onJoined,
 }: {
   competitionId: string;
   userId: string;
   onCreated: () => void;
+  onJoined: () => void;
 }) {
   const { t } = useI18n();
+  const [mode, setMode] = useState<"create" | "join">("create");
+
+  // Create state
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [createdPool, setCreatedPool] = useState<Pool | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Join state
+  const [code, setCode] = useState("");
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   const handleCreate = async () => {
     if (!name.trim()) return;
     setCreating(true);
-    setError(null);
+    setCreateError(null);
     const { pool, error: err } = await createPool(competitionId, name, userId);
     setCreating(false);
     if (err) {
-      setError(err);
+      setCreateError(err);
     } else if (pool) {
       setCreatedPool(pool);
       onCreated();
     }
   };
 
-  const handleCopy = async (code: string) => {
-    const url = `${window.location.origin}${import.meta.env.BASE_URL}#/pool/${code}`;
+  const handleCopy = async (joinCode: string) => {
+    const url = `${window.location.origin}${import.meta.env.BASE_URL}#/pool/${joinCode}`;
     await navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (createdPool) {
-    return (
-      <div className="bg-yc-bg-surface border border-yc-green-muted/30 rounded-xl p-5 text-center">
-        <Check size={32} className="text-yc-green mx-auto mb-3" />
-        <h4 className="font-heading text-lg font-bold mb-1">{createdPool.name}</h4>
-        <p className="text-yc-text-secondary text-sm mb-4">{t("pools.shareCode")}</p>
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <span className="font-mono text-2xl font-bold text-yc-green tracking-widest">
-            {createdPool.join_code}
-          </span>
-          <button
-            onClick={() => handleCopy(createdPool.join_code)}
-            className="p-2 rounded-lg hover:bg-yc-bg-elevated transition-colors"
-          >
-            {copied ? <Check size={16} className="text-yc-green" /> : <Copy size={16} className="text-yc-text-tertiary" />}
-          </button>
-        </div>
-        <button
-          onClick={() => setCreatedPool(null)}
-          className="text-yc-text-tertiary text-sm hover:text-yc-text-primary"
-        >
-          {t("pools.done")}
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-5">
-      <h4 className="font-heading text-base font-bold mb-3">{t("pools.create")}</h4>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={t("pools.namePlaceholder")}
-          maxLength={50}
-          className="flex-1 bg-yc-bg-elevated border border-yc-border rounded-lg px-3 py-2 text-sm text-yc-text-primary focus:outline-none focus:border-yc-green-muted"
-        />
-        <button
-          onClick={handleCreate}
-          disabled={creating || !name.trim()}
-          className="flex items-center gap-1.5 bg-yc-green text-yc-bg-deep font-semibold px-4 py-2 rounded-lg text-sm hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-40"
-        >
-          {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-          {t("pools.createBtn")}
-        </button>
-      </div>
-      {error && <p className="mt-2 text-yc-danger text-xs">{error}</p>}
-    </div>
-  );
-}
-
-function JoinPoolForm({
-  userId,
-  onJoined,
-}: {
-  userId: string;
-  onJoined: () => void;
-}) {
-  const { t } = useI18n();
-  const [code, setCode] = useState("");
-  const [joining, setJoining] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const handleJoin = async () => {
     if (!code.trim()) return;
     setJoining(true);
-    setError(null);
+    setJoinError(null);
     const { error: err } = await joinPoolByCode(code, userId);
     setJoining(false);
     if (err) {
-      setError(err);
+      setJoinError(err);
     } else {
       setCode("");
       onJoined();
     }
   };
 
+  // Success state after creating
+  if (createdPool) {
+    return (
+      <div className="relative bg-yc-bg-surface border border-yc-green-muted/30 rounded-xl overflow-hidden">
+        <CornerAccent position="top-right" className="text-yc-green/20" />
+        <CornerAccent position="bottom-left" className="text-yc-green/20" />
+        <div className="p-6 text-center">
+          <div className="w-12 h-12 rounded-full bg-yc-green-dark/30 flex items-center justify-center mx-auto mb-3">
+            <Check size={24} className="text-yc-green" />
+          </div>
+          <h4 className="font-heading text-lg font-bold mb-1">{createdPool.name}</h4>
+          <p className="text-yc-text-secondary text-sm mb-4">{t("pools.shareCode")}</p>
+          <div className="flex items-center justify-center gap-2 mb-5">
+            <span className="font-mono text-2xl font-bold text-yc-green tracking-[0.2em]">
+              {createdPool.join_code}
+            </span>
+            <button
+              onClick={() => handleCopy(createdPool.join_code)}
+              className="p-2 rounded-lg hover:bg-yc-bg-elevated transition-colors"
+            >
+              {copied ? <Check size={16} className="text-yc-green" /> : <Copy size={16} className="text-yc-text-tertiary" />}
+            </button>
+          </div>
+          <button
+            onClick={() => { setCreatedPool(null); setName(""); }}
+            className="text-yc-text-tertiary text-sm hover:text-yc-text-primary transition-colors"
+          >
+            {t("pools.done")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-5">
-      <h4 className="font-heading text-base font-bold mb-3">{t("pools.join")}</h4>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder={t("pools.codePlaceholder")}
-          maxLength={6}
-          className="flex-1 bg-yc-bg-elevated border border-yc-border rounded-lg px-3 py-2 text-sm text-yc-text-primary font-mono uppercase tracking-widest focus:outline-none focus:border-yc-green-muted"
-        />
+    <div className="relative bg-yc-bg-surface border border-yc-border rounded-xl overflow-hidden">
+      <CornerAccent position="top-right" className="text-yc-green/10" />
+
+      {/* Toggle tabs */}
+      <div className="flex border-b border-yc-border">
         <button
-          onClick={handleJoin}
-          disabled={joining || code.trim().length !== 6}
-          className="flex items-center gap-1.5 bg-yc-bg-elevated border border-yc-border text-yc-text-primary font-medium px-4 py-2 rounded-lg text-sm hover:border-yc-green-muted transition-colors disabled:opacity-40"
+          onClick={() => setMode("create")}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
+            mode === "create"
+              ? "text-yc-green border-b-2 border-yc-green bg-yc-green-glow/30"
+              : "text-yc-text-tertiary hover:text-yc-text-secondary"
+          }`}
         >
-          {joining ? <Loader2 size={14} className="animate-spin" /> : <JoinIcon size={14} />}
-          {t("pools.joinBtn")}
+          <Plus size={15} />
+          {t("pools.create")}
+        </button>
+        <button
+          onClick={() => setMode("join")}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
+            mode === "join"
+              ? "text-yc-green border-b-2 border-yc-green bg-yc-green-glow/30"
+              : "text-yc-text-tertiary hover:text-yc-text-secondary"
+          }`}
+        >
+          <JoinIcon size={15} />
+          {t("pools.join")}
         </button>
       </div>
-      {error && <p className="mt-2 text-yc-danger text-xs">{error}</p>}
+
+      {/* Content */}
+      <div className="p-5">
+        {mode === "create" ? (
+          <div className="space-y-3">
+            <label className="block text-xs text-yc-text-secondary font-medium uppercase tracking-wider">
+              {t("pools.namePlaceholder")}
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="World Cup Squad"
+              maxLength={50}
+              className="w-full bg-yc-bg-elevated border border-yc-border rounded-lg px-4 py-3 text-sm text-yc-text-primary placeholder:text-yc-text-tertiary focus:outline-none focus:border-yc-green-muted/60 focus:ring-1 focus:ring-yc-green-muted/20 transition-colors"
+            />
+            <button
+              onClick={handleCreate}
+              disabled={creating || !name.trim()}
+              className="w-full flex items-center justify-center gap-2 bg-yc-green text-yc-bg-deep font-semibold py-3 rounded-lg text-sm hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-40"
+            >
+              {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+              {t("pools.createBtn")}
+            </button>
+            {createError && <p className="text-yc-danger text-xs text-center">{createError}</p>}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <label className="block text-xs text-yc-text-secondary font-medium uppercase tracking-wider">
+              {t("pools.codePlaceholder")}
+            </label>
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="ABC123"
+              maxLength={6}
+              className="w-full bg-yc-bg-elevated border border-yc-border rounded-lg px-4 py-3 text-center text-lg text-yc-text-primary font-mono uppercase tracking-[0.3em] placeholder:text-yc-text-tertiary placeholder:tracking-[0.3em] focus:outline-none focus:border-yc-green-muted/60 focus:ring-1 focus:ring-yc-green-muted/20 transition-colors"
+            />
+            <button
+              onClick={handleJoin}
+              disabled={joining || code.trim().length !== 6}
+              className="w-full flex items-center justify-center gap-2 border border-yc-green text-yc-green font-semibold py-3 rounded-lg text-sm hover:bg-yc-green hover:text-yc-bg-deep active:scale-[0.98] transition-all disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-yc-green"
+            >
+              {joining ? <Loader2 size={16} className="animate-spin" /> : <JoinIcon size={16} />}
+              {t("pools.joinBtn")}
+            </button>
+            {joinError && <p className="text-yc-danger text-xs text-center">{joinError}</p>}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -557,15 +595,13 @@ export default function PoolsPage() {
         {/* Explainer — full when no pools, compact/collapsible when user has pools */}
         <PoolExplainer compact={hasPools} />
 
-        {/* Create + Join forms */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <CreatePoolForm
-            competitionId={comp.id}
-            userId={user.id}
-            onCreated={refresh}
-          />
-          <JoinPoolForm userId={user.id} onJoined={refresh} />
-        </div>
+        {/* Create / Join */}
+        <PoolActionCard
+          competitionId={comp.id}
+          userId={user.id}
+          onCreated={refresh}
+          onJoined={refresh}
+        />
 
         {/* My pools */}
         {loading ? (
