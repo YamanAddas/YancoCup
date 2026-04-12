@@ -4,6 +4,8 @@ Multi-competition soccer prediction platform with AI-powered news. World Cup 202
 
 **Current phase:** Live and in public testing. All V2 features shipped. Ongoing: performance, design elevation, security hardening, and live competition quality.
 
+**Active work:** Team Page redesign (Sessions 58-63 in BUILD_PLAN.md). Hybrid design: cinematic command center + arabesque geometric patterns + collapsible accordions. See "Arabesque design system" section below.
+
 **World Cup 2026:** June 11, 2026. App is live now at https://yamanaddas.github.io/YancoCup/ with active championships running.
 
 ---
@@ -176,6 +178,67 @@ Always add `@media (prefers-reduced-motion: reduce)` to disable non-essential an
 - **Thematic / sport-specific / decorative**: custom inline SVG, designed to match YancoVerse. Never Lucide for these.
 - Import individually: `import { Search } from 'lucide-react'`
 
+### Arabesque design system (Team Page and beyond)
+
+Design extension for pages requiring cultural identity and premium feel. Built on top of the core YancoVerse tokens. The arabesque vocabulary is a **layer of polish**, never structural — if patterns fail to render, the page must look complete without them.
+
+**Philosophy:** "Cinematic command center framed in geometric elegance." Structure from Linear, density from SofaScore, emotion from EA FC, glass from Dribbble, soul from arabesque geometry.
+
+**4 reusable SVG patterns** (defined in `src/components/ui/ArabesquePatterns.tsx`):
+
+| Pattern | Size | Use |
+|---------|------|-----|
+| Lattice overlay | 120px tile, 3-5% opacity | Hero backgrounds, page-level atmosphere |
+| Geometric band | 12px tall strip | Section dividers, expanded accordion borders |
+| Corner accents | 8px star-polygon clusters | Featured cards (Next Match, Prediction CTA) |
+| Star divider | Inline diamond/star | Stat separators, list bullets |
+
+**Pattern rules:**
+- Opacity: 3-8% only. Pattern is felt, not read. At 10%+ it competes with content.
+- Fragment, don't frame: let patterns bleed off edges, show partial rosettes
+- Monochrome: only `yc-green` at varying opacities. No multicolor fills.
+- Sparse: one geometric moment per viewport. Scarcity = luxury.
+- Gold accent (`yc-warning` #ffc800 at 8% opacity) at star intersections only — traditional Islamic green+gold pairing, used sparingly.
+- Every pattern SVG under 2KB. Total arabesque weight under 8KB for any page.
+- All patterns use `currentColor` — inherit from parent, override via class.
+
+**Accordion component pattern:**
+- Header: icon + title + summary text + chevron (rotates 180deg, 300ms ease)
+- Expand: `max-height` transition 350ms `cubic-bezier(0.4, 0, 0.2, 1)`, opacity 0→1 over 200ms
+- Multiple sections open simultaneously (independent, not exclusive)
+- Collapsed: title + one-line summary + item count badge
+- Expanded bottom border: geometric band replaces plain line
+- `prefers-reduced-motion`: instant display toggle, no animation
+
+**New animation classes** (add to globals.css):
+```
+.yc-star-breathe          — opacity 4%→8% on 4s cycle (live indicators)
+.yc-geometric-drift       — 720s full rotation for hero rosettes (imperceptible)
+.yc-accordion-expand      — max-height + opacity, 350ms ease
+```
+
+**Octagonal frames:**
+- `.yc-octagonal` — CSS `clip-path: polygon()` creating octagonal shape
+- Use on: hero crest frame, prediction CTA card only. Never on all cards.
+
+**Team-color personalization:**
+- API returns `clubColors` per team — use as subtle radial gradient (4% opacity) in hero background
+- Each team page feels unique without needing photography (Apple Sports pattern)
+
+**Responsive arabesque scaling:**
+| Breakpoint | Pattern treatment |
+|------------|------------------|
+| Mobile (<640px) | Corner accents only, no full lattice |
+| Tablet (640-1024px) | Partial lattice overlay |
+| Desktop (>1024px) | Full lattice + geometric wing |
+
+**What makes this distinctly YancoVerse (not generic):**
+1. No other sports app uses arabesque geometric patterns as structural UI elements
+2. Collapsible sections with geometric expansion borders (plain line → ornate band on expand)
+3. Arch-shaped CTA card via CSS clip-path references Islamic architecture
+4. Octagonal crest frame references geometric tiling
+5. Green accent appears through geometric shapes, not just borders/text
+
 ### Anti-patterns (zero exceptions)
 
 - White or light backgrounds
@@ -271,25 +334,25 @@ Dashboard → each table → RLS policies. Check:
 
 ### Critical/High — must fix before WC
 
-| Issue | Impact | Fix session |
-|-------|--------|-------------|
-| No retry on football-data.org failure (#27) | 5 min of stale scores on any API blip | 51 |
-| No timeout on API-Football fetch (#28) | Worker hard-kill loses all tick data | 51 |
-| API-Football fixture matching broken (#29) | Lineups missing for MCI, MUN, RMA, FCB, etc. | 52 |
-| KV writes may exceed free-tier limit (#31) | Scores freeze after ~2 hours on busy days | 53 |
+| Issue | Impact | Fix session | Status |
+|-------|--------|-------------|--------|
+| No retry on football-data.org failure (#27) | 5 min of stale scores on any API blip | 51 | **FIXED** — `fetchWithRetry` added (2 retries, 1s/3s backoff) |
+| No timeout on API-Football fetch (#28) | Worker hard-kill loses all tick data | 51 | Open |
+| API-Football fixture matching broken (#29) | Lineups missing for MCI, MUN, RMA, FCB, etc. | 52 | Open |
+| KV writes may exceed free-tier limit (#31) | Scores freeze after ~2 hours on busy days | 53 | **MITIGATED** — change detection skips unchanged writes. ~200-400/day vs ~2,880 before. Still possible on very busy WC days. |
 
 ### Medium — should fix before WC
 
-| Issue | Impact | Fix session |
-|-------|--------|-------------|
-| Match detail TTL always 24h (#32) | Live match KV entry stale | 53 |
-| Scrape failure counter never resets (#34) | Articles permanently stuck | 54 |
-| News summarize too slow (#35) | Backlog grows, articles take days | 54 |
-| Admin auth uses hardcoded backdoor (#37) | Security risk | 55 |
-| Silent cron errors (#38) | Stale data with no alerting | 51 |
-| useScores has no error state (#39) | "No matches" vs "API down" indistinguishable | 56 |
-| useAutoScore race condition (#40) | Possible double-scoring on navigation | 57 |
-| api.ts returns null for all errors (#44) | No error differentiation anywhere | 56 |
+| Issue | Impact | Fix session | Status |
+|-------|--------|-------------|--------|
+| Match detail TTL always 24h (#32) | Live match KV entry stale | 53 | **FIXED** — TTLs: live=2min, finished=10min, upcoming=5min |
+| Scrape failure counter never resets (#34) | Articles permanently stuck | 54 | Open |
+| News summarize too slow (#35) | Backlog grows, articles take days | 54 | Open |
+| Admin auth uses hardcoded backdoor (#37) | Security risk | 55 | Open |
+| Silent cron errors (#38) | Stale data with no alerting | 51 | **FIXED** — `lastError` field in health endpoint, error stored in KV |
+| useScores has no error state (#39) | "No matches" vs "API down" indistinguishable | 56 | Open |
+| useAutoScore race condition (#40) | Possible double-scoring on navigation | 57 | Open |
+| api.ts returns null for all errors (#44) | No error differentiation anywhere | 56 | Open |
 
 ### Low — fix when convenient
 
@@ -306,11 +369,18 @@ Dashboard → each table → RLS policies. Check:
 ## Disaster scenarios
 
 **football-data.org down during a match:**
-- **Current reality:** No retry logic — a single failed tick = 5 min stale data (finding #27)
+- `fetchWithRetry` retries 2x with 1s/3s backoff. If all fail, tick is lost but cron recovers next tick.
+- Stale-status cleanup runs independently (outside try/catch): any match >4h past kickoff is auto-marked FINISHED regardless of API state.
+- Client-side fallback in MatchCard: matches >4h past kickoff show as "FT" even if Worker KV is stale.
 - KV cache serves last-known data (stale but functional)
 - "Live scores temporarily unavailable" badge is NOT currently shown — frontend can't distinguish error from empty (#39)
-- Static WC schedule keeps predictions working
-- API-Football provides enrichment data (lineups, stats) — it is not an automatic score fallback and requires manual intervention to use as one
+- Health endpoint now includes `lastError` field for debugging (`/api/health`)
+
+**KV write limit exhausted:**
+- Free tier: 1,000 writes/day. Change detection reduces to ~200-400 writes/day.
+- If exhausted: `kvPut` swallows errors silently, scores freeze, stale cleanup can't write fixes.
+- Client-side MatchCard fallback still marks past matches as FT visually.
+- Resets at midnight UTC. Scores backfill on next successful cron tick.
 
 **Supabase down:**
 - Predictions, leaderboard, pool chat unavailable — graceful degraded message
@@ -320,7 +390,7 @@ Dashboard → each table → RLS policies. Check:
 - KV persists independently
 - GitHub Pages static files always up
 - Worst case: stale scores, but app is usable
-- **No alerting** — Worker failure is only visible via manual `/api/health` check (#38)
+- Health endpoint `/api/health` shows `lastPoll`, `cronErrorCount`, `lastError` for debugging
 
 ---
 
@@ -345,6 +415,7 @@ src/
     pool/           # PoolChat, PoolRecap, SocialShareButtons
     activity/       # ActivityFeed
     comments/       # CommentCard, CommentComposer, CommentsSection, CommentThread
+    ui/             # ArabesquePatterns, Accordion — reusable design system components
     layout/         # NavBar, MobileNav, AppLayout, Skeleton, Countdown, LanguageSwitcher, ErrorFallback
   hooks/            # useAutoScore, useCompetitionSchedule, useLeaderboard, useScores, useScoring,
                     # useActivityFeed, useConsensus, useLiveResults, usePoolChat, useReactions, etc.
@@ -356,7 +427,7 @@ src/
   pages/            # All route-level components
   types/            # index.ts
 worker/
-  src/index.ts      # 2,874 lines — god file (all Worker logic in one file)
+  src/index.ts      # 3,121 lines — god file (all Worker logic in one file)
   src/*.test.ts     # Worker tests
 ```
 
@@ -423,25 +494,33 @@ Known risk: client-side, exploitable, accepted at current scale.
 
 ### Cron
 
-Current: `*/5 * * * *` (288 calls/day). Switch to `* * * * *` in wrangler.toml during WC.
-Known gaps:
+Current: `*/5 * * * *` (288 ticks/day). Switch to `* * * * *` in wrangler.toml during WC.
+
+**Implemented safeguards:**
+- `fetchWithRetry` — 2 retries with 1s/3s backoff on upstream failures (#27 fixed)
+- Change detection — KV writes only when data differs from existing (JSON compare). Reduced from ~2,880 to ~200-400 writes/day (#31 mitigated)
+- Stale-status cleanup — runs outside main try/catch, marks any non-FINISHED match >4h past kickoff as FINISHED. Handles IN_PLAY, PAUSED, TIMED, SCHEDULED.
+- `lastError` stored in KV for debugging via `/api/health` (#38 fixed)
+- Tick counter and lastPoll written every 5th tick (not every tick) to save KV budget
+
+**Remaining gaps:**
 - No early-exit when no live matches — makes upstream call every tick regardless (#26)
-- No retry on API failure — one failed tick = 5 min of stale data (#27)
-- Per-tick KV writes (~40) will exhaust free-tier daily limit in ~2 hours on busy days (#31)
-- Switching to `* * * * *` for WC will 5x the KV write volume — must fix #31 first
+- Switching to `* * * * *` for WC will 5x the tick count — need to verify KV budget holds
 
 ---
 
 ## Worker architecture
 
-- 2,874 lines in a single file — god file. Do not add to it without considering extraction.
+- 3,121 lines in a single file — god file. Do not add to it without considering extraction.
 - Cache miss on `/api/:comp/matches` hits upstream once then caches. WC is protected (`[]` on miss). Leagues do hit upstream on cold cache — no concurrent request lock.
 - API-Football used for match enrichment (lineups, stats) on a per-tick budget of max 3 enrichments. Not a score fallback.
-- **No retry logic** on upstream API calls — single failure = entire tick lost (#27)
+- `fetchWithRetry` — 2 retries with backoff on all upstream calls (#27 fixed)
+- Change detection on KV writes — only writes when JSON differs (#31 mitigated, ~200-400 writes/day)
+- Stale-status cleanup runs outside main try/catch — auto-expires matches >4h past kickoff
+- Health endpoint returns `lastPoll`, `tickCount`, `cronErrorCount`, `lastError`
 - **API-Football fixture matching is broken** — uses TLA substring match against full team names. Fails for MCI, MUN, RMA, FCB, PSG, and many others. Lineups are silently missing (#29)
-- **KV write volume** is ~40 writes/tick. On free tier (1,000 writes/day), exhausts budget in ~2 hours on busy match days (#31)
 - **No timeout** on API-Football fetches — can hard-kill the Worker (#28)
-- **Admin endpoints** use the football-data.org API key as auth + hardcoded string `"yanco2026trigger"` (#37)
+- **Admin endpoints** use ADMIN_KEY secret or football-data.org API key as auth (#37 partially improved)
 
 ---
 
@@ -512,13 +591,21 @@ SUPABASE_SERVICE_KEY
 - Arbitrary spacing — use Tailwind scale
 - Lucide for decorative icons — custom SVG only
 - Skipping any of the five states
+- Arabesque patterns above 8% opacity — they compete with content
+- Multicolor geometric patterns — monochrome green only
+- Arabesque on every card — sparse placement, one moment per viewport
+- Full centered rosettes — fragment and bleed off edges for modern feel
+- SVG patterns over 2KB each — keep lightweight, use `<pattern>` tiles
+- Forgetting `prefers-reduced-motion` on geometric animations
 
 ### Data & API
 - BALLDONTLIE — NBA, not soccer
 - Per-competition polling — use `/v4/matches` (one call)
 - Static schedules for leagues — only WC is static
 - Assuming API-Football fixture matching works — it's broken for most top clubs (#29)
-- Assuming KV writes are unlimited — free tier is 1,000/day, cron uses ~40/tick (#31)
+- Assuming KV writes are unlimited — free tier is 1,000/day. Change detection mitigates but doesn't eliminate on busy WC days (#31)
+- Forgetting `timeZone: "UTC"` on `toLocaleDateString` — all match dates must use UTC or they shift -1 day in western timezones
+- Lowercasing league TLAs — causes false collisions with WC team IDs (e.g., "ESP" Espanyol → "esp" Spain)
 - Assuming `apiFetch()` returning null means "no data" — it also means "Worker down" (#44)
 - xG, heatmaps, player ratings — not available on free tier
 - Adding to worker/src/index.ts without noting god file concern

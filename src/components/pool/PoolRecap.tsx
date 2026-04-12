@@ -61,6 +61,7 @@ export default function PoolRecap({
           weekday: "short",
           month: "short",
           day: "numeric",
+          timeZone: "UTC",
         }),
       );
 

@@ -173,6 +173,7 @@ export default function PredictionCard({
     weekday: "short",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   });
   const kickoffTime = formatTimeWithTZ(kickoff, lang);
 

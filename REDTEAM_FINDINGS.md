@@ -175,18 +175,11 @@ This eliminates the majority of unnecessary upstream calls during off-peak hours
 
 #### 27. No retry logic on football-data.org API failure
 **Severity: Critical**
-**File:** `worker/src/index.ts:1417-1474`
+**STATUS: FIXED (April 2026)**
 
-When `fetchFromFootballData("/matches", ...)` fails (429 rate-limited, 500 server error, network timeout), the entire tick is silently skipped. No retry, no backoff. A single API hiccup = 5 minutes of missing score updates.
+`fetchWithRetry()` added (lines 162-183): 2 retries with 1s/3s backoff. Retries on 5xx server errors, throws on 4xx or after exhaustion. All upstream calls now go through this wrapper.
 
-```typescript
-const res = await fetchFromFootballData("/matches", env.FOOTBALL_DATA_API_KEY);
-if (res.ok) { /* process */ }
-// Silent fallthrough if not res.ok — no retry, no error logging
-```
-
-**Impact:** During a live WC match, one API blip means 5 min of stale scores for all users.
-**Fix:** Add 1-2 retries with exponential backoff (1s, 3s) before giving up on the tick.
+Additionally, stale-status cleanup runs outside the main try/catch (lines 1842-1877): any match >4h past kickoff is auto-marked FINISHED regardless of API state. Client-side fallback in MatchCard also marks past matches as "FT" when status is stale.
 
 #### 28. `fetchFromApiFootball()` has no timeout
 **Severity: High**
@@ -241,39 +234,19 @@ At 100 req/day limit, wasting 2 calls per date is significant during a tournamen
 
 #### 31. KV write volume may exceed free-tier daily limit
 **Severity: High**
-**File:** `worker/src/index.ts` (throughout cron)
+**STATUS: MITIGATED (April 2026)**
 
-Cloudflare KV free tier: **1,000 writes/day**. Per cron tick:
-- 1 tick counter + 1 last-poll + 1 all:live = 3 writes
-- N individual match writes (today's matches, ~0-30)
-- K per-competition score writes (~1-8)
+Change detection added: per-competition score arrays are JSON-compared before writing — if data hasn't changed, the write is skipped. Tick counter and lastPoll now write every 5th tick only (not every tick). `all:live` write skipped when empty. Estimated reduction from ~40 writes/tick to ~5-10 writes/tick on active days, ~200-400 writes/day total.
 
-Every 5th tick adds more (upcoming week: 20-50 match writes + competition writes).
-Every 15th tick: 1 standings write. Every 60th tick: 1 schedule write.
-
-**Conservative estimate (active match day):** ~40 writes/tick × 288 ticks/day = **~11,500 writes/day** — 11x over the 1,000 free limit.
-
-After quota exhaustion, `kvPut()` silently fails (caught in try-catch at line 317). All writes are lost. Users see completely stale data with no warning.
-
-**Impact:** Worker becomes read-only after ~25 ticks (~2 hours) on busy match days. All scores freeze.
-**Fix options:**
-1. Upgrade to Workers Paid ($5/month) — 1,000 writes/second, problem disappears
-2. Batch writes: one KV write per competition per tick instead of per-match
-3. Skip individual match detail writes (use per-competition scores array instead)
+**Remaining risk:** On extremely busy days (8+ simultaneous live matches all changing score), writes could still approach the 1,000 limit. Upgrading to Workers Paid ($5/month) would eliminate the concern entirely.
 
 #### 32. Individual match KV TTL is 24h regardless of match status
 **Severity: Medium**
-**File:** `worker/src/index.ts:1445-1448`
+**STATUS: MITIGATED (April 2026)**
 
-```typescript
-await kvPut(env.SCORES_KV, kvMatch(m.id), JSON.stringify(score), {
-  expirationTtl: 86400, // Always 24h — even for live matches
-});
-```
+Individual match KV writes are now skipped unless data actually changed (change detection via JSON comparison). The 24h TTL remains, but stale-status cleanup (finding #27 fix) auto-marks matches >4h past kickoff as FINISHED, so the cached entry is corrected server-side. Client-side fallback in MatchCard also handles stale status.
 
-A live match changing score every few minutes is cached for 24h. If the match detail endpoint serves from this KV entry instead of the per-competition scores, users see stale individual match data.
-
-**Fix:** TTL should be status-dependent: live=120s, finished=86400s, upcoming=3600s.
+**Remaining improvement:** Status-dependent TTL (live=120s, finished=86400s) would be cleaner but is lower priority given the change detection and stale cleanup.
 
 #### 33. `all:live` TTL (600s) is barely above cron interval (300s)
 **Severity: Low**
@@ -334,19 +307,11 @@ The `"yanco2026trigger"` string is a hardcoded backdoor password. If the API key
 
 #### 38. Silent errors in cron — no alerting, no health degradation signal
 **Severity: Medium**
-**File:** `worker/src/index.ts:1663-1665`
+**STATUS: PARTIALLY FIXED (April 2026)**
 
-```typescript
-} catch (err) {
-  console.error("Cron poll failed:", err);
-}
-```
+Error message is now written to `config:last_error` KV key on cron failure. The `/api/health` endpoint exposes `lastError` alongside `lastPoll` and `tick`. This makes stale data detectable via the health endpoint.
 
-The entire cron handler is wrapped in one try-catch that only logs. No structured error reporting, no Sentry integration on the Worker side, no health check that detects stale data.
-
-**Impact:** If cron fails repeatedly, the `lastPoll` timestamp stops updating but no one is alerted. Users see stale data indefinitely.
-
-**Fix:** Write a `cron:error:count` KV key. Expose in `/api/health`. Alert if error count > 3 in a row.
+**Remaining:** No automatic alerting (e.g., email/Slack on repeated failures). No consecutive error counter. Manual `/api/health` check is still required to detect issues.
 
 ### FRONTEND — Data hooks
 
@@ -434,26 +399,26 @@ Network error, 404, 500, JSON parse error — all return the same `null`. Callin
 
 ## V4 findings summary table
 
-| # | Category | Severity | One-line |
-|---|----------|----------|----------|
-| 27 | Worker/Cron | **Critical** | No retry on football-data.org API failure |
-| 28 | Worker/API-Football | **High** | No timeout on API-Football fetch |
-| 29 | Worker/API-Football | **High** | Fixture matching broken for most top clubs |
-| 30 | Worker/API-Football | Medium | Concurrent cache miss → duplicate calls |
-| 31 | Worker/KV | **High** | KV writes exceed free-tier 1,000/day limit |
-| 32 | Worker/KV | Medium | Match detail TTL always 24h (even live) |
-| 33 | Worker/KV | Low | `all:live` TTL barely above cron interval |
-| 34 | Worker/News | Medium | Scrape failure counter never resets |
-| 35 | Worker/News | Medium | Summarize phase too slow (2 articles/cycle) |
-| 36 | Worker/News | Low | Title dedup threshold too lenient |
-| 37 | Worker/Security | Medium | Admin auth uses API key + hardcoded backdoor |
-| 38 | Worker/Error | Medium | Silent cron errors, no alerting |
-| 39 | Frontend/Hooks | Medium | useScores has no error state |
-| 40 | Frontend/Hooks | Medium | useAutoScore race condition on navigation |
-| 41 | Frontend/Hooks | Low | AbortController self-abort on first call |
-| 42 | Frontend/Hooks | Medium | Unbounded reply fetch in comments |
-| 43 | Frontend/Hooks | Low | Pool chat profile cache unbounded |
-| 44 | Frontend/API | Medium | api.ts returns null for all error types |
+| # | Category | Severity | One-line | Status |
+|---|----------|----------|----------|--------|
+| 27 | Worker/Cron | **Critical** | No retry on football-data.org API failure | **FIXED** |
+| 28 | Worker/API-Football | **High** | No timeout on API-Football fetch | Open |
+| 29 | Worker/API-Football | **High** | Fixture matching broken for most top clubs | Open |
+| 30 | Worker/API-Football | Medium | Concurrent cache miss → duplicate calls | Open |
+| 31 | Worker/KV | **High** | KV writes exceed free-tier 1,000/day limit | **MITIGATED** |
+| 32 | Worker/KV | Medium | Match detail TTL always 24h (even live) | **MITIGATED** |
+| 33 | Worker/KV | Low | `all:live` TTL barely above cron interval | Open |
+| 34 | Worker/News | Medium | Scrape failure counter never resets | Open |
+| 35 | Worker/News | Medium | Summarize phase too slow (2 articles/cycle) | Open |
+| 36 | Worker/News | Low | Title dedup threshold too lenient | Open |
+| 37 | Worker/Security | Medium | Admin auth uses API key + hardcoded backdoor | Open |
+| 38 | Worker/Error | Medium | Silent cron errors, no alerting | **PARTIAL** |
+| 39 | Frontend/Hooks | Medium | useScores has no error state | Open |
+| 40 | Frontend/Hooks | Medium | useAutoScore race condition on navigation | Open |
+| 41 | Frontend/Hooks | Low | AbortController self-abort on first call | Open |
+| 42 | Frontend/Hooks | Medium | Unbounded reply fetch in comments | Open |
+| 43 | Frontend/Hooks | Low | Pool chat profile cache unbounded | Open |
+| 44 | Frontend/API | Medium | api.ts returns null for all error types | Open |
 
 ---
 

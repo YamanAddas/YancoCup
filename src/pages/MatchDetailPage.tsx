@@ -516,7 +516,7 @@ function H2HTab({ matchId }: { matchId: string }) {
           <div className="space-y-1">
             {data.matches.map((m) => {
               const date = new Date(m.utcDate);
-              const dateStr = date.toLocaleDateString(getLocale(lang), { year: "numeric", month: "short", day: "numeric" });
+              const dateStr = date.toLocaleDateString(getLocale(lang), { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
               return (
                 <div
                   key={m.id}
@@ -657,6 +657,7 @@ export default function MatchDetailPage() {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "UTC",
   });
   const timeStr = formatTimeWithTZ(kickoff, lang);
   const mainRef = (match.referees ?? []).find((r) => r.type === "REFEREE");

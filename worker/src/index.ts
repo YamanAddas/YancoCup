@@ -1565,10 +1565,12 @@ async function handleNewsPhase(env: Env, phase: number): Promise<void> {
 
 async function handleCron(env: Env): Promise<void> {
   try {
-    // Get tick count for periodic actions
+    // Get tick count for periodic actions (write every 5th tick to save KV budget)
     const tickStr = await env.SCORES_KV.get(KV_TICK);
     const tick = tickStr ? parseInt(tickStr, 10) + 1 : 1;
-    await kvPut(env.SCORES_KV, KV_TICK, String(tick));
+    if (tick % 5 === 0) {
+      await kvPut(env.SCORES_KV, KV_TICK, String(tick));
+    }
 
     // -----------------------------------------------------------------------
     // Every tick: fetch ALL matches across all competitions (single API call)
@@ -1601,63 +1603,34 @@ async function handleCron(env: Env): Promise<void> {
         if (m.status === "IN_PLAY" || m.status === "PAUSED") {
           allLive.push(score);
         }
-
-        // Per-match KV writes removed (#31) — per-competition arrays serve the same data.
-        // Individual match lookups (/api/match/:id) now read from competition arrays.
       }
 
-      // Write per-competition score KV entries
+      // Write per-competition score KV entries — ONLY if data changed (#31)
       for (const [code, scores] of byComp) {
-        // Merge with existing scores (today's poll replaces today's entries)
         const existing = await env.SCORES_KV.get(kvScores(code));
         let merged = scores;
 
         if (existing) {
           const prev = safeParse<MatchScore[]>(existing) ?? [];
-          // Keep entries from other days, replace today's
           const todayIds = new Set(scores.map((s) => s.apiId));
           const kept = prev.filter((p) => !todayIds.has(p.apiId));
           merged = [...kept, ...scores];
         }
 
-        await kvPut(env.SCORES_KV, kvScores(code), JSON.stringify(merged), {
-          expirationTtl: 86400,
-        });
-      }
-
-      // Store all live matches — TTL well above cron interval (*/5 = 300s)
-      await kvPut(env.SCORES_KV, "all:live", JSON.stringify(allLive), {
-        expirationTtl: 1200,
-      });
-    }
-
-    // -----------------------------------------------------------------------
-    // Expire stale IN_PLAY / PAUSED entries across ALL competitions.
-    // The /matches endpoint only returns today's matches, so a match that
-    // was IN_PLAY yesterday but finished after midnight UTC keeps its stale
-    // status in KV. No football match lasts >4 hours, so any IN_PLAY entry
-    // whose kickoff was >4h ago is certainly FINISHED.
-    // -----------------------------------------------------------------------
-    const STALE_LIVE_MS = 4 * 60 * 60 * 1000; // 4 hours
-    const nowMs = Date.now();
-    for (const code of Object.keys(COMPETITIONS)) {
-      const raw = await env.SCORES_KV.get(kvScores(code));
-      if (!raw) continue;
-      const arr = safeParse<MatchScore[]>(raw) ?? [];
-      let changed = false;
-      for (const m of arr) {
-        if (m.status === "IN_PLAY" || m.status === "PAUSED") {
-          const kickoff = new Date(m.utcDate).getTime();
-          if (nowMs - kickoff > STALE_LIVE_MS) {
-            m.status = "FINISHED";
-            changed = true;
-            console.log(`Cron: expired stale live match ${m.apiId} (${m.homeTeam} vs ${m.awayTeam}) → FINISHED`);
-          }
+        // Skip write if data is identical (saves KV write budget)
+        const newJson = JSON.stringify(merged);
+        if (newJson !== existing) {
+          await kvPut(env.SCORES_KV, kvScores(code), newJson, {
+            expirationTtl: 86400,
+          });
         }
       }
-      if (changed) {
-        await kvPut(env.SCORES_KV, kvScores(code), JSON.stringify(arr), {
-          expirationTtl: 86400,
+
+      // Store all live matches — skip write if empty and no previous live data
+      const liveJson = JSON.stringify(allLive);
+      if (allLive.length > 0) {
+        await kvPut(env.SCORES_KV, "all:live", liveJson, {
+          expirationTtl: 1200,
         });
       }
     }
@@ -1691,7 +1664,7 @@ async function handleCron(env: Env): Promise<void> {
           byComp.get(score.competitionCode)!.push(score);
         }
 
-        // Update per-competition scores with full upcoming week
+        // Update per-competition scores with full upcoming week — only if changed (#31)
         for (const [code, scores] of byComp) {
           const existing = await env.SCORES_KV.get(kvScores(code));
           let merged = scores;
@@ -1703,9 +1676,12 @@ async function handleCron(env: Env): Promise<void> {
             merged = [...kept, ...scores];
           }
 
-          await kvPut(env.SCORES_KV, kvScores(code), JSON.stringify(merged), {
-            expirationTtl: 86400,
-          });
+          const newJson = JSON.stringify(merged);
+          if (newJson !== existing) {
+            await kvPut(env.SCORES_KV, kvScores(code), newJson, {
+              expirationTtl: 86400,
+            });
+          }
         }
       }
     }
@@ -1817,9 +1793,9 @@ async function handleCron(env: Env): Promise<void> {
     // Rotates through all competitions, populates kvSchedule so the
     // /api/:comp/matches endpoint never needs to hit upstream.
     // -----------------------------------------------------------------------
-    if (tick % 60 === 0) {
+    if (tick % 30 === 0) {
       const schedComps = STANDINGS_COMPS.filter((c) => c !== "WC"); // WC uses static JSON
-      const schedIdx = Math.floor(tick / 60) % schedComps.length;
+      const schedIdx = Math.floor(tick / 30) % schedComps.length;
       const comp = schedComps[schedIdx]!;
 
       const schedRes = await fetchFromFootballData(
@@ -1831,8 +1807,35 @@ async function handleCron(env: Env): Promise<void> {
         const schedData = (await schedRes.json()) as { matches: FDMatch[] };
         const matches = schedData.matches.map(transformMatch);
         await kvPut(env.SCORES_KV, kvSchedule(comp), JSON.stringify(matches), {
-          expirationTtl: 86400,
+          expirationTtl: 259200, // 72h — survives the ~17h rotation cycle
         });
+
+        // Backfill: fix broken entries in kvScores (FINISHED with null scores)
+        const scoresRaw = await env.SCORES_KV.get(kvScores(comp));
+        if (scoresRaw) {
+          const scoreArr = safeParse<MatchScore[]>(scoresRaw) ?? [];
+          const schedMap = new Map(matches.map((m) => [m.apiId, m]));
+          let fixed = false;
+          for (const s of scoreArr) {
+            if (s.status === "FINISHED" && s.homeScore === null) {
+              const fresh = schedMap.get(s.apiId);
+              if (fresh && fresh.homeScore !== null) {
+                s.homeScore = fresh.homeScore;
+                s.awayScore = fresh.awayScore;
+                s.winner = fresh.winner;
+                s.halfTimeHome = fresh.halfTimeHome;
+                s.halfTimeAway = fresh.halfTimeAway;
+                fixed = true;
+                console.log(`Cron: backfilled score for ${s.homeTeam} vs ${s.awayTeam} (${s.apiId})`);
+              }
+            }
+          }
+          if (fixed) {
+            await kvPut(env.SCORES_KV, kvScores(comp), JSON.stringify(scoreArr), {
+              expirationTtl: 86400,
+            });
+          }
+        }
       }
     }
 
@@ -1848,14 +1851,56 @@ async function handleCron(env: Env): Promise<void> {
       await kvPut(env.SCORES_KV, "news:phase", String((phase + 1) % 4));
     }
 
-    // Record last successful poll
-    await kvPut(env.SCORES_KV, KV_LAST_POLL, new Date().toISOString());
+    // Record last successful poll (every 5th tick to save KV writes)
+    if (tick % 5 === 0) {
+      await kvPut(env.SCORES_KV, KV_LAST_POLL, new Date().toISOString());
+    }
   } catch (err) {
     console.error("Cron poll failed:", err);
+    // Store error details for debugging via /api/health
+    const errMsg = err instanceof Error ? err.message : String(err);
+    await kvPut(env.SCORES_KV, "config:last_error", errMsg);
     // Increment error counter for monitoring
     const errStr = await env.SCORES_KV.get(KV_CRON_ERRORS);
     const errCount = errStr ? parseInt(errStr, 10) + 1 : 1;
     await kvPut(env.SCORES_KV, KV_CRON_ERRORS, String(errCount));
+  }
+
+  // -------------------------------------------------------------------------
+  // ALWAYS run: expire stale match statuses.
+  // This runs outside the main try/catch so upstream API failures don't
+  // prevent cleanup of stale matches in KV.
+  // Handles two cases:
+  //   1. IN_PLAY/PAUSED matches whose kickoff was >4h ago → FINISHED
+  //   2. TIMED/SCHEDULED matches whose kickoff was >4h ago → FINISHED
+  //      (KV write limit may have prevented score updates during the game)
+  // -------------------------------------------------------------------------
+  try {
+    const STALE_MS = 4 * 60 * 60 * 1000; // 4 hours — no match lasts this long
+    const nowMs = Date.now();
+    for (const code of Object.keys(COMPETITIONS)) {
+      const raw = await env.SCORES_KV.get(kvScores(code));
+      if (!raw) continue;
+      const arr = safeParse<MatchScore[]>(raw) ?? [];
+      let changed = false;
+      for (const m of arr) {
+        if (m.status === "FINISHED") continue;
+        const kickoff = new Date(m.utcDate).getTime();
+        if (nowMs - kickoff > STALE_MS) {
+          const oldStatus = m.status;
+          m.status = "FINISHED";
+          changed = true;
+          console.log(`Cron: expired stale ${oldStatus} match ${m.apiId} (${m.homeTeam} vs ${m.awayTeam}) -> FINISHED`);
+        }
+      }
+      if (changed) {
+        await kvPut(env.SCORES_KV, kvScores(code), JSON.stringify(arr), {
+          expirationTtl: 86400,
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Cron stale-live cleanup failed:", err);
   }
 }
 
@@ -2211,7 +2256,7 @@ app.get("/api/admin/populate", async (c) => {
       if (res.ok) {
         const data = (await res.json()) as { matches: FDMatch[] };
         const matches = data.matches.map(transformMatch);
-        await kvPut(c.env.SCORES_KV, kvSchedule(comp), JSON.stringify(matches), { expirationTtl: 86400 });
+        await kvPut(c.env.SCORES_KV, kvSchedule(comp), JSON.stringify(matches), { expirationTtl: 259200 });
         results[`schedule:${comp}`] = `${matches.length} matches`;
       } else {
         results[`schedule:${comp}`] = `FAILED (${res.status})`;
@@ -2341,29 +2386,71 @@ app.get("/api/:comp/matches", async (c) => {
     return c.json({ error: `Unknown competition: ${comp}` }, 404);
   }
 
-  // Check KV cache: try schedule first, then scores as fallback
-  const cached =
-    (await c.env.SCORES_KV.get(kvSchedule(comp))) ??
-    (await c.env.SCORES_KV.get(kvScores(comp)));
+  // Read both KV sources and merge for best available data
+  const schedRaw = await c.env.SCORES_KV.get(kvSchedule(comp));
+  const scoresRaw = await c.env.SCORES_KV.get(kvScores(comp));
 
   let matches: MatchScore[];
 
-  if (cached) {
-    matches = safeParse<MatchScore[]>(cached) ?? [];
+  if (schedRaw) {
+    matches = safeParse<MatchScore[]>(schedRaw) ?? [];
+    // Overlay fresher data from kvScores (live/recent scores update faster)
+    if (scoresRaw) {
+      const freshMap = new Map(
+        (safeParse<MatchScore[]>(scoresRaw) ?? []).map((s) => [s.apiId, s]),
+      );
+      matches = matches.map((m) => {
+        const fresh = freshMap.get(m.apiId);
+        if (!fresh) return m;
+        // Live match — always prefer kvScores (most current)
+        if (fresh.status === "IN_PLAY" || fresh.status === "PAUSED") return fresh;
+        // kvScores has a real score the schedule doesn't — use it
+        if (fresh.homeScore !== null && m.homeScore === null) return fresh;
+        // kvScores says FINISHED but has no score (stale-status cleanup artifact)
+        // — prefer schedule data which may have the actual score or original status
+        if (fresh.status === "FINISHED" && fresh.homeScore === null) return m;
+        // kvScores has FINISHED with score, schedule doesn't — use kvScores
+        if (fresh.status === "FINISHED" && m.status !== "FINISHED") return fresh;
+        return m;
+      });
+    }
   } else {
-    // KV miss — fetch directly from upstream (WC uses static JSON on frontend)
-    if (comp === "WC") return c.json({ matches: [] });
-    try {
-      const res = await fetchFromFootballData(`/competitions/${comp}/matches`, c.env.FOOTBALL_DATA_API_KEY);
-      if (res.ok) {
-        const data = (await res.json()) as { matches: FDMatch[] };
-        matches = data.matches.map(transformMatch);
-        await kvPut(c.env.SCORES_KV, kvSchedule(comp), JSON.stringify(matches), { expirationTtl: 86400 });
-      } else {
-        return c.json({ matches: [] });
+    // kvSchedule is missing — try to fetch the full season from upstream
+    if (comp === "WC") {
+      // WC uses static JSON on frontend; return kvScores rolling window if available
+      matches = scoresRaw ? (safeParse<MatchScore[]>(scoresRaw) ?? []) : [];
+      if (matches.length === 0) return c.json({ matches: [] });
+    } else {
+      try {
+        const res = await fetchFromFootballData(`/competitions/${comp}/matches`, c.env.FOOTBALL_DATA_API_KEY);
+        if (res.ok) {
+          const data = (await res.json()) as { matches: FDMatch[] };
+          matches = data.matches.map(transformMatch);
+          await kvPut(c.env.SCORES_KV, kvSchedule(comp), JSON.stringify(matches), { expirationTtl: 259200 });
+          // Also overlay fresh scores from kvScores (live matches, recent updates)
+          if (scoresRaw) {
+            const freshMap = new Map(
+              (safeParse<MatchScore[]>(scoresRaw) ?? []).map((s) => [s.apiId, s]),
+            );
+            matches = matches.map((m) => {
+              const fresh = freshMap.get(m.apiId);
+              if (!fresh) return m;
+              if (fresh.status === "IN_PLAY" || fresh.status === "PAUSED") return fresh;
+              if (fresh.homeScore !== null && m.homeScore === null) return fresh;
+              if (fresh.status === "FINISHED" && fresh.homeScore === null) return m;
+              if (fresh.status === "FINISHED" && m.status !== "FINISHED") return fresh;
+              return m;
+            });
+          }
+        } else {
+          // Upstream failed — use kvScores rolling window as last resort
+          matches = scoresRaw ? (safeParse<MatchScore[]>(scoresRaw) ?? []) : [];
+          if (matches.length === 0) return c.json({ matches: [] });
+        }
+      } catch {
+        matches = scoresRaw ? (safeParse<MatchScore[]>(scoresRaw) ?? []) : [];
+        if (matches.length === 0) return c.json({ matches: [] });
       }
-    } catch {
-      return c.json({ matches: [] });
     }
   }
 
@@ -3043,11 +3130,13 @@ app.get("/api/health", async (c) => {
   const lastPoll = await c.env.SCORES_KV.get(KV_LAST_POLL);
   const tick = await c.env.SCORES_KV.get(KV_TICK);
   const cronErrors = await c.env.SCORES_KV.get(KV_CRON_ERRORS);
+  const lastError = await c.env.SCORES_KV.get("config:last_error");
   return c.json({
     status: "ok",
     lastPoll: lastPoll ?? null,
     tickCount: tick ? parseInt(tick, 10) : 0,
     cronErrorCount: cronErrors ? parseInt(cronErrors, 10) : 0,
+    lastError: lastError ?? null,
     competitions: Object.keys(COMPETITIONS),
     timestamp: new Date().toISOString(),
   });

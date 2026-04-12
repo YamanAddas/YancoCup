@@ -128,7 +128,15 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
   const homeTeamUrl = competitionId && homeTeamId ? `/${competitionId}/team/${homeTeamId}` : null;
   const awayTeamUrl = competitionId && awayTeamId ? `/${competitionId}/team/${awayTeamId}` : null;
 
-  const effectiveStatus = liveScore?.status ?? match.status;
+  const rawStatus = liveScore?.status ?? match.status;
+  // Client-side fallback: if kickoff was >4h ago but status is still TIMED,
+  // the Worker couldn't update KV (e.g., write limit). Treat as finished.
+  const kickoffMs = new Date(`${match.date}T${match.time}:00Z`).getTime();
+  const effectiveStatus =
+    rawStatus !== "FINISHED" && rawStatus !== "IN_PLAY" && rawStatus !== "PAUSED"
+    && Date.now() - kickoffMs > 4 * 60 * 60 * 1000
+      ? "FINISHED"
+      : rawStatus;
   const isLive = effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED";
   const isFinished = effectiveStatus === "FINISHED";
   const scoreHome = liveScore?.homeScore ?? match.homeScore ?? null;
@@ -258,6 +266,8 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
                       <span className="text-yc-text-tertiary text-[10px] font-medium">{t("match.ft")}</span>
                     )}
                   </>
+                ) : isFinished ? (
+                  <span className="text-yc-text-tertiary font-mono text-sm font-medium">{t("match.ft")}</span>
                 ) : (
                   <>
                     <span className="text-yc-green font-mono text-lg font-bold">{t("match.vs")}</span>

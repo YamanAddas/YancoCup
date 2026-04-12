@@ -354,6 +354,7 @@ function TournamentMatches() {
               year: "numeric",
               month: "long",
               day: "numeric",
+              timeZone: "UTC",
             })}
           </h3>
           {effectiveDate === today && (
@@ -377,7 +378,7 @@ function TournamentMatches() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {displayMatches.map((m) => (
+          {[...displayMatches].sort((a, b) => a.time.localeCompare(b.time)).map((m) => (
             <MatchCard
               key={m.id}
               match={m}
@@ -542,7 +543,9 @@ function LeagueMatches() {
             </div>
           ) : (
             <div className="space-y-6 animate-fade-in">
-              {[...matchesByDate.entries()].map(([date, dateMatches]) => (
+              {[...matchesByDate.entries()]
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([date, dateMatches]) => (
                 <div key={date}>
                   <h3 className="text-yc-text-secondary text-sm font-medium mb-3 sticky top-14 bg-yc-bg-deep/80 backdrop-blur-sm py-2 z-10 border-b border-yc-border/30">
                     {new Date(`${date}T00:00:00Z`).toLocaleDateString(getLocale(lang), {
@@ -550,10 +553,11 @@ function LeagueMatches() {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
+                      timeZone: "UTC",
                     })}
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {dateMatches.map((m) => (
+                    {[...dateMatches].sort((a, b) => a.time.localeCompare(b.time)).map((m) => (
                       <MatchCard
                         key={m.id}
                         match={m}

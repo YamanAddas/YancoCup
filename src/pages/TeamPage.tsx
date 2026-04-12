@@ -1,11 +1,12 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, User, MapPin, Calendar, Shield, TrendingUp, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star } from "lucide-react";
+import { ArrowLeft, User, MapPin, Calendar, Shield, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import { formatTimeWithTZ, getLocale } from "../lib/formatDate";
 import TeamCrest from "../components/match/TeamCrest";
 import { fetchTeamNews, WORKER_URL, type NewsArticle } from "../lib/api";
+import { ArabesqueLattice, GeometricBand, StarDivider } from "../components/ui/ArabesquePatterns";
 
 // ---------------------------------------------------------------------------
 // Types — football-data.org /v4/competitions/{code}/teams response
@@ -382,6 +383,34 @@ function TeamNewsCompact({ article }: { article: NewsArticle }) {
 }
 
 // ---------------------------------------------------------------------------
+// Hero helpers
+// ---------------------------------------------------------------------------
+
+const TEAM_COLOR_MAP: Record<string, string> = {
+  red: "#dc2626", blue: "#2563eb", "navy blue": "#1e3a5f", "royal blue": "#4169e1",
+  white: "#94a3b8", black: "#334155", yellow: "#eab308", green: "#22c55e",
+  orange: "#ea580c", claret: "#7b2e3b", purple: "#7c3aed", "sky blue": "#38bdf8",
+  gold: "#d4a520", maroon: "#800000", crimson: "#b91c1c", scarlet: "#dc2626",
+  violet: "#7c3aed", amber: "#f59e0b", pink: "#ec4899",
+};
+
+function parseTeamColor(clubColors: string | null): string | null {
+  if (!clubColors) return null;
+  const first = clubColors.split("/")[0]!.trim().toLowerCase();
+  for (const [name, hex] of Object.entries(TEAM_COLOR_MAP)) {
+    if (first.includes(name)) return hex;
+  }
+  return null;
+}
+
+const TEAM_SECTIONS = [
+  { id: "overview", label: "Overview" },
+  { id: "fixtures", label: "Fixtures" },
+  { id: "news", label: "News" },
+  { id: "squad", label: "Squad" },
+] as const;
+
+// ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 
@@ -394,6 +423,9 @@ export default function TeamPage() {
   const [leaguePosition, setLeaguePosition] = useState<StandingEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [playerPhotos, setPlayerPhotos] = useState<Record<string, string>>({});
+  const heroRef = useRef<HTMLDivElement>(null);
+  const [heroVisible, setHeroVisible] = useState(true);
+  const [activeSection, setActiveSection] = useState("overview");
 
   // Fetch team data from /api/:comp/teams
   useEffect(() => {
@@ -442,6 +474,36 @@ export default function TeamPage() {
     }
     load();
   }, [teamId, comp.id]);
+
+  // Hero visibility — show mini crest in sticky nav when hero scrolls out
+  useEffect(() => {
+    if (loading) return;
+    const el = heroRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => setHeroVisible(!!e?.isIntersecting), { threshold: 0 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [loading]);
+
+  // Section scroll tracking — highlights active nav pill
+  useEffect(() => {
+    if (loading || !team) return;
+    const els = TEAM_SECTIONS.map(s => document.getElementById(`section-${s.id}`)).filter(Boolean) as HTMLElement[];
+    if (els.length === 0) return;
+    const obs = new IntersectionObserver(
+      (entries) => { for (const e of entries) { if (e.isIntersecting) setActiveSection(e.target.id.replace("section-", "")); } },
+      { rootMargin: "-60px 0px -50% 0px", threshold: 0 },
+    );
+    for (const el of els) obs.observe(el);
+    return () => obs.disconnect();
+  }, [loading, team]);
+
+  const scrollToSection = useCallback((id: string) => {
+    const el = document.getElementById(`section-${id}`);
+    if (!el) return;
+    const y = el.getBoundingClientRect().top + window.scrollY - 60;
+    window.scrollTo({ top: y, behavior: "smooth" });
+  }, []);
 
   // Calculate form from recent matches
   const form = useMemo(() => {
@@ -565,58 +627,116 @@ export default function TeamPage() {
     );
   }
 
+  const displayName = (() => { const n = tTeam(team.name); return n !== team.name ? n : tTeam(team.tla); })();
+  const teamColor = parseTeamColor(team.clubColors);
+
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
-      {/* Back */}
-      <Link
-        to={`/${comp.id}/standings`}
-        className="flex items-center gap-1.5 text-yc-text-tertiary hover:text-yc-text-primary text-sm mb-4 transition-colors"
-      >
-        <ArrowLeft size={16} />
-        {comp.shortName} — {t("nav.standings")}
-      </Link>
+    <div>
+      {/* ── Hero ── */}
+      <div ref={heroRef} className="relative overflow-hidden">
+        {teamColor && (
+          <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse 120% 80% at 50% 20%, ${teamColor}0a 0%, transparent 60%)` }} />
+        )}
+        <ArabesqueLattice className="absolute inset-0 text-yc-green opacity-[0.04] hidden sm:block" />
 
-      {/* Team header */}
-      <div className="flex items-center gap-4 mb-8">
-        <TeamCrest tla={team.tla} crest={team.crest} size="xl" />
-        <div>
-          <h2 className="font-heading text-2xl font-bold">{(() => { const n = tTeam(team.name); return n !== team.name ? n : tTeam(team.tla); })()}</h2>
-          <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-yc-text-secondary">
-            {team.coach && (
-              <span className="flex items-center gap-1">
-                <User size={14} className="text-yc-text-tertiary" />
-                {team.coach.name}
-              </span>
-            )}
-            {team.venue && (
-              <span className="flex items-center gap-1">
-                <MapPin size={14} className="text-yc-text-tertiary" />
-                {team.venue}
-              </span>
-            )}
-            {team.founded && (
-              <span className="flex items-center gap-1">
-                <Calendar size={14} className="text-yc-text-tertiary" />
-                Est. {team.founded}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+        <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 pt-6 pb-8 sm:pb-10">
+          <Link
+            to={`/${comp.id}/standings`}
+            className="flex items-center gap-1.5 text-yc-text-tertiary hover:text-yc-text-primary text-sm transition-colors"
+          >
+            <ArrowLeft size={16} />
+            {comp.shortName} — {t("nav.standings")}
+          </Link>
 
-      {/* Stats cards */}
-      {(leaguePosition || stats) && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-          {leaguePosition && (
-            <div className="yc-card p-3 rounded-xl">
-              <div className="flex items-center gap-1.5 mb-1">
-                <TrendingUp size={12} className="text-yc-green" />
-                <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider">Position</span>
+          <div className="flex items-center gap-5 mt-4">
+            {/* Octagonal crest frame */}
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0">
+              <div className="absolute inset-0 yc-octagonal" style={{ background: "var(--yc-border-accent)" }} />
+              <div className="absolute inset-[2px] yc-octagonal bg-yc-bg-deep flex items-center justify-center overflow-hidden">
+                <TeamCrest tla={team.tla} crest={team.crest} size="xl" />
               </div>
-              <span className="font-heading text-xl font-bold text-yc-green">#{leaguePosition.position}</span>
-              <span className="text-xs text-yc-text-tertiary ml-1">{leaguePosition.points} pts</span>
+            </div>
+            <div>
+              <h2 className="font-heading text-2xl sm:text-3xl font-bold">{displayName}</h2>
+              <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-yc-text-secondary">
+                {team.coach && (
+                  <span className="flex items-center gap-1">
+                    <User size={14} className="text-yc-text-tertiary" />
+                    {team.coach.name}
+                  </span>
+                )}
+                {team.venue && (
+                  <span className="flex items-center gap-1">
+                    <MapPin size={14} className="text-yc-text-tertiary" />
+                    {team.venue}
+                  </span>
+                )}
+                {team.founded && (
+                  <span className="flex items-center gap-1">
+                    <Calendar size={14} className="text-yc-text-tertiary" />
+                    Est. {team.founded}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick stats bar with diamond dividers */}
+          {leaguePosition && (
+            <div className="flex items-center gap-2 sm:gap-3 mt-5 text-xs font-mono text-yc-text-secondary">
+              <span className="text-yc-green font-bold text-sm">#{leaguePosition.position}</span>
+              <StarDivider className="opacity-30 mx-0.5" />
+              <span>{leaguePosition.points} pts</span>
+              <StarDivider className="opacity-30 mx-0.5" />
+              <span>{leaguePosition.playedGames}P</span>
+              <StarDivider className="opacity-30 mx-0.5" />
+              <span>{leaguePosition.won}W {leaguePosition.draw}D {leaguePosition.lost}L</span>
             </div>
           )}
+
+          {/* Form dots */}
+          {form.length > 0 && (
+            <div className="flex gap-1.5 mt-3">
+              {form.slice(0, 5).map((m, i) => (
+                <FormDot key={i} result={m.result} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <GeometricBand className="absolute bottom-0 left-0 w-full text-yc-green opacity-[0.06]" />
+      </div>
+
+      {/* ── Sticky section nav ── */}
+      <nav className="sticky top-0 z-30 border-b border-yc-border" style={{ background: "var(--yc-bg-glass)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 flex items-center h-12 overflow-x-auto">
+          <div className={`shrink-0 mr-3 transition-all duration-200 overflow-hidden ${heroVisible ? "w-0 opacity-0" : "w-6 opacity-100"}`}>
+            <TeamCrest tla={team.tla} crest={team.crest} size="xs" />
+          </div>
+          <div className="flex gap-1">
+            {TEAM_SECTIONS.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => scrollToSection(s.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                  activeSection === s.id
+                    ? "bg-yc-green/15 text-yc-green"
+                    : "text-yc-text-secondary hover:text-yc-text-primary hover:bg-yc-bg-elevated/50"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      {/* ── Content ── */}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+        <section id="section-overview">
+      {/* Stats cards */}
+      {stats && (
+        <div className="grid grid-cols-3 gap-3 mb-8">
           {stats && (
             <>
               <div className="yc-card p-3 rounded-xl">
@@ -670,11 +790,6 @@ export default function TeamPage() {
           <h3 className="text-sm font-medium text-yc-text-tertiary uppercase tracking-wider mb-3">
             Recent Form
           </h3>
-          <div className="flex gap-1 mb-3">
-            {form.map((m, i) => (
-              <FormDot key={i} result={m.result} />
-            ))}
-          </div>
           <div className="space-y-1">
             {form.slice(0, 5).map((m) => {
               const date = new Date(m.utcDate);
@@ -682,7 +797,7 @@ export default function TeamPage() {
                 <div key={m.apiId} className="flex items-center gap-3 px-3 py-2 bg-yc-bg-surface border border-yc-border/50 rounded-lg text-sm">
                   <FormDot result={m.result} />
                   <span className="text-xs text-yc-text-tertiary w-16 shrink-0">
-                    {date.toLocaleDateString(getLocale(lang), { month: "short", day: "numeric" })}
+                    {date.toLocaleDateString(getLocale(lang), { month: "short", day: "numeric", timeZone: "UTC" })}
                   </span>
                   <span className="text-yc-text-secondary text-xs w-6 text-center">{m.isHome ? "H" : "A"}</span>
                   <div className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -700,7 +815,9 @@ export default function TeamPage() {
           </div>
         </div>
       )}
+        </section>
 
+        <section id="section-fixtures">
       {/* Upcoming fixtures */}
       {upcoming.length > 0 && (
         <div className="mb-8">
@@ -717,7 +834,7 @@ export default function TeamPage() {
               return (
                 <div key={m.apiId} className="flex items-center gap-3 px-3 py-2 bg-yc-bg-surface border border-yc-border/50 rounded-lg text-sm">
                   <span className="text-xs text-yc-text-tertiary w-16 shrink-0">
-                    {date.toLocaleDateString(getLocale(lang), { month: "short", day: "numeric" })}
+                    {date.toLocaleDateString(getLocale(lang), { month: "short", day: "numeric", timeZone: "UTC" })}
                   </span>
                   <span className="text-yc-text-secondary text-xs w-6 text-center">{isHome ? "H" : "A"}</span>
                   <div className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -734,9 +851,13 @@ export default function TeamPage() {
         </div>
       )}
 
-      {/* Team Newspaper — AI-curated news */}
-      <TeamNewspaper teamTla={team.tla} teamName={(() => { const n = tTeam(team.name); return n !== team.name ? n : tTeam(team.tla); })()} teamCrest={team.crest} />
+        </section>
 
+        <section id="section-news">
+      <TeamNewspaper teamTla={team.tla} teamName={displayName} teamCrest={team.crest} />
+        </section>
+
+        <section id="section-squad">
       {/* Squad */}
       {team.squad.length > 0 && (
         <div>
@@ -777,6 +898,8 @@ export default function TeamPage() {
           ))}
         </div>
       )}
+        </section>
+      </div>
     </div>
   );
 }

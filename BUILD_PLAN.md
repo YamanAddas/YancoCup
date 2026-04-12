@@ -165,7 +165,7 @@ Before any design session: write a full design spec following the pre-implementa
 ### Track E: Codebase health
 
 #### Session 47: Worker god file — extract news pipeline
-**Goal:** Reduce worker/src/index.ts from 2,874 lines.
+**Goal:** Reduce worker/src/index.ts from 3,121 lines.
 - Extract the full news pipeline (RSS fetching, AI rewrite, translation, Supabase storage) to `worker/src/news.ts`
 - Update imports in index.ts
 - Run worker tests — verify nothing breaks
@@ -205,13 +205,14 @@ Before any design session: write a full design spec following the pre-implementa
 
 These fix the "data is broken/stale/missing" issues found in the V4 deep dive audit. Ordered by user-facing impact.
 
-#### Session 51: Worker — retry logic + timeout hardening
+#### Session 51: Worker — retry logic + timeout hardening ✅ PARTIALLY DONE
 **Goal:** Stop losing entire ticks on transient API failures.
 **Findings addressed:** #27 (no retry), #28 (no API-Football timeout), #38 (silent errors)
-- Add retry wrapper: 2 retries with 1s/3s backoff for `fetchFromFootballData()`
-- Add `AbortSignal.timeout(8000)` to `fetchFromApiFootball()`
-- Add `cron:error:count` KV key, expose in `/api/health`
-- Write worker test for retry behavior
+- ✅ `fetchWithRetry()` added: 2 retries with 1s/3s backoff for upstream calls
+- ✅ Stale-status cleanup moved outside main try/catch — auto-marks >4h matches FINISHED
+- ✅ `config:last_error` KV key written on failure, exposed in `/api/health`
+- ⬜ `AbortSignal.timeout(8000)` for `fetchFromApiFootball()` (#28 — still open)
+- ⬜ Worker test for retry behavior
 
 #### Session 52: Worker — fix API-Football fixture matching
 **Goal:** Lineups and stats actually appear for top clubs.
@@ -220,13 +221,15 @@ These fix the "data is broken/stale/missing" issues found in the V4 deep dive au
 - Deduplicate date fetches: collect all dates first, fetch each once, then match
 - Test with known problem TLAs: MCI, MUN, RMA, FCB, PSG
 
-#### Session 53: Worker — KV write optimization
+#### Session 53: Worker — KV write optimization ✅ PARTIALLY DONE
 **Goal:** Stay within free-tier KV write budget (or upgrade).
 **Findings addressed:** #31 (KV writes exceed limit), #32 (match TTL always 24h), #33 (all:live TTL)
-- Option A: Upgrade to Workers Paid ($5/month) — eliminates all KV write concerns
-- Option B (if staying free): Remove per-match KV writes (use per-competition scores array only). Batch writes. Status-dependent TTL.
-- Increase `all:live` TTL from 600s to 1200s
-- Add KV write failure counter to health endpoint
+- ✅ Change detection: JSON comparison before KV writes — skips unchanged data
+- ✅ Tick counter and lastPoll write every 5th tick only
+- ✅ `all:live` write skipped when empty
+- ⬜ Increase `all:live` TTL from 600s to 1200s (#33)
+- ⬜ Status-dependent TTL for individual match KV entries
+- ⬜ Consider Workers Paid ($5/month) if write budget still tight during WC
 
 #### Session 54: Worker — news pipeline fixes
 **Goal:** News articles flow faster and don't get permanently stuck.
@@ -278,18 +281,18 @@ These fix the "data is broken/stale/missing" issues found in the V4 deep dive au
 
 | Finding | Severity | Session |
 |---------|----------|---------|
-| #27 No retry on football-data.org failure | **Critical** | 51 |
+| #27 No retry on football-data.org failure | ~~Critical~~ **FIXED** | 51 |
 | #28 No timeout on API-Football fetch | **High** | 51 |
 | #29 Fixture matching broken for top clubs | **High** | 52 |
 | #30 Concurrent API-Football cache miss | Medium | 52 |
-| #31 KV writes exceed free-tier limit | **High** | 53 |
-| #32 Match detail TTL always 24h | Medium | 53 |
+| #31 KV writes exceed free-tier limit | ~~High~~ **MITIGATED** | 53 |
+| #32 Match detail TTL always 24h | ~~Medium~~ **MITIGATED** | 53 |
 | #33 `all:live` TTL barely above cron | Low | 53 |
 | #34 Scrape failure counter never resets | Medium | 54 |
 | #35 News summarize too slow (2/cycle) | Medium | 54 |
 | #36 Title dedup threshold too lenient | Low | 54 |
 | #37 Admin auth uses API key + backdoor | Medium | 55 |
-| #38 Silent cron errors, no alerting | Medium | 51 |
+| #38 Silent cron errors, no alerting | ~~Medium~~ **PARTIAL** | 51 |
 | #39 useScores has no error state | Medium | 56 |
 | #40 useAutoScore race on navigation | Medium | 57 |
 | #41 AbortController self-abort | Low | Low priority |
@@ -326,6 +329,122 @@ These fix the "data is broken/stale/missing" issues found in the V4 deep dive au
 
 ---
 
+### Track H: Team Page redesign (design elevation — in progress)
+
+> **Philosophy:** "Cinematic command center framed in geometric elegance."
+> Competitive analysis of SofaScore, FotMob, Flashscore, Transfermarkt, WhoScored, ESPN, FIFA.com, FBref, Apple Sports, Google Sports completed. Hybrid design spec finalized.
+> Arabesque geometric patterns are the visual differentiator — no other sports app uses Islamic geometric design as structural UI elements.
+
+#### Session 58: Arabesque pattern system + CSS foundations
+**Goal:** Build the reusable SVG pattern components and new CSS classes before touching TeamPage.
+- Create `src/components/ui/ArabesquePatterns.tsx` — 4 reusable patterns:
+  - **Lattice overlay** — repeating mashrabiya pattern for hero backgrounds (SVG `<pattern>` tile, ~120px)
+  - **Geometric band** — horizontal divider strip of interlocking shapes (12px tall)
+  - **Corner accents** — star-polygon clusters for card corners
+  - **Star divider** — inline diamond/star for stat separators
+- Add new animation classes to `globals.css`:
+  - `.yc-star-breathe` — opacity 4%→8% on 4s cycle
+  - `.yc-geometric-drift` — 720s full rotation for hero rosettes
+  - `.yc-accordion-expand` — max-height + opacity transition, 350ms ease
+- Add `.yc-octagonal` clip-path utility for featured cards
+- All SVG patterns: `currentColor` based, under 2KB each, under 8KB total
+- All animations respect `prefers-reduced-motion: reduce`
+- **Performance budget:** zero JS overhead (CSS + inline SVG only)
+
+#### Session 59: Team Page — hero header + sticky nav
+**Goal:** Replace current flat header with cinematic hero and scroll-aware navigation.
+- **Hero header** (200/240/280px responsive):
+  - Team-color gradient background from `clubColors` API field (4% opacity radial)
+  - Crest in octagonal frame (clip-path polygon, `yc-border-accent` border)
+  - Arabesque lattice overlay (3-5% opacity)
+  - Quick stats bar: P/W/D/L in font-mono, separated by diamond dividers
+  - Form dots (last 5) with opponent crest tooltips
+  - Geometric band divider at bottom edge
+- **Sticky section nav** (48px, `yc-bg-glass` + backdrop-blur):
+  - Scrollable pills: Overview, Squad, Fixtures, Stats, News, Community
+  - Active pill: geometric arch indicator in `yc-green`
+  - Mini crest appears when hero scrolls out (IntersectionObserver)
+  - Pill tap smooth-scrolls to section AND expands it
+- Mobile: centered stack hero, scrollable pills
+- Desktop: left-aligned hero with lattice wing, centered pills + mini crest
+
+#### Session 60: Team Page — accordion system + Overview section
+**Goal:** Implement collapsible sections and the primary Overview accordion.
+- **Accordion component** (reusable):
+  - Header: icon + title + summary + chevron (rotates 180deg, 300ms)
+  - Expand: max-height transition 350ms cubic-bezier(0.4, 0, 0.2, 1), opacity 0→1 over 200ms
+  - Multiple sections open simultaneously (independent, not exclusive)
+  - Collapsed shows: title + one-line summary + item count badge
+  - Expanded bottom border: geometric band replaces plain line
+  - `prefers-reduced-motion`: instant toggle
+- **Overview section** (default open):
+  - **Next Match card** — glass card with arabesque corner accents, opponent crests, "Predict" CTA button
+  - **League position snippet** — large position number (green if top 4, red if relegation), tap to expand mini-table
+  - **Stats grid** (2x2 mobile, 4x1 desktop): goals scored, conceded, clean sheets, win rate %
+  - **Top 3 scorers** — from squad data, prominent display
+  - **Form sparkline** — tiny line chart (W=high, D=mid, L=low) replacing flat dots
+  - **Recent 3 results** — opponent crest, name, score (color-coded), date
+- Desktop: 2-column layout (60/40)
+
+#### Session 61: Team Page — Squad + Fixtures sections
+**Goal:** Premium squad display with expandable player rows, and filtered fixtures.
+- **Squad section:**
+  - Collapsed: "Squad — 26 players"
+  - Position groups as nested mini-accordions (GK/DEF/MID/FWD)
+  - Geometric left-border on position headers (interlocking diamonds, 4px, green 20% opacity)
+  - Player rows: number (mono), name, nationality flag, age
+  - Tap player: inline detail strip slides open (250ms) — nationality, position detail, club
+  - Only one player detail open per group at a time
+  - Desktop: adds extra columns (club, caps/goals if available)
+- **Fixtures section:**
+  - Collapsed: "Fixtures — 3 upcoming, 4 played"
+  - **Filter dropdown**: glass pill with chevron → "All" / "Upcoming" / "Results"
+  - Dropdown panel: `yc-bg-glass` + backdrop-blur, geometric arch keystone at top
+  - Match cards (not rows): glass background, matchday label, date, crests, score or time
+  - Result color-coding: thin left-border accent (green win, yellow draw, red loss)
+  - **Head-to-head vs next opponent** — if available in recent results
+  - Desktop: 2-column grid
+
+#### Session 62: Team Page — Stats + News + Community sections
+**Goal:** Data visualization, AI news, and the social features no competitor has.
+- **Stats section:**
+  - Collapsed: "Stats — Season 2025/26"
+  - Category chips: Attack / Defense (active chip: green + arch indicator)
+  - Stat rows: label, value (mono bold), progress bar (gradient green-dark → green, 4px)
+  - Hover: bar expands to 6px, shows competition average marker
+  - Strengths/weaknesses auto-tags: derived from stats ("Strong at home: 8W-1L")
+  - Geometric star dividers between stat categories
+- **News section:**
+  - Collapsed: "News — 3 recent articles"
+  - 2-3 article cards max (not a feed)
+  - Empty state: "No recent news for [Team]" with geometric watermark
+- **Community section** (YancoCup exclusive — no competitor has this):
+  - **Pool consensus**: "72% of YancoCup users predict [Team] to win" (from yc_predictions)
+  - **Fan confidence meter**: derived from recent prediction trends, shown as a bar
+  - **Your prediction history**: "You've predicted them 7 times, 71% accuracy"
+  - Empty state for logged-out users: "Sign in to see community predictions"
+
+#### Session 63: Team Page — Venue card + Prediction CTA + polish
+**Goal:** Final sections, arch-shaped CTA, and responsive polish across all breakpoints.
+- **Venue section:**
+  - Collapsed: "Venue — [Stadium Name]"
+  - Stadium name, capacity, city
+  - Map link (external, Google Maps)
+- **Prediction CTA** (non-collapsible, always visible at bottom):
+  - Arch-shaped card (CSS clip-path ogee arch silhouette)
+  - Ornate geometric frame — the most decorated element on the page
+  - "Predict [Team Name]'s Next Match" + opponent info + large CTA button
+  - If prediction exists: shows current prediction + "Change" link
+- **Responsive polish:**
+  - Test all breakpoints: 375px (iPhone SE), 390px (iPhone 14), 768px (iPad), 1024px, 1440px
+  - Verify all accordions work on touch
+  - Verify sticky nav IntersectionObserver on all devices
+  - Verify arabesque patterns degrade gracefully (corner accents on mobile, full lattice on desktop)
+  - `prefers-reduced-motion` audit — all animations disabled
+- **Performance check:** `npm run build` — verify TeamPage chunk is under 50KB gzipped
+
+---
+
 ## What NOT to build
 
 | Feature | Why cut |
@@ -340,4 +459,4 @@ These fix the "data is broken/stale/missing" issues found in the V4 deep dive au
 | Original journalism | Summarize and link only |
 | Video highlights | Copyright issues |
 | Light mode | Always dark |
-| Worker features without extracting modules first | God file is already 2,874 lines |
+| Worker features without extracting modules first | God file is already 3,121 lines |

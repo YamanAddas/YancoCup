@@ -231,7 +231,7 @@ function TodaysMatches() {
       const firstDate = upcomingLeague[0]!.date;
       const dateLabel = new Date(`${firstDate}T00:00:00Z`).toLocaleDateString(
         getLocale(lang),
-        { weekday: "long", month: "short", day: "numeric" },
+        { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" },
       );
       return {
         matches: upcomingLeague,
@@ -247,7 +247,7 @@ function TodaysMatches() {
       const nextMatches = upcoming.filter((m) => m.date === nextDate);
       const dateLabel = new Date(`${nextDate}T00:00:00Z`).toLocaleDateString(
         undefined,
-        { weekday: "long", month: "short", day: "numeric" },
+        { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" },
       );
       return {
         matches: nextMatches,
