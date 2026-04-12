@@ -10,7 +10,7 @@ import { useI18n } from "../lib/i18n";
 import { usePredictedMatchIds } from "../hooks/usePredictions";
 import MatchCard from "../components/match/MatchCard";
 import type { Match } from "../types";
-import { ChevronLeft, ChevronRight, Filter, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, Filter, X, Check, Circle } from "lucide-react";
 import { formatDatePill, getLocale } from "../lib/formatDate";
 
 // ---------------------------------------------------------------------------
@@ -396,6 +396,152 @@ function TournamentMatches() {
 }
 
 // ---------------------------------------------------------------------------
+// Matchday stepper + dropdown
+// ---------------------------------------------------------------------------
+
+function MatchdayStepper({
+  matchdays,
+  selected,
+  onSelect,
+  mdStatus,
+  t,
+}: {
+  matchdays: number[];
+  selected: number;
+  onSelect: (md: number) => void;
+  mdStatus: (md: number) => string;
+  t: (key: string, vars?: Record<string, unknown>) => string;
+}) {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const idx = matchdays.indexOf(selected);
+  const hasPrev = idx > 0;
+  const hasNext = idx < matchdays.length - 1;
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  // Scroll active item into view when dropdown opens
+  useEffect(() => {
+    if (!open || !listRef.current) return;
+    const activeEl = listRef.current.querySelector("[data-active='true']");
+    activeEl?.scrollIntoView({ block: "center" });
+  }, [open]);
+
+  const currentStatus = mdStatus(selected);
+
+  return (
+    <div className="flex items-center justify-center gap-2 mb-6" ref={dropdownRef}>
+      {/* Prev button */}
+      <button
+        onClick={() => hasPrev && onSelect(matchdays[idx - 1])}
+        disabled={!hasPrev}
+        className="p-2.5 rounded-xl bg-yc-bg-surface border border-yc-border text-yc-text-secondary hover:text-yc-text-primary hover:border-yc-border-hover disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+      >
+        <ChevronLeft size={18} />
+      </button>
+
+      {/* Center label — opens dropdown */}
+      <div className="relative">
+        <button
+          onClick={() => setOpen(!open)}
+          className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl border transition-all min-w-[180px] justify-center ${
+            open
+              ? "bg-yc-green/15 text-yc-green border-[var(--yc-border-accent-bright)] shadow-[0_0_16px_rgba(0,255,136,0.1)]"
+              : "bg-yc-bg-surface text-yc-text-primary border-yc-border hover:border-yc-border-hover"
+          }`}
+        >
+          {currentStatus === "live" && (
+            <span className="w-2 h-2 rounded-full bg-yc-green animate-pulse shrink-0" />
+          )}
+          <span className="font-heading font-semibold text-sm">
+            {t("common.matchday")} {selected}
+          </span>
+          <span className="text-yc-text-tertiary text-xs font-mono">
+            / {matchdays.length}
+          </span>
+          <ChevronDown size={14} className={`text-yc-text-tertiary transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+
+        {/* Dropdown list */}
+        {open && (
+          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 max-h-72 overflow-y-auto bg-yc-bg-elevated border border-yc-border rounded-xl shadow-2xl shadow-black/40 z-50 py-1 scrollbar-none animate-fade-in" ref={listRef}>
+            {matchdays.map((md) => {
+              const status = mdStatus(md);
+              const isActive = md === selected;
+              return (
+                <button
+                  key={md}
+                  data-active={isActive}
+                  onClick={() => {
+                    onSelect(md);
+                    setOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                    isActive
+                      ? "bg-yc-green/10 text-yc-green"
+                      : "text-yc-text-secondary hover:bg-yc-bg-surface hover:text-yc-text-primary"
+                  }`}
+                >
+                  {/* Status indicator */}
+                  {status === "live" ? (
+                    <span className="w-2 h-2 rounded-full bg-yc-green animate-pulse shrink-0" />
+                  ) : status === "finished" ? (
+                    <Check size={12} className="text-yc-text-tertiary shrink-0" />
+                  ) : (
+                    <Circle size={8} className="text-yc-text-tertiary/40 shrink-0" />
+                  )}
+
+                  <span className={`font-medium flex-1 text-start ${isActive ? "text-yc-green" : ""}`}>
+                    {t("common.matchday")} {md}
+                  </span>
+
+                  {isActive && (
+                    <span className="text-[9px] uppercase tracking-wider text-yc-green font-bold">
+                      ●
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Next button */}
+      <button
+        onClick={() => hasNext && onSelect(matchdays[idx + 1])}
+        disabled={!hasNext}
+        className="p-2.5 rounded-xl bg-yc-bg-surface border border-yc-border text-yc-text-secondary hover:text-yc-text-primary hover:border-yc-border-hover disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+      >
+        <ChevronRight size={18} />
+      </button>
+
+      {/* Progress bar */}
+      <div className="hidden sm:flex items-center gap-2 ms-3">
+        <div className="w-24 h-1.5 rounded-full bg-yc-bg-surface overflow-hidden">
+          <div
+            className="h-full rounded-full bg-yc-green/60 transition-all duration-300"
+            style={{ width: `${((idx + 1) / matchdays.length) * 100}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // League matches with matchday navigation
 // ---------------------------------------------------------------------------
 
@@ -408,8 +554,6 @@ function LeagueMatches() {
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
   const predictedIds = usePredictedMatchIds(comp.id);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const activeMdRef = useRef<HTMLButtonElement>(null);
 
   // All matches (unfiltered) for finding the right default matchday
   const { matches: allMatches } = useCompetitionSchedule();
@@ -437,16 +581,6 @@ function LeagueMatches() {
     const nearest = findNearestMatchday();
     if (nearest !== undefined) setSelectedMatchday(nearest);
   }, [findNearestMatchday, selectedMatchday]);
-
-  // Scroll active matchday pill into view (without shifting the page)
-  useEffect(() => {
-    const container = scrollRef.current;
-    const el = activeMdRef.current;
-    if (!container || !el) return;
-    const cr = container.getBoundingClientRect();
-    const er = el.getBoundingClientRect();
-    container.scrollBy({ left: er.left - cr.left - cr.width / 2 + er.width / 2, behavior: "smooth" });
-  }, [selectedMatchday]);
 
   // Group matches by date for display
   const matchesByDate = useMemo(() => {
@@ -489,51 +623,15 @@ function LeagueMatches() {
         </div>
       ) : (
         <>
-          {/* Matchday navigation strip */}
-          {matchdays.length > 0 && (
-            <div className="relative flex items-center gap-1 mb-6">
-              <button
-                onClick={() => scrollRef.current?.scrollBy({ left: -200, behavior: "smooth" })}
-                className="shrink-0 p-1.5 rounded-lg text-yc-text-tertiary hover:text-yc-text-primary hover:bg-yc-bg-elevated transition-colors"
-              >
-                <ChevronLeft size={18} />
-              </button>
-
-              <div ref={scrollRef} className="flex gap-1 overflow-x-auto scrollbar-none flex-1 py-1">
-                {matchdays.map((md) => {
-                  const status = mdStatus(md);
-                  return (
-                    <button
-                      key={md}
-                      ref={selectedMatchday === md ? activeMdRef : undefined}
-                      onClick={() => setSelectedMatchday(md)}
-                      className={`relative flex flex-col items-center px-3 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap shrink-0 min-w-[52px] border ${
-                        selectedMatchday === md
-                          ? "bg-yc-green/15 text-yc-green border-[var(--yc-border-accent-bright)] shadow-[0_0_16px_rgba(0,255,136,0.1)]"
-                          : status === "live"
-                            ? "bg-yc-bg-surface text-yc-green border-yc-green/20"
-                            : status === "finished"
-                              ? "bg-yc-bg-surface text-yc-text-tertiary border-yc-border hover:text-yc-text-secondary"
-                              : "bg-yc-bg-surface text-yc-text-secondary border-yc-border hover:text-yc-text-primary hover:border-yc-border-hover"
-                      }`}
-                    >
-                      <span className="text-[9px] uppercase tracking-wider opacity-60">{t("common.matchday")}</span>
-                      <span className="font-bold font-mono">{md}</span>
-                      {status === "live" && (
-                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-yc-green animate-pulse" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <button
-                onClick={() => scrollRef.current?.scrollBy({ left: 200, behavior: "smooth" })}
-                className="shrink-0 p-1.5 rounded-lg text-yc-text-tertiary hover:text-yc-text-primary hover:bg-yc-bg-elevated transition-colors"
-              >
-                <ChevronRight size={18} />
-              </button>
-            </div>
+          {/* Matchday stepper + dropdown */}
+          {matchdays.length > 0 && selectedMatchday !== undefined && (
+            <MatchdayStepper
+              matchdays={matchdays}
+              selected={selectedMatchday}
+              onSelect={setSelectedMatchday}
+              mdStatus={mdStatus}
+              t={t}
+            />
           )}
 
           {/* Matches grouped by date */}
