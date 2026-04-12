@@ -2,13 +2,11 @@
 
 ## Critical (must fix before World Cup launch)
 
-### BUG-001: Client-side scoring is a race condition risk
-**What:** Scoring runs in `useAutoScore.ts` — the first user to load the leaderboard after a match ends triggers scoring for all finished matches. If two users load simultaneously, scoring could run twice.
-**Impact:** Duplicate points, incorrect leaderboard.
-**Fix options:**
-- (Preferred) Move scoring to a Cloudflare Worker cron that runs after match results are confirmed
-- (Quick) Add a Supabase `scored_at` timestamp and skip matches already scored
-- (Minimum) Add client-side deduplication check before writing points
+### BUG-001: ~~Client-side scoring race condition~~ MITIGATED
+**Status:** Two guards prevent double-scoring:
+1. **Database guard:** `useScoring.ts` uses `.is("scored_at", null)` — Supabase conditional update only writes if `scored_at` is null. Second concurrent scorer's write is silently ignored.
+2. **Client guard:** `useAutoScore.ts` has module-level `scoringInProgress` flag + 5-minute throttle. Prevents rapid re-scoring within the same client.
+**Remaining concern:** Scoring is still client-side. Preferred long-term fix is Worker-side scoring after match results are confirmed.
 
 ### BUG-002: Verify football-data.org covers World Cup 2026 live
 **What:** The free tier page lists "Worldcup" but the 2026 tournament hasn't started yet. Live score polling hasn't been tested against an active World Cup.
@@ -27,9 +25,10 @@
 **Affected:** Team pages with no news, empty pool chat, competition pages before season starts.
 **Fix:** Systematic audit — every data-fetching component needs skeleton/empty/error treatment.
 
-### BUG-005: RTL layout issues in Arabic
-**What:** Some components use `margin-left` / `padding-right` instead of logical properties. Match cards may not mirror correctly in RTL.
-**Fix:** Replace physical properties with logical (`margin-inline-start`, `padding-inline-end`). Test every page in Arabic mode.
+### BUG-005: RTL layout issues in Arabic — PARTIALLY RESOLVED
+**What:** Some components used `margin-left` / `text-right` instead of logical properties.
+**Status (Session 65):** Fixed in MatchCard, PredictionCard, LeaderboardPage, StandingsPage — replaced `text-left/right` → `text-start/end`, `ml-/mr-` → `ms-/me-`.
+**Remaining:** Full page-by-page RTL audit needed. Test every page in Arabic mode.
 
 ### BUG-006: Globe performance on low-end mobile — PARTIALLY RESOLVED
 **What:** The R3F globe can cause frame drops and battery drain on older phones.

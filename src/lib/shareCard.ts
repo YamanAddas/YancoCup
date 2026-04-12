@@ -127,6 +127,166 @@ export async function generateShareCard(
 }
 
 // ---------------------------------------------------------------------------
+// 9:16 Story card (WhatsApp Status / Instagram Stories — 1080x1920)
+// ---------------------------------------------------------------------------
+
+const STORY_W = 1080;
+const STORY_H = 1920;
+
+export async function generateStoryCard(
+  data: ShareCardData,
+  t?: (key: string, params?: Record<string, string | number>) => string,
+): Promise<Blob | null> {
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = STORY_W;
+    canvas.height = STORY_H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    // Background — deep gradient
+    const bg = ctx.createLinearGradient(0, 0, 0, STORY_H);
+    bg.addColorStop(0, "#040810");
+    bg.addColorStop(0.4, "#060b14");
+    bg.addColorStop(1, "#0c1620");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, STORY_W, STORY_H);
+
+    // Subtle green glow behind center
+    const glow = ctx.createRadialGradient(STORY_W / 2, STORY_H * 0.42, 0, STORY_W / 2, STORY_H * 0.42, 400);
+    glow.addColorStop(0, "rgba(0, 255, 136, 0.06)");
+    glow.addColorStop(1, "transparent");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, STORY_W, STORY_H);
+
+    // Green accent line at top
+    ctx.fillStyle = "#00ff88";
+    ctx.fillRect(0, 0, STORY_W, 4);
+
+    // YancoCup branding — large, top center
+    ctx.fillStyle = "#00ff88";
+    ctx.font = "bold 36px 'Space Grotesk', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("YANCOCUP", STORY_W / 2, 100);
+
+    // Competition + matchday
+    ctx.fillStyle = "#666666";
+    ctx.font = "20px 'Inter', sans-serif";
+    ctx.fillText(`${data.competition}${data.matchday ? ` · ${data.matchday}` : ""}`, STORY_W / 2, 140);
+
+    // Divider line
+    ctx.fillStyle = "#142035";
+    ctx.fillRect(STORY_W / 2 - 100, 180, 200, 1);
+
+    // "My Prediction" label
+    ctx.fillStyle = "#888888";
+    ctx.font = "22px 'Inter', sans-serif";
+    ctx.fillText(t ? t("shareCard.myPrediction") : "MY PREDICTION", STORY_W / 2, 280);
+
+    // Home team name
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 44px 'Space Grotesk', sans-serif";
+    ctx.fillText(data.homeTeam, STORY_W / 2, 380);
+
+    // "vs" or predicted score
+    ctx.fillStyle = "#00ff88";
+    ctx.font = "bold 96px 'Space Grotesk', monospace";
+    ctx.fillText(`${data.homeScore} - ${data.awayScore}`, STORY_W / 2, 520);
+
+    // Away team name
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 44px 'Space Grotesk', sans-serif";
+    ctx.fillText(data.awayTeam, STORY_W / 2, 620);
+
+    // Divider
+    ctx.fillStyle = "#142035";
+    ctx.fillRect(STORY_W / 2 - 150, 680, 300, 1);
+
+    // Actual result (if available)
+    if (data.actualHome !== null && data.actualHome !== undefined && data.actualAway !== null && data.actualAway !== undefined) {
+      ctx.fillStyle = "#666666";
+      ctx.font = "22px 'Inter', sans-serif";
+      ctx.fillText(t ? t("shareCard.actualResult") : "ACTUAL RESULT", STORY_W / 2, 760);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 64px 'Space Grotesk', monospace";
+      ctx.fillText(`${data.actualHome} - ${data.actualAway}`, STORY_W / 2, 840);
+
+      // Points badge
+      if (data.points !== null && data.points !== undefined) {
+        const pointsText = `+${data.points} pts`;
+        const badgeColor = data.points >= 10 ? "#00ff88" : data.points > 0 ? "#f59e0b" : "#666666";
+
+        // Badge background
+        ctx.fillStyle = badgeColor + "18";
+        const badgeW = 200;
+        ctx.beginPath();
+        ctx.roundRect(STORY_W / 2 - badgeW / 2, 880, badgeW, 56, 12);
+        ctx.fill();
+
+        // Badge text
+        ctx.fillStyle = badgeColor;
+        ctx.font = "bold 28px 'Space Grotesk', monospace";
+        ctx.fillText(pointsText, STORY_W / 2, 916);
+
+        // Result label
+        const label = data.points >= 10 ? (t ? t("shareCard.exactScore") : "EXACT SCORE!") : data.points >= 5 ? (t ? t("shareCard.goalDifference") : "GOAL DIFFERENCE") : data.points >= 3 ? (t ? t("shareCard.correctResult") : "CORRECT RESULT") : "";
+        if (label) {
+          ctx.fillStyle = badgeColor;
+          ctx.font = "bold 20px 'Inter', sans-serif";
+          ctx.fillText(label, STORY_W / 2, 970);
+        }
+      }
+    }
+
+    // Footer — URL
+    ctx.fillStyle = "#333333";
+    ctx.font = "18px 'Inter', sans-serif";
+    ctx.fillText("yamanaddas.github.io/YancoCup", STORY_W / 2, STORY_H - 60);
+
+    // Green accent line at bottom
+    ctx.fillStyle = "#00ff88";
+    ctx.fillRect(0, STORY_H - 4, STORY_W, 4);
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/png");
+    });
+  } catch {
+    return null;
+  }
+}
+
+/** Share a Story-format prediction card */
+export async function shareStoryCard(
+  data: ShareCardData,
+  t?: (key: string, params?: Record<string, string | number>) => string,
+): Promise<"shared" | "downloaded" | "failed"> {
+  const blob = await generateStoryCard(data, t);
+  if (!blob) return "failed";
+
+  const file = new File([blob], "yancocup-story.png", { type: "image/png" });
+
+  const shareText = t
+    ? `${t("shareCard.myPredictionText")} ${data.homeTeam} ${data.homeScore}-${data.awayScore} ${data.awayTeam} | YancoCup`
+    : `My prediction: ${data.homeTeam} ${data.homeScore}-${data.awayScore} ${data.awayTeam} | YancoCup`;
+
+  if (navigator.share && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ text: shareText, files: [file] });
+      return "shared";
+    } catch { /* user cancelled */ }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "yancocup-story.png";
+  a.click();
+  URL.revokeObjectURL(url);
+  return "downloaded";
+}
+
+// ---------------------------------------------------------------------------
 // Profile share card
 // ---------------------------------------------------------------------------
 

@@ -41,10 +41,11 @@ export function useScores(comp?: string) {
   const [loading, setLoading] = useState(true);
   const [hasLive, setHasLive] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
+  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const poll = useCallback(async () => {
-    const { scores: raw, error: fetchError } = await fetchScores(comp);
+    const { scores: raw, fetchedAt: ts, error: fetchError } = await fetchScores(comp);
 
     if (fetchError) {
       setError(fetchError);
@@ -53,6 +54,7 @@ export function useScores(comp?: string) {
     }
 
     setError(null);
+    setFetchedAt(ts);
 
     if (raw.length === 0) {
       setLoading(false);
@@ -102,5 +104,5 @@ export function useScores(comp?: string) {
     };
   }, [poll, hasLive]);
 
-  return { scoreMap, loading, hasLive, error };
+  return { scoreMap, loading, hasLive, error, fetchedAt };
 }

@@ -37,6 +37,7 @@
   "matches.countPlural": "{count} matches",
   "matches.clearFilters": "Clear filters",
   "matches.noResults": "No matches found for the selected filters.",
+  "matches.scoreError": "Live scores temporarily unavailable. Showing cached data.",
   "matches.filterRound": "Round",
   "matches.filterGroup": "Group",
   "matches.filterTeam": "Team",

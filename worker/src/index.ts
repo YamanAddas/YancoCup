@@ -341,16 +341,25 @@ function matchTeamName(tla: string, afName: string): boolean {
   if (aliases) {
     return aliases.some((alias) => afName.includes(alias));
   }
-  // 2. Fallback: check if the 3-letter TLA appears in the AF name,
-  //    or if the first 3 chars of AF name match the TLA
-  const afWords = afName.replace(/[^A-Z ]/g, "").split(/\s+/);
-  // Try matching TLA against first letters of each word (e.g., PSG → Paris Saint-Germain)
+  // 2. Fallback strategies for teams not in the alias map
+  const afUpper = afName.toUpperCase();
+  const afWords = afUpper.replace(/[^A-Z ]/g, "").split(/\s+/).filter(Boolean);
+
+  // 2a. Try initials match (e.g., PSG → Paris Saint-Germain)
   if (afWords.length >= tla.length) {
     const initials = afWords.map((w) => w[0]).join("");
-    if (initials.includes(tla)) return true;
+    if (initials === tla) return true;
   }
-  // Simple substring as last resort
-  return afName.includes(tla) || tla.includes(afName.slice(0, 3));
+
+  // 2b. First word of AF name starts with TLA (e.g., ARS → Arsenal)
+  if (afWords.length > 0 && afWords[0]!.startsWith(tla)) return true;
+
+  // 2c. Exact word match — TLA appears as a standalone word boundary
+  //     (prevents "ESP" matching "Espanyol" → only matches "ESP" as a word)
+  const wordBoundary = new RegExp(`\\b${tla}\\b`);
+  if (wordBoundary.test(afUpper)) return true;
+
+  return false;
 }
 
 /**
@@ -2314,7 +2323,8 @@ app.get("/api/:comp/scores", async (c) => {
     filtered = filtered.filter((m) => m.matchday === md);
   }
 
-  return c.json({ matches: filtered });
+  const lastPollComp = await c.env.SCORES_KV.get(KV_LAST_POLL);
+  return c.json({ matches: filtered, fetchedAt: lastPollComp ?? null });
 });
 
 // ---------------------------------------------------------------------------
@@ -2626,10 +2636,12 @@ app.get("/api/scores", async (c) => {
   if (!cached) {
     return c.json({
       matches: [],
+      fetchedAt: null,
       message: "No data yet. Scores populate during the tournament.",
     });
   }
   const scores = safeParse<MatchScore[]>(cached) ?? [];
+  const lastPoll = await c.env.SCORES_KV.get(KV_LAST_POLL);
 
   const status = c.req.query("status");
   const date = c.req.query("date");
@@ -2642,7 +2654,7 @@ app.get("/api/scores", async (c) => {
     filtered = filtered.filter((m) => m.utcDate.startsWith(date));
   }
 
-  return c.json({ matches: filtered });
+  return c.json({ matches: filtered, fetchedAt: lastPoll ?? null });
 });
 
 app.get("/api/standings", async (c) => {

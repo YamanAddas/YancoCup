@@ -111,9 +111,23 @@ interface MatchCardProps {
   compact?: boolean;
   competitionId?: string;
   predicted?: boolean;
+  /** ISO timestamp of last Worker poll — used for staleness indicator on live matches */
+  fetchedAt?: string | null;
 }
 
-export default function MatchCard({ match, teamMap, venueMap, liveScore, compact, competitionId, predicted }: MatchCardProps) {
+function StaleBadge({ fetchedAt }: { fetchedAt?: string | null }) {
+  if (!fetchedAt) return null;
+  const ago = Math.round((Date.now() - new Date(fetchedAt).getTime()) / 1000);
+  if (ago < 10) return null; // fresh enough
+  const label = ago < 60 ? `${ago}s ago` : `${Math.round(ago / 60)}m ago`;
+  return (
+    <span className="text-yc-text-tertiary text-[9px] font-mono" title={fetchedAt}>
+      ↻ {label}
+    </span>
+  );
+}
+
+export default function MatchCard({ match, teamMap, venueMap, liveScore, compact, competitionId, predicted, fetchedAt }: MatchCardProps) {
   const { t, lang, tTeam, tVenue } = useI18n();
   const wrapRef = useRef<HTMLDivElement>(null);
   const specRef = useRef<HTMLDivElement>(null);
@@ -230,7 +244,10 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
                 )}
               </span>
               {effectiveStatus && (effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED" || effectiveStatus === "FINISHED") ? (
-                <StatusBadge status={effectiveStatus} />
+                <span className="flex items-center gap-2">
+                  <StatusBadge status={effectiveStatus} />
+                  {isLive && <StaleBadge fetchedAt={fetchedAt} />}
+                </span>
               ) : (
                 <span className="text-yc-text-tertiary text-xs">
                   {fmtDate(match.date, lang)}

@@ -80,7 +80,7 @@ async function apiFetch<T>(path: string): Promise<ApiResult<T>> {
 export async function fetchScores(comp?: string, filters?: {
   status?: string;
   date?: string;
-}): Promise<{ scores: LiveMatchScore[]; error: ApiError | null }> {
+}): Promise<{ scores: LiveMatchScore[]; fetchedAt: string | null; error: ApiError | null }> {
   const params = new URLSearchParams();
   if (filters?.status) params.set("status", filters.status);
   if (filters?.date) params.set("date", filters.date);
@@ -88,8 +88,8 @@ export async function fetchScores(comp?: string, filters?: {
   // Use competition-specific endpoint so league pages get their own scores
   const base = comp && comp !== "WC" ? `/api/${comp}/scores` : "/api/scores";
   const path = `${base}${qs ? `?${qs}` : ""}`;
-  const { data, error } = await apiFetch<{ matches: LiveMatchScore[] }>(path);
-  return { scores: data?.matches ?? [], error };
+  const { data, error } = await apiFetch<{ matches: LiveMatchScore[]; fetchedAt: string | null }>(path);
+  return { scores: data?.matches ?? [], fetchedAt: data?.fetchedAt ?? null, error };
 }
 
 /** Fetch group standings for a competition. */

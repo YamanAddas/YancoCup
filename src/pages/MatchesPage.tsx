@@ -271,7 +271,7 @@ function TournamentMatches() {
       {/* Score error banner */}
       {scoreError && (
         <div className="mb-4 px-4 py-3 rounded-lg bg-yc-warning/10 border border-yc-warning/20 text-yc-warning text-sm">
-          Live scores temporarily unavailable. Showing cached data.
+          {t("matches.scoreError")}
         </div>
       )}
 
@@ -480,7 +480,7 @@ function LeagueMatches() {
     <>
       {scoreError && (
         <div className="mb-4 px-4 py-3 rounded-lg bg-yc-warning/10 border border-yc-warning/20 text-yc-warning text-sm">
-          Live scores temporarily unavailable. Showing cached data.
+          {t("matches.scoreError")}
         </div>
       )}
       {loading ? (

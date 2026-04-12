@@ -36,6 +36,7 @@
   "matches.countPlural": "{count} مباريات",
   "matches.clearFilters": "مسح الفلاتر",
   "matches.noResults": "لم يتم العثور على مباريات للفلاتر المحددة.",
+  "matches.scoreError": "النتائج المباشرة غير متاحة مؤقتاً. عرض البيانات المخزنة.",
   "matches.filterRound": "الدور",
   "matches.filterGroup": "المجموعة",
   "matches.filterTeam": "الفريق",

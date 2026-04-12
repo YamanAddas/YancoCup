@@ -5,7 +5,7 @@ import { upsertPrediction, upsertQuickPrediction, canPredict } from "../../hooks
 import { useConsensus } from "../../hooks/useConsensus";
 import { checkActivityBadges } from "../../lib/badges";
 import { buildShareText, sharePrediction } from "../../lib/share";
-import { sharePredictionCard } from "../../lib/shareCard";
+import { sharePredictionCard, shareStoryCard } from "../../lib/shareCard";
 import { useI18n } from "../../lib/i18n";
 import { formatTimeWithTZ, getLocale } from "../../lib/formatDate";
 import TeamCrest from "../match/TeamCrest";
@@ -141,7 +141,7 @@ export default function PredictionCard({
     if (err) { setError(err); } else { afterSave(); }
   };
 
-  const handleShare = async () => {
+  const handleShare = async (storyFormat = false) => {
     if (!match.homeTeam || !match.awayTeam || !prediction) return;
     if (!prediction.quick_pick && prediction.home_score == null) return;
 
@@ -150,7 +150,7 @@ export default function PredictionCard({
     const homeName = match.homeTeamName ?? home?.name ?? hCode;
     const awayName = match.awayTeamName ?? away?.name ?? aCode;
 
-    const cardResult = await sharePredictionCard({
+    const cardData = {
       homeTeam: homeName,
       awayTeam: awayName,
       homeScore: prediction.home_score!,
@@ -160,7 +160,11 @@ export default function PredictionCard({
       points: prediction.points,
       competition: competitionId,
       matchday: match.matchday ? t("match.matchday", { num: match.matchday }) : undefined,
-    });
+    };
+
+    // Use Story format (9:16) on mobile or when explicitly requested
+    const shareFn = storyFormat ? shareStoryCard : sharePredictionCard;
+    const cardResult = await shareFn(cardData);
 
     if (cardResult === "shared" || cardResult === "downloaded") {
       setShareStatus(cardResult === "shared" ? "Shared!" : "Saved!");
@@ -411,14 +415,23 @@ export default function PredictionCard({
         )}
 
         {hasPrediction && (
-          <button
-            onClick={handleShare}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-yc-text-tertiary hover:text-yc-text-primary transition-colors"
-            title={t("predictions.sharePrediction")}
-          >
-            <Share2 size={12} />
-            {shareStatus ?? t("predictions.share")}
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => handleShare(false)}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-yc-text-tertiary hover:text-yc-text-primary transition-colors"
+              title={t("predictions.sharePrediction")}
+            >
+              <Share2 size={12} />
+              {shareStatus ?? t("predictions.share")}
+            </button>
+            <button
+              onClick={() => handleShare(true)}
+              className="px-1.5 py-1.5 rounded-lg text-[9px] font-bold text-yc-text-tertiary hover:text-yc-green transition-colors"
+              title="Share as Story (9:16)"
+            >
+              9:16
+            </button>
+          </div>
         )}
 
         {locked && hasPrediction && (
