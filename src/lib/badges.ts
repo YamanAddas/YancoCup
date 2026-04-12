@@ -237,34 +237,67 @@ export async function checkLoyaltyBadges(userId: string): Promise<string[]> {
 }
 
 /** Fetch streak data for a user in a competition */
+export interface StreakData {
+  current_streak: number;
+  best_streak: number;
+  last_match_id: number | null;
+  freeze_available: boolean;
+  freeze_used_at: string | null;
+}
+
 export async function fetchStreak(
   userId: string,
   competitionId: string,
-): Promise<{ current_streak: number; best_streak: number; last_match_id: number | null } | null> {
+): Promise<StreakData | null> {
   const { data } = await supabase
     .from("yc_streaks")
-    .select("current_streak, best_streak, last_match_id")
+    .select("current_streak, best_streak, last_match_id, freeze_available, freeze_used_at")
     .eq("user_id", userId)
     .eq("competition_id", competitionId)
     .single();
-  return data;
+  if (!data) return null;
+  return {
+    current_streak: data.current_streak ?? 0,
+    best_streak: data.best_streak ?? 0,
+    last_match_id: data.last_match_id ?? null,
+    freeze_available: data.freeze_available ?? true,
+    freeze_used_at: data.freeze_used_at ?? null,
+  };
 }
 
-/** Update streak after a prediction is scored */
+/** Update streak after a prediction is scored.
+ *  Streak freeze: if user has a freeze available and gets a wrong prediction,
+ *  the freeze is consumed instead of resetting the streak. One freeze per competition. */
 export async function updateStreak(
   userId: string,
   competitionId: string,
   matchId: number,
   correct: boolean,
-): Promise<{ current_streak: number; best_streak: number }> {
+): Promise<{ current_streak: number; best_streak: number; freeze_used: boolean }> {
   const existing = await fetchStreak(userId, competitionId);
 
   // Guard: don't double-increment if same match is scored twice
   if (existing && existing.last_match_id === matchId) {
-    return { current_streak: existing.current_streak, best_streak: existing.best_streak };
+    return { current_streak: existing.current_streak, best_streak: existing.best_streak, freeze_used: false };
   }
 
-  const currentStreak = correct ? (existing?.current_streak ?? 0) + 1 : 0;
+  let currentStreak: number;
+  let freezeAvailable = existing?.freeze_available ?? true;
+  let freezeUsedAt = existing?.freeze_used_at ?? null;
+  let freezeUsed = false;
+
+  if (correct) {
+    currentStreak = (existing?.current_streak ?? 0) + 1;
+  } else if (!correct && freezeAvailable && (existing?.current_streak ?? 0) >= 3) {
+    // Freeze: preserve streak but consume the freeze (only if streak worth preserving: 3+)
+    currentStreak = existing?.current_streak ?? 0;
+    freezeAvailable = false;
+    freezeUsedAt = new Date().toISOString();
+    freezeUsed = true;
+  } else {
+    currentStreak = 0;
+  }
+
   const bestStreak = Math.max(currentStreak, existing?.best_streak ?? 0);
 
   await supabase
@@ -276,6 +309,8 @@ export async function updateStreak(
         current_streak: currentStreak,
         best_streak: bestStreak,
         last_match_id: matchId,
+        freeze_available: freezeAvailable,
+        freeze_used_at: freezeUsedAt,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id,competition_id" },
@@ -284,5 +319,5 @@ export async function updateStreak(
   // Check streak badges
   await checkSkillBadges(userId, { exactScores: 0, currentStreak });
 
-  return { current_streak: currentStreak, best_streak: bestStreak };
+  return { current_streak: currentStreak, best_streak: bestStreak, freeze_used: freezeUsed };
 }

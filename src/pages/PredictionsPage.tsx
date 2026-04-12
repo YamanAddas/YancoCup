@@ -15,9 +15,12 @@ import {
 import { supabase } from "../lib/supabase";
 import { useAutoScore } from "../hooks/useAutoScore";
 import PredictionCard from "../components/predictions/PredictionCard";
+import BatchPredictForm from "../components/predictions/BatchPredictForm";
+import MatchdayRecap from "../components/predictions/MatchdayRecap";
 import HowToPlay from "../components/predictions/HowToPlay";
-import { LogIn, AlertCircle, ChevronLeft, ChevronRight, CheckCircle, Clock, Flame, Copy } from "lucide-react";
+import { LogIn, AlertCircle, ChevronLeft, ChevronRight, CheckCircle, Clock, Flame, Copy, List, LayoutGrid, Shield } from "lucide-react";
 import { fetchStreak } from "../lib/badges";
+import type { StreakData } from "../lib/badges";
 
 export default function PredictionsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -37,6 +40,7 @@ export default function PredictionsPage() {
   // For leagues: matchday-based navigation + quick mode toggle
   const isLeague = comp.type === "league";
   const [quickMode, setQuickMode] = useState(false);
+  const [batchMode, setBatchMode] = useState(false);
   const [selectedMatchday, setSelectedMatchday] = useState<number | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeMdRef = useRef<HTMLButtonElement>(null);
@@ -110,8 +114,8 @@ export default function PredictionsPage() {
     [allMatches, predictionMap],
   );
 
-  // Streak counter
-  const [streak, setStreak] = useState<{ current_streak: number; best_streak: number } | null>(null);
+  // Streak counter + freeze status
+  const [streak, setStreak] = useState<StreakData | null>(null);
   useEffect(() => {
     if (!user) return;
     fetchStreak(user.id, comp.id).then((s) => setStreak(s));
@@ -219,32 +223,65 @@ export default function PredictionsPage() {
               </span>
             </>
           )}
+          {streak && (
+            <>
+              <span className="text-yc-text-tertiary">&middot;</span>
+              <span
+                className={`flex items-center gap-1 text-xs ${
+                  streak.freeze_available
+                    ? "text-blue-400"
+                    : "text-yc-text-tertiary line-through"
+                }`}
+                title={streak.freeze_available ? t("predictions.freezeAvailable") : t("predictions.freezeUsed")}
+              >
+                <Shield size={12} />
+                {t("predictions.freeze")}
+              </span>
+            </>
+          )}
         </div>
 
-        {isLeague && (
-          <div className="flex items-center bg-yc-bg-surface border border-yc-border rounded-lg p-0.5">
+        <div className="flex items-center gap-2">
+          {/* Batch/Card view toggle */}
+          {open.length > 1 && (
             <button
-              onClick={() => setQuickMode(false)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                !quickMode
-                  ? "bg-yc-green text-yc-bg-deep"
-                  : "text-yc-text-tertiary hover:text-yc-text-secondary"
+              onClick={() => setBatchMode(!batchMode)}
+              className={`p-1.5 rounded-lg border transition-all ${
+                batchMode
+                  ? "bg-yc-green/10 border-yc-green/30 text-yc-green"
+                  : "border-yc-border text-yc-text-tertiary hover:text-yc-text-secondary hover:border-yc-border-hover"
               }`}
+              title={batchMode ? t("predictions.cardView") : t("predictions.batchView")}
             >
-              {t("predictions.full")}
+              {batchMode ? <LayoutGrid size={16} /> : <List size={16} />}
             </button>
-            <button
-              onClick={() => setQuickMode(true)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                quickMode
-                  ? "bg-yc-green text-yc-bg-deep"
-                  : "text-yc-text-tertiary hover:text-yc-text-secondary"
-              }`}
-            >
-              {t("predictions.quickPickMode")}
-            </button>
-          </div>
-        )}
+          )}
+
+          {isLeague && (
+            <div className="flex items-center bg-yc-bg-surface border border-yc-border rounded-lg p-0.5">
+              <button
+                onClick={() => setQuickMode(false)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  !quickMode
+                    ? "bg-yc-green text-yc-bg-deep"
+                    : "text-yc-text-tertiary hover:text-yc-text-secondary"
+                }`}
+              >
+                {t("predictions.full")}
+              </button>
+              <button
+                onClick={() => setQuickMode(true)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  quickMode
+                    ? "bg-yc-green text-yc-bg-deep"
+                    : "text-yc-text-tertiary hover:text-yc-text-secondary"
+                }`}
+              >
+                {t("predictions.quickPickMode")}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Matchday navigation for leagues */}
@@ -309,6 +346,15 @@ export default function PredictionsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
         {/* Main column: prediction cards */}
         <div className="space-y-6">
+          {/* Matchday recap — shown when all matches finished */}
+          {!predsLoading && locked.length > 0 && (
+            <MatchdayRecap
+              matches={locked}
+              predictions={predictionMap}
+              matchday={isLeague ? selectedMatchday : undefined}
+            />
+          )}
+
           {/* Unpredicted nudge */}
           {unpredicted.length > 0 && !predsLoading && (
             <div className="yc-card p-4 border-yc-warning/20 bg-yc-warning/[0.03] flex items-center gap-3">
@@ -324,24 +370,36 @@ export default function PredictionsPage() {
                 <span className="w-1.5 h-1.5 rounded-full bg-yc-green" />
                 {t("predictions.openSection", { count: open.length })}
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {open.map((m) => (
-                  <PredictionCard
-                    key={m.id}
-                    match={m}
-                    teamMap={teamMap}
-                    venueMap={venueMap}
-                    prediction={predictionMap.get(m.id)}
-                    predictionCount={predictionCounts.get(m.id) ?? 0}
-                    userId={user.id}
-                    competitionId={comp.id}
-                    userPredictionCount={predictions.length}
-                    jokerUsedThisMatchday={jokerMatchId !== null && jokerMatchId !== m.id}
-                    quickMode={quickMode}
-                    onSaved={refresh}
-                  />
-                ))}
-              </div>
+              {batchMode ? (
+                <BatchPredictForm
+                  matches={open}
+                  teamMap={teamMap}
+                  predictions={predictionMap}
+                  userId={user.id}
+                  competitionId={comp.id}
+                  quickMode={quickMode}
+                  onSaved={refresh}
+                />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {open.map((m) => (
+                    <PredictionCard
+                      key={m.id}
+                      match={m}
+                      teamMap={teamMap}
+                      venueMap={venueMap}
+                      prediction={predictionMap.get(m.id)}
+                      predictionCount={predictionCounts.get(m.id) ?? 0}
+                      userId={user.id}
+                      competitionId={comp.id}
+                      userPredictionCount={predictions.length}
+                      jokerUsedThisMatchday={jokerMatchId !== null && jokerMatchId !== m.id}
+                      quickMode={quickMode}
+                      onSaved={refresh}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

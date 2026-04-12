@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 
-export type LeaderboardPeriod = "all" | "weekly" | "monthly";
+export type LeaderboardPeriod = "all" | "matchday" | "weekly" | "monthly";
 
 export interface LeaderboardEntry {
   userId: string;
@@ -17,7 +17,7 @@ export interface LeaderboardEntry {
 }
 
 function buildLeaderboard(
-  predictions: Array<{ user_id: string; points: number | null; scored_at: string | null }>,
+  predictions: Array<{ user_id: string; points: number | null; scored_at: string | null; match_id?: number }>,
   profileMap: Map<string, { id: string; handle: string; display_name: string | null; avatar_url: string | null }>,
 ): LeaderboardEntry[] {
   const userIds = [...new Set(predictions.map((p) => p.user_id))];
@@ -62,16 +62,23 @@ function buildLeaderboard(
   return board;
 }
 
-export function useLeaderboard(competitionId = "WC", period: LeaderboardPeriod = "all") {
+export function useLeaderboard(
+  competitionId = "WC",
+  period: LeaderboardPeriod = "all",
+  matchdayMatchIds?: number[],
+) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Serialize matchday IDs for dependency tracking
+  const matchdayKey = matchdayMatchIds?.join(",") ?? "";
 
   useEffect(() => {
     async function fetch() {
       // Fetch all scored predictions for this competition
       const { data: allPredictions, error: predErr } = await supabase
         .from("yc_predictions")
-        .select("user_id, points, scored_at")
+        .select("user_id, points, scored_at, match_id")
         .eq("competition_id", competitionId);
 
       if (predErr || !allPredictions || allPredictions.length === 0) {
@@ -103,11 +110,17 @@ export function useLeaderboard(competitionId = "WC", period: LeaderboardPeriod =
       }
 
       // Filter by period
-      const now = Date.now();
-      const cutoff = period === "weekly" ? now - 7 * 86400000 : now - 30 * 86400000;
-      const filtered = allPredictions.filter(
-        (p) => p.scored_at && new Date(p.scored_at).getTime() >= cutoff,
-      );
+      let filtered: typeof allPredictions;
+      if (period === "matchday" && matchdayMatchIds && matchdayMatchIds.length > 0) {
+        const mdSet = new Set(matchdayMatchIds);
+        filtered = allPredictions.filter((p) => mdSet.has(p.match_id));
+      } else {
+        const now = Date.now();
+        const cutoff = period === "weekly" ? now - 7 * 86400000 : now - 30 * 86400000;
+        filtered = allPredictions.filter(
+          (p) => p.scored_at && new Date(p.scored_at).getTime() >= cutoff,
+        );
+      }
 
       if (filtered.length === 0) {
         setEntries([]);
@@ -127,7 +140,7 @@ export function useLeaderboard(competitionId = "WC", period: LeaderboardPeriod =
     }
 
     fetch();
-  }, [competitionId, period]);
+  }, [competitionId, period, matchdayKey]);
 
   return { entries, loading };
 }

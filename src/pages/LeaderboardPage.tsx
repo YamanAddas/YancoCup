@@ -6,6 +6,7 @@ import { useMyPools, usePoolMembers } from "../hooks/usePools";
 import { useAuth } from "../lib/auth";
 import { useAutoScore } from "../hooks/useAutoScore";
 import { useCompetition } from "../lib/CompetitionProvider";
+import { useCompetitionSchedule } from "../hooks/useCompetitionSchedule";
 import { useI18n } from "../lib/i18n";
 import { getRank, getRankStars } from "../lib/ranks";
 import { TrendingUp, Target, Award, Star, ArrowUp, ArrowDown, Users } from "lucide-react";
@@ -34,9 +35,34 @@ export default function LeaderboardPage() {
   const comp = useCompetition();
   const [period, setPeriod] = useState<LeaderboardPeriod>("all");
   const [selectedPoolId, setSelectedPoolId] = useState<string | null>(null);
-  const { entries: allEntries, loading } = useLeaderboard(comp.id, period);
+  const { matches: allMatches, matchdays } = useCompetitionSchedule();
   const { user } = useAuth();
   const { t } = useI18n();
+
+  // Detect current matchday — find most recent matchday with finished or live matches
+  const currentMatchday = useMemo(() => {
+    if (matchdays.length === 0) return undefined;
+    const now = Date.now();
+    // Find latest matchday where at least one match has started
+    for (let i = matchdays.length - 1; i >= 0; i--) {
+      const md = matchdays[i];
+      const mdMatches = allMatches.filter((m) => m.matchday === md && m.homeTeam && m.awayTeam);
+      const hasStarted = mdMatches.some((m) => new Date(`${m.date}T${m.time}:00Z`).getTime() <= now);
+      if (hasStarted) return md;
+    }
+    // Fallback: first matchday
+    return matchdays[0];
+  }, [matchdays, allMatches]);
+
+  // Match IDs for current matchday
+  const matchdayMatchIds = useMemo(() => {
+    if (currentMatchday === undefined) return undefined;
+    return allMatches
+      .filter((m) => m.matchday === currentMatchday && m.homeTeam && m.awayTeam)
+      .map((m) => m.id);
+  }, [allMatches, currentMatchday]);
+
+  const { entries: allEntries, loading } = useLeaderboard(comp.id, period, matchdayMatchIds);
   const { pools } = useMyPools();
   const compPools = pools.filter((p) => p.competition_id === comp.id);
   const { members: poolMembers } = usePoolMembers(selectedPoolId);
@@ -53,8 +79,13 @@ export default function LeaderboardPage() {
     ? t("leaderboard.playersPlural", { count: entries.length })
     : t("leaderboard.players", { count: entries.length });
 
+  const matchdayLabel = currentMatchday !== undefined
+    ? `${t("common.matchday")} ${currentMatchday}`
+    : t("leaderboard.matchday");
+
   const periods: { key: LeaderboardPeriod; label: string }[] = [
     { key: "all", label: t("leaderboard.allTime") },
+    ...(currentMatchday !== undefined ? [{ key: "matchday" as const, label: matchdayLabel }] : []),
     { key: "weekly", label: t("leaderboard.weekly") },
     { key: "monthly", label: t("leaderboard.monthly") },
   ];
