@@ -229,15 +229,13 @@ export default function PrivacyPage() {
             10. {t("terms.contact")}
           </h2>
           <p>
-            For privacy-related questions or data requests, reach out via our{" "}
-            <a
-              href="https://github.com/yamanaddas/YancoCup/issues"
-              target="_blank"
-              rel="noopener noreferrer"
+            For privacy-related questions or data requests,{" "}
+            <NavLink
+              to="/contact"
               className="text-yc-green hover:underline"
             >
-              GitHub repository
-            </a>.
+              contact us
+            </NavLink>.
           </p>
         </section>
       </div>

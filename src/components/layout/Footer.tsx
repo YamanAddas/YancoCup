@@ -28,6 +28,12 @@ export default function Footer() {
           >
             {t("nav.privacy")}
           </NavLink>
+          <NavLink
+            to="/contact"
+            className="hover:text-yc-text-primary transition-colors"
+          >
+            {t("nav.contact")}
+          </NavLink>
           <a
             href="https://github.com/yamanaddas/YancoCup"
             target="_blank"

@@ -223,15 +223,13 @@ export default function HelpPage() {
           <p className="text-yc-text-secondary text-sm mb-4">
             {t("help.stillNeedHelpDesc")}
           </p>
-          <a
-            href="https://github.com/yamanaddas/YancoCup/issues"
-            target="_blank"
-            rel="noopener noreferrer"
+          <NavLink
+            to="/contact"
             className="inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all text-sm"
           >
             <MessageCircle size={16} />
             {t("help.contactUs")}
-          </a>
+          </NavLink>
         </section>
       </div>
     </div>

@@ -14,6 +14,7 @@ interface Env {
   AI: Ai;
   SUPABASE_URL: string;
   SUPABASE_SERVICE_KEY: string;
+  RESEND_API_KEY: string;
 }
 
 /** Competition configuration */
@@ -3223,6 +3224,95 @@ app.get("/api/health", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /api/contact — send contact form email via Resend
+// ---------------------------------------------------------------------------
+
+app.post("/api/contact", async (c) => {
+  const body = await c.req.json<{
+    name?: string;
+    email?: string;
+    category?: string;
+    message?: string;
+  }>().catch(() => null);
+
+  if (!body) {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
+
+  const { name, email, category, message } = body;
+
+  // Validate required fields
+  if (!name || !email || !message) {
+    return c.json({ error: "Name, email, and message are required" }, 400);
+  }
+
+  // Basic email format check
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return c.json({ error: "Invalid email address" }, 400);
+  }
+
+  // Message length limit
+  if (message.length > 5000) {
+    return c.json({ error: "Message too long (max 5000 characters)" }, 400);
+  }
+
+  // Rate limit: 1 contact email per IP per 5 minutes
+  const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+  const rateKey = `contact:rate:${ip}`;
+  const lastSent = await c.env.SCORES_KV.get(rateKey);
+  if (lastSent) {
+    return c.json({ error: "Please wait a few minutes before sending another message" }, 429);
+  }
+
+  const categoryLabel = category || "General";
+  const htmlBody = `
+    <div style="font-family: sans-serif; max-width: 600px;">
+      <h2 style="color: #00ff88; margin-bottom: 4px;">New Contact Message</h2>
+      <p style="color: #888; font-size: 14px; margin-top: 0;">via YancoCup Contact Form</p>
+      <hr style="border: 1px solid #222;" />
+      <table style="font-size: 14px; border-collapse: collapse;">
+        <tr><td style="padding: 6px 12px 6px 0; color: #888; vertical-align: top;">From</td><td style="padding: 6px 0;">${name}</td></tr>
+        <tr><td style="padding: 6px 12px 6px 0; color: #888; vertical-align: top;">Email</td><td style="padding: 6px 0;"><a href="mailto:${email}">${email}</a></td></tr>
+        <tr><td style="padding: 6px 12px 6px 0; color: #888; vertical-align: top;">Category</td><td style="padding: 6px 0;">${categoryLabel}</td></tr>
+      </table>
+      <hr style="border: 1px solid #222;" />
+      <div style="font-size: 14px; white-space: pre-wrap; padding: 12px 0;">${message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
+    </div>
+  `;
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${c.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "YancoCup <contact@yancoverse.com>",
+        to: ["catbyte1985@gmail.com"],
+        reply_to: email,
+        subject: `[YancoCup] ${categoryLabel}: ${name}`,
+        html: htmlBody,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      console.error("Resend error:", err);
+      return c.json({ error: "Failed to send message. Please try again later." }, 500);
+    }
+
+    // Set rate limit (5 min TTL)
+    await c.env.SCORES_KV.put(rateKey, "1", { expirationTtl: 300 });
+
+    return c.json({ ok: true });
+  } catch (err) {
+    console.error("Contact send error:", err);
+    return c.json({ error: "Failed to send message. Please try again later." }, 500);
+  }
+});
+
+// ---------------------------------------------------------------------------
 // 404 fallback
 // ---------------------------------------------------------------------------
 
@@ -3248,6 +3338,7 @@ app.notFound((c) => {
         "GET /api/standings (alias → WC)",
         "GET /api/match/:id (alias)",
         "GET /api/health",
+        "POST /api/contact",
       ],
     },
     404,

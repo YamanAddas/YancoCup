@@ -210,15 +210,13 @@ export default function TermsPage() {
             11. {t("terms.contact")}
           </h2>
           <p>
-            Questions about these terms? Reach out via our{" "}
-            <a
-              href="https://github.com/yamanaddas/YancoCup/issues"
-              target="_blank"
-              rel="noopener noreferrer"
+            Questions about these terms?{" "}
+            <NavLink
+              to="/contact"
               className="text-yc-green hover:underline"
             >
-              GitHub repository
-            </a>.
+              Contact us
+            </NavLink>.
           </p>
         </section>
       </div>
