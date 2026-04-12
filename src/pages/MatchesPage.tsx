@@ -410,7 +410,7 @@ function MatchdayStepper({
   selected: number;
   onSelect: (md: number) => void;
   mdStatus: (md: number) => string;
-  t: (key: string, vars?: Record<string, unknown>) => string;
+  t: (key: string, vars?: Record<string, string | number>) => string;
 }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -445,7 +445,7 @@ function MatchdayStepper({
     <div className="flex items-center justify-center gap-2 mb-6" ref={dropdownRef}>
       {/* Prev button */}
       <button
-        onClick={() => hasPrev && onSelect(matchdays[idx - 1])}
+        onClick={() => { if (hasPrev) onSelect(matchdays[idx - 1]!); }}
         disabled={!hasPrev}
         className="p-2.5 rounded-xl bg-yc-bg-surface border border-yc-border text-yc-text-secondary hover:text-yc-text-primary hover:border-yc-border-hover disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
       >
@@ -521,7 +521,7 @@ function MatchdayStepper({
 
       {/* Next button */}
       <button
-        onClick={() => hasNext && onSelect(matchdays[idx + 1])}
+        onClick={() => { if (hasNext) onSelect(matchdays[idx + 1]!); }}
         disabled={!hasNext}
         className="p-2.5 rounded-xl bg-yc-bg-surface border border-yc-border text-yc-text-secondary hover:text-yc-text-primary hover:border-yc-border-hover disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
       >
