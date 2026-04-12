@@ -80,9 +80,11 @@ function useDeviceProfile() {
 function GlobeInner({
   onCityClick,
   flyToCity,
+  isVisible = true,
 }: {
   onCityClick: (city: City | null) => void;
   flyToCity: City | null;
+  isVisible?: boolean;
 }) {
   const globeRef = useRef<GlobeMethods>(undefined);
   const controlsRef = useRef<OrbitControlsImpl>(null);
@@ -143,9 +145,10 @@ function GlobeInner({
           }, AUTO_ROTATE_RESUME_MS);
         }
       }
+      // Fly-to is user-triggered — always animate regardless of visibility
       invalidate();
-    } else if (autoRotate) {
-      // Auto-rotate needs continuous frames in demand mode
+    } else if (autoRotate && isVisible) {
+      // Auto-rotate needs continuous frames in demand mode, but only when visible
       invalidate();
     }
   });
@@ -226,7 +229,7 @@ function GlobeInner({
   );
 }
 
-export default function GlobeScene() {
+export default function GlobeScene({ isVisible = true }: { isVisible?: boolean }) {
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const device = useDeviceProfile();
 
@@ -240,7 +243,7 @@ export default function GlobeScene() {
           gl={{ antialias: !device.isReduced, alpha: true }}
           dpr={device.isMobile ? [1, 1.5] : [1, 2]}
         >
-          <GlobeInner onCityClick={setSelectedCity} flyToCity={selectedCity} />
+          <GlobeInner onCityClick={setSelectedCity} flyToCity={selectedCity} isVisible={isVisible} />
         </Canvas>
       </GlobeErrorBoundary>
 

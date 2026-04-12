@@ -66,13 +66,13 @@ function FormGuide({ form }: { form: string | null }) {
 function getZoneStyle(position: number, zones?: StandingsZones) {
   if (!zones) return {};
   if (zones.cl.includes(position))
-    return { borderLeft: "3px solid #00ff88", background: "rgba(0,255,136,0.04)" };
+    return { borderLeft: "3px solid var(--color-yc-green, #00ff88)", background: "rgba(0,255,136,0.04)" };
   if (zones.el.includes(position))
-    return { borderLeft: "3px solid #f59e0b", background: "rgba(245,158,11,0.04)" };
+    return { borderLeft: "3px solid var(--color-yc-warning, #f59e0b)", background: "rgba(245,158,11,0.04)" };
   if (zones.ecl.includes(position))
-    return { borderLeft: "3px solid #38bdf8", background: "rgba(56,189,248,0.04)" };
+    return { borderLeft: "3px solid var(--color-yc-info, #38bdf8)", background: "rgba(56,189,248,0.04)" };
   if (zones.relegation.includes(position))
-    return { borderLeft: "3px solid #ef4444", background: "rgba(239,68,68,0.04)" };
+    return { borderLeft: "3px solid var(--color-yc-danger, #ef4444)", background: "rgba(239,68,68,0.04)" };
   return {};
 }
 

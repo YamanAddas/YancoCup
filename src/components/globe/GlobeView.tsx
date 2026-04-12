@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense } from "react";
+import { Component, lazy, Suspense, useRef, useState, useEffect } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 import { useI18n } from "../../lib/i18n";
 
@@ -49,11 +49,28 @@ function GlobeFallback() {
 }
 
 export default function GlobeView() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="w-full h-[min(45vh,400px)] sm:h-[min(60vh,600px)] min-h-[220px]">
+    <div
+      ref={containerRef}
+      className="w-full h-[min(45vh,400px)] sm:h-[min(60vh,600px)] min-h-[220px]"
+    >
       <GlobeErrorBoundary fallback={<GlobeFallback />}>
         <Suspense fallback={<GlobeLoading />}>
-          <GlobeScene />
+          <GlobeScene isVisible={isVisible} />
         </Suspense>
       </GlobeErrorBoundary>
     </div>

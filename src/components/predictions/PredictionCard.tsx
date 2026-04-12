@@ -86,7 +86,7 @@ export default function PredictionCard({
           particleCount: 80,
           spread: 60,
           origin: { y: 0.7 },
-          colors: ["#00ff88", "#ffc800", "#4488ff"],
+          colors: (() => { const s = getComputedStyle(document.documentElement); return [s.getPropertyValue("--color-yc-green").trim() || "#00ff88", s.getPropertyValue("--color-yc-warning").trim() || "#ffc800", s.getPropertyValue("--color-yc-info").trim() || "#4488ff"]; })(),
           disableForReducedMotion: true,
         });
       }
