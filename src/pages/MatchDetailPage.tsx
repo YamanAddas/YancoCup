@@ -1,10 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Clock, MapPin } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Users, BarChart3, User } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import { formatTimeWithTZ, getLocale } from "../lib/formatDate";
 import { useMyPredictions } from "../hooks/usePredictions";
+import { useConsensus } from "../hooks/useConsensus";
+import { useMyPools, usePoolMembers } from "../hooks/usePools";
+import { useAuth } from "../lib/auth";
+import { supabase } from "../lib/supabase";
 import TeamCrest from "../components/match/TeamCrest";
 import { WORKER_URL } from "../lib/api";
 
@@ -96,8 +100,8 @@ interface H2HData {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-type TabId = "overview" | "stats" | "lineup" | "h2h";
-const TAB_IDS: TabId[] = ["overview", "stats", "lineup", "h2h"];
+type TabId = "overview" | "stats" | "lineup" | "h2h" | "predictions";
+const TAB_IDS: TabId[] = ["overview", "stats", "lineup", "h2h", "predictions"];
 
 function TabBar({ active, onChange }: { active: TabId; onChange: (t: TabId) => void }) {
   const { t } = useI18n();
@@ -473,7 +477,7 @@ function H2HTab({ matchId }: { matchId: string }) {
   }
 
   if (!data) {
-    return <p className="text-yc-text-tertiary text-sm text-center py-8">Head-to-head data not available</p>;
+    return <p className="text-yc-text-tertiary text-sm text-center py-8">{t("match.h2h.notAvailable")}</p>;
   }
 
   const total = data.homeTeam.wins + data.homeTeam.draws + data.homeTeam.losses;
@@ -483,7 +487,7 @@ function H2HTab({ matchId }: { matchId: string }) {
       {/* Aggregate */}
       <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-4">
         <p className="text-xs text-yc-text-tertiary uppercase tracking-wider mb-3">
-          {total} Previous Meetings
+          {t("match.h2h.previousMeetings", { total: String(total) })}
         </p>
         <div className="flex items-center gap-4">
           <div className="flex-1 text-center">
@@ -538,6 +542,369 @@ function H2HTab({ matchId }: { matchId: string }) {
               );
             })}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Formation diagram — visual pitch with players positioned by formation
+// ---------------------------------------------------------------------------
+
+/** Parse formation string (e.g. "4-3-3") into rows of player counts */
+function parseFormation(formation: string): number[] {
+  const parts = formation.split("-").map(Number).filter((n) => !isNaN(n) && n > 0);
+  if (parts.length < 2) return [];
+  return parts;
+}
+
+/** Position presets for common formation rows (how many players, x-offsets 0-1) */
+function getRowPositions(count: number): number[] {
+  if (count === 1) return [0.5];
+  if (count === 2) return [0.3, 0.7];
+  if (count === 3) return [0.2, 0.5, 0.8];
+  if (count === 4) return [0.1, 0.37, 0.63, 0.9];
+  if (count === 5) return [0.08, 0.28, 0.5, 0.72, 0.92];
+  if (count === 6) return [0.05, 0.22, 0.39, 0.61, 0.78, 0.95];
+  // Fallback: evenly distribute
+  return Array.from({ length: count }, (_, i) => (i + 1) / (count + 1));
+}
+
+interface FormationPlayer {
+  name: string;
+  number: number;
+  pos: string;
+}
+
+function FormationPitch({
+  formation,
+  players,
+  teamColor = "#00ff88",
+}: {
+  formation: string;
+  players: FormationPlayer[];
+  teamColor?: string;
+}) {
+  const rows = parseFormation(formation);
+  if (rows.length === 0 || players.length === 0) return null;
+
+  // GK + outfield rows from back to front
+  const allRows = [1, ...rows]; // GK is 1 player
+  const totalRows = allRows.length;
+
+  // Assign players to rows: GK first, then by formation rows
+  let playerIdx = 0;
+  const positioned: Array<{ x: number; y: number; name: string; number: number }> = [];
+
+  for (let rowIdx = 0; rowIdx < totalRows; rowIdx++) {
+    const count = allRows[rowIdx] ?? 1;
+    const xPositions = getRowPositions(count);
+    // y: GK at bottom (0.92), last row at top (0.12)
+    const y = 0.92 - (rowIdx / (totalRows - 1 || 1)) * 0.8;
+
+    for (const x of xPositions) {
+      if (playerIdx < players.length) {
+        positioned.push({ x, y, name: players[playerIdx]!.name, number: players[playerIdx]!.number });
+        playerIdx++;
+      }
+    }
+  }
+
+  return (
+    <div className="relative w-full aspect-[2/3] max-w-[280px] mx-auto">
+      {/* Pitch SVG */}
+      <svg viewBox="0 0 200 300" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
+        {/* Pitch background */}
+        <rect x="0" y="0" width="200" height="300" rx="8" fill="var(--yc-bg-elevated)" />
+        {/* Outline */}
+        <rect x="10" y="10" width="180" height="280" rx="2" fill="none" stroke="var(--yc-border-hover)" strokeWidth="1" />
+        {/* Center line */}
+        <line x1="10" y1="150" x2="190" y2="150" stroke="var(--yc-border-hover)" strokeWidth="0.8" />
+        {/* Center circle */}
+        <circle cx="100" cy="150" r="25" fill="none" stroke="var(--yc-border-hover)" strokeWidth="0.8" />
+        <circle cx="100" cy="150" r="2" fill="var(--yc-border-hover)" />
+        {/* Penalty areas */}
+        <rect x="45" y="10" width="110" height="45" fill="none" stroke="var(--yc-border-hover)" strokeWidth="0.8" />
+        <rect x="45" y="245" width="110" height="45" fill="none" stroke="var(--yc-border-hover)" strokeWidth="0.8" />
+        {/* Goal areas */}
+        <rect x="65" y="10" width="70" height="18" fill="none" stroke="var(--yc-border-hover)" strokeWidth="0.6" />
+        <rect x="65" y="272" width="70" height="18" fill="none" stroke="var(--yc-border-hover)" strokeWidth="0.6" />
+        {/* Penalty spots */}
+        <circle cx="100" cy="42" r="1.5" fill="var(--yc-border-hover)" />
+        <circle cx="100" cy="258" r="1.5" fill="var(--yc-border-hover)" />
+      </svg>
+
+      {/* Player dots */}
+      {positioned.map((p, i) => (
+        <div
+          key={i}
+          className="absolute flex flex-col items-center -translate-x-1/2 -translate-y-1/2"
+          style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}
+        >
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border-2"
+            style={{
+              backgroundColor: `${teamColor}20`,
+              borderColor: teamColor,
+              color: teamColor,
+            }}
+          >
+            {p.number}
+          </div>
+          <span className="text-[8px] text-yc-text-secondary mt-0.5 max-w-[50px] text-center leading-tight truncate">
+            {p.name.split(" ").pop()}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Predictions tab — community consensus + pool members' picks
+// ---------------------------------------------------------------------------
+
+interface PoolPrediction {
+  user_id: string;
+  home_score: number | null;
+  away_score: number | null;
+  quick_pick: "H" | "D" | "A" | null;
+  points: number | null;
+  is_joker: boolean;
+}
+
+interface PoolMemberProfile {
+  user_id: string;
+  handle: string;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
+function PredictionsTab({
+  matchId,
+  homeTeam,
+  awayTeam,
+  competitionId,
+  hasPrediction,
+  isLocked,
+}: {
+  matchId: number;
+  homeTeam: { name: string; tla: string };
+  awayTeam: { name: string; tla: string };
+  competitionId: string;
+  hasPrediction: boolean;
+  isLocked: boolean;
+}) {
+  const { t, tTeam } = useI18n();
+  const { user } = useAuth();
+  const consensus = useConsensus(matchId, hasPrediction, competitionId, isLocked);
+  const { pools } = useMyPools();
+
+  // Filter pools for this competition
+  const compPools = useMemo(
+    () => pools.filter((p) => p.competition_id === competitionId),
+    [pools, competitionId],
+  );
+
+  // Track selected pool for member picks
+  const [selectedPoolId, setSelectedPoolId] = useState<string | null>(null);
+  const activePoolId = selectedPoolId ?? compPools[0]?.id ?? null;
+  const { members } = usePoolMembers(activePoolId);
+
+  // Fetch pool members' predictions for this match
+  const [poolPredictions, setPoolPredictions] = useState<PoolPrediction[]>([]);
+  const [poolPredLoading, setPoolPredLoading] = useState(false);
+
+  useEffect(() => {
+    if (!activePoolId || members.length === 0 || !isLocked) {
+      setPoolPredictions([]);
+      return;
+    }
+
+    setPoolPredLoading(true);
+    const memberIds = members.map((m) => m.user_id);
+
+    supabase
+      .from("yc_predictions")
+      .select("user_id, home_score, away_score, quick_pick, points, is_joker")
+      .eq("match_id", matchId)
+      .eq("competition_id", competitionId)
+      .in("user_id", memberIds)
+      .then(({ data }) => {
+        setPoolPredictions((data as PoolPrediction[]) ?? []);
+        setPoolPredLoading(false);
+      });
+  }, [activePoolId, members, matchId, competitionId, isLocked]);
+
+  // Build member profile map
+  const memberMap = useMemo(() => {
+    const map = new Map<string, PoolMemberProfile>();
+    for (const m of members) {
+      map.set(m.user_id, {
+        user_id: m.user_id,
+        handle: m.handle ?? "user",
+        display_name: m.display_name ?? null,
+        avatar_url: m.avatar_url ?? null,
+      });
+    }
+    return map;
+  }, [members]);
+
+  const homeName = (() => { const n = tTeam(homeTeam.name); return n !== homeTeam.name ? n : tTeam(homeTeam.tla); })();
+  const awayName = (() => { const n = tTeam(awayTeam.name); return n !== awayTeam.name ? n : tTeam(awayTeam.tla); })();
+
+  return (
+    <div className="space-y-6">
+      {/* Community consensus */}
+      <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 size={16} className="text-yc-green" />
+          <h3 className="text-sm font-semibold text-yc-text-primary">{t("match.predictions.consensus")}</h3>
+        </div>
+
+        {!hasPrediction ? (
+          <p className="text-sm text-yc-text-tertiary text-center py-4">{t("match.predictions.predictFirst")}</p>
+        ) : !isLocked ? (
+          <p className="text-sm text-yc-text-tertiary text-center py-4">{t("match.predictions.afterKickoff")}</p>
+        ) : !consensus ? (
+          <p className="text-sm text-yc-text-tertiary text-center py-4">{t("match.predictions.notEnough")}</p>
+        ) : (
+          <>
+            {/* H/D/A percentage bar */}
+            <div className="flex h-10 rounded-lg overflow-hidden mb-3">
+              {consensus.home > 0 && (
+                <div
+                  className="flex items-center justify-center bg-yc-green/20 border-r border-yc-bg-deep/30 transition-all"
+                  style={{ width: `${consensus.home}%` }}
+                >
+                  <span className="text-sm font-bold text-yc-green">{consensus.home}%</span>
+                </div>
+              )}
+              {consensus.draw > 0 && (
+                <div
+                  className="flex items-center justify-center bg-yc-draw/20 border-r border-yc-bg-deep/30 transition-all"
+                  style={{ width: `${consensus.draw}%` }}
+                >
+                  <span className="text-sm font-bold text-yc-draw">{consensus.draw}%</span>
+                </div>
+              )}
+              {consensus.away > 0 && (
+                <div
+                  className="flex items-center justify-center bg-sky-500/20 transition-all"
+                  style={{ width: `${consensus.away}%` }}
+                >
+                  <span className="text-sm font-bold text-sky-400">{consensus.away}%</span>
+                </div>
+              )}
+            </div>
+
+            {/* Labels */}
+            <div className="flex justify-between text-xs text-yc-text-tertiary">
+              <span>{homeName}</span>
+              <span>{t("match.predictions.draw")}</span>
+              <span>{awayName}</span>
+            </div>
+
+            <p className="text-xs text-yc-text-tertiary text-center mt-3">
+              {t("match.predictions.totalVotes", { count: String(consensus.total) })}
+            </p>
+          </>
+        )}
+      </div>
+
+      {/* Pool members' predictions */}
+      {user && compPools.length > 0 && isLocked && (
+        <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Users size={16} className="text-yc-green" />
+            <h3 className="text-sm font-semibold text-yc-text-primary">{t("match.predictions.poolPicks")}</h3>
+          </div>
+
+          {/* Pool selector (if multiple pools) */}
+          {compPools.length > 1 && (
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+              {compPools.map((pool) => (
+                <button
+                  key={pool.id}
+                  onClick={() => setSelectedPoolId(pool.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                    activePoolId === pool.id
+                      ? "bg-yc-green/20 text-yc-green border border-yc-green-muted/30"
+                      : "bg-yc-bg-elevated text-yc-text-secondary border border-yc-border hover:border-yc-border-hover"
+                  }`}
+                >
+                  {pool.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {poolPredLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-12 bg-yc-bg-elevated rounded-lg animate-pulse" />
+              ))}
+            </div>
+          ) : poolPredictions.length === 0 ? (
+            <p className="text-sm text-yc-text-tertiary text-center py-4">{t("match.predictions.noPoolPicks")}</p>
+          ) : (
+            <div className="space-y-1.5">
+              {poolPredictions
+                .sort((a, b) => (b.points ?? -1) - (a.points ?? -1))
+                .map((pred) => {
+                  const member = memberMap.get(pred.user_id);
+                  const isMe = pred.user_id === user?.id;
+                  const displayName = member?.display_name ?? member?.handle ?? "?";
+
+                  return (
+                    <div
+                      key={pred.user_id}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${
+                        isMe
+                          ? "bg-yc-green/5 border border-yc-green-muted/20"
+                          : "bg-yc-bg-elevated/50"
+                      }`}
+                    >
+                      {/* Avatar */}
+                      <div className="w-7 h-7 rounded-full bg-yc-bg-elevated flex items-center justify-center shrink-0 overflow-hidden">
+                        {member?.avatar_url ? (
+                          <img src={member.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <User size={14} className="text-yc-text-tertiary" />
+                        )}
+                      </div>
+
+                      {/* Name */}
+                      <span className={`text-sm flex-1 truncate ${isMe ? "text-yc-green font-medium" : "text-yc-text-primary"}`}>
+                        {displayName}
+                      </span>
+
+                      {/* Prediction */}
+                      <span className="font-mono text-sm font-bold text-yc-text-primary shrink-0">
+                        {pred.quick_pick
+                          ? { H: homeTeam.tla, D: "X", A: awayTeam.tla }[pred.quick_pick]
+                          : `${pred.home_score}-${pred.away_score}`}
+                      </span>
+
+                      {/* Joker badge */}
+                      {pred.is_joker && (
+                        <span className="text-[10px] font-bold text-yc-draw bg-yc-draw/10 px-1.5 py-0.5 rounded">2x</span>
+                      )}
+
+                      {/* Points */}
+                      {pred.points !== null && (
+                        <span className={`font-mono text-xs font-bold shrink-0 min-w-[32px] text-end ${
+                          pred.points >= 5 ? "text-yc-green" : pred.points > 0 ? "text-yc-draw" : "text-yc-danger"
+                        }`}>
+                          {pred.points} {t("pts")}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -814,17 +1181,71 @@ export default function MatchDetailPage() {
         const afLineups = (match as unknown as Record<string, unknown>).lineups as AFLineup[] | undefined;
         const homeLineup = afLineups?.find((l) => l.team.id === match.homeTeam.id);
         const awayLineup = afLineups?.find((l) => l.team.id === match.awayTeam.id);
+
+        const homeFormation = homeLineup?.formation ?? match.homeTeam.formation;
+        const awayFormation = awayLineup?.formation ?? match.awayTeam.formation;
+        const homePlayers: FormationPlayer[] = (homeLineup?.startXI?.map((p) => p.player) ?? match.homeTeam.lineup ?? [])
+          .map((p) => ({ name: p.name, number: "number" in p ? (p as { number: number }).number : ("shirtNumber" in p ? (p as { shirtNumber: number }).shirtNumber : 0), pos: "pos" in p ? String(p.pos) : ("position" in p ? String(p.position) : "") }));
+        const awayPlayers: FormationPlayer[] = (awayLineup?.startXI?.map((p) => p.player) ?? match.awayTeam.lineup ?? [])
+          .map((p) => ({ name: p.name, number: "number" in p ? (p as { number: number }).number : ("shirtNumber" in p ? (p as { shirtNumber: number }).shirtNumber : 0), pos: "pos" in p ? String(p.pos) : ("position" in p ? String(p.position) : "") }));
+
+        const showFormation = homeFormation && homePlayers.length >= 11;
+
         return (
-          <div className="flex gap-4 sm:gap-8">
-            <TeamLineup team={match.homeTeam} afLineup={homeLineup} side="home" />
-            <div className="w-px bg-yc-border shrink-0" />
-            <TeamLineup team={match.awayTeam} afLineup={awayLineup} side="away" />
+          <div className="space-y-6">
+            {/* Formation diagrams */}
+            {showFormation && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-yc-text-tertiary text-center mb-2">
+                    {tTeam(match.homeTeam.tla)} <span className="text-yc-green font-mono">{homeFormation}</span>
+                  </p>
+                  <FormationPitch
+                    formation={homeFormation}
+                    players={homePlayers}
+                    teamColor="#00ff88"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-yc-text-tertiary text-center mb-2">
+                    {tTeam(match.awayTeam.tla)} <span className="text-sky-400 font-mono">{awayFormation ?? ""}</span>
+                  </p>
+                  {awayFormation ? (
+                    <FormationPitch
+                      formation={awayFormation}
+                      players={awayPlayers}
+                      teamColor="#38bdf8"
+                    />
+                  ) : (
+                    <p className="text-yc-text-tertiary text-sm text-center py-8">{t("match.lineup.notAvailable")}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Text lineup */}
+            <div className="flex gap-4 sm:gap-8">
+              <TeamLineup team={match.homeTeam} afLineup={homeLineup} side="home" />
+              <div className="w-px bg-yc-border shrink-0" />
+              <TeamLineup team={match.awayTeam} afLineup={awayLineup} side="away" />
+            </div>
           </div>
         );
       })()}
 
       {tab === "h2h" && id && (
         <H2HTab matchId={id} />
+      )}
+
+      {tab === "predictions" && (
+        <PredictionsTab
+          matchId={match.id}
+          homeTeam={match.homeTeam}
+          awayTeam={match.awayTeam}
+          competitionId={comp.id}
+          hasPrediction={!!myPrediction}
+          isLocked={isLive || isFinished}
+        />
       )}
     </div>
   );
