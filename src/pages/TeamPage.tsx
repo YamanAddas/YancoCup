@@ -7,6 +7,7 @@ import { useI18n } from "../lib/i18n";
 import { useAuth } from "../lib/auth";
 import { formatTimeWithTZ, getLocale } from "../lib/formatDate";
 import TeamCrest from "../components/match/TeamCrest";
+import CommentsSection from "../components/comments/CommentsSection";
 import { fetchTeamNews, WORKER_URL, type NewsArticle } from "../lib/api";
 import { supabase } from "../lib/supabase";
 import { ArabesqueLattice, GeometricBand, StarDivider, CornerAccent } from "../components/ui/ArabesquePatterns";
@@ -1489,21 +1490,22 @@ export default function TeamPage() {
           title="Community"
           summary={communityData.nextMatchConsensus ? `${communityData.nextMatchConsensus.total} predictions` : "YancoCup predictions"}
         >
+          {/* Prediction insights — sign-in required */}
           {!user ? (
-            <div className="text-center py-6">
-              <div className="w-12 h-12 rounded-full bg-yc-bg-elevated flex items-center justify-center mx-auto mb-3">
-                <Lock size={20} className="text-yc-text-tertiary" />
+            <div className="text-center py-4 mb-4">
+              <div className="w-10 h-10 rounded-full bg-yc-bg-elevated flex items-center justify-center mx-auto mb-2">
+                <Lock size={16} className="text-yc-text-tertiary" />
               </div>
-              <p className="text-sm text-yc-text-secondary mb-1">Sign in to see community predictions</p>
+              <p className="text-xs text-yc-text-secondary mb-1">Sign in to see prediction insights</p>
               <Link to="/sign-in" className="text-xs text-yc-green hover:underline">Sign in</Link>
             </div>
           ) : communityLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-3 mb-4">
               <div className="h-16 bg-yc-bg-elevated rounded-xl animate-pulse" />
               <div className="h-12 bg-yc-bg-elevated rounded-xl animate-pulse" />
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 mb-4">
               {/* Next match consensus */}
               {communityData.nextMatchConsensus && (
                 <div className="rounded-xl border border-yc-border/50 p-4" style={{ background: "var(--yc-bg-glass-light)" }}>
@@ -1571,6 +1573,11 @@ export default function TeamPage() {
               )}
             </div>
           )}
+
+          {/* Fan discussion — visible to everyone, post requires sign-in */}
+          <div className="border-t border-yc-border/50 pt-4">
+            <CommentsSection articleSlug={`team:${teamId}`} />
+          </div>
         </Accordion>
 
         {/* ── Prediction CTA — arch-shaped, always visible ── */}
