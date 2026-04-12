@@ -10,7 +10,7 @@ import TeamCrest from "../components/match/TeamCrest";
 import CommentsSection from "../components/comments/CommentsSection";
 import { fetchTeamNews, WORKER_URL, type NewsArticle } from "../lib/api";
 import { supabase } from "../lib/supabase";
-import { ArabesqueLattice, GeometricBand, StarDivider, CornerAccent } from "../components/ui/ArabesquePatterns";
+import { ArabesqueLattice, RosetteLattice, GeometricBand, StarDivider, CornerAccent, OrnamentDivider, ArchFrame } from "../components/ui/ArabesquePatterns";
 import { Accordion } from "../components/ui/Accordion";
 
 // ---------------------------------------------------------------------------
@@ -1081,149 +1081,267 @@ export default function TeamPage() {
           summary={leaguePosition ? `#${leaguePosition.position} · ${leaguePosition.points}pts` : undefined}
           defaultOpen
         >
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
-            {/* Left column — next match + form */}
-            <div className="lg:col-span-3 space-y-4">
-              {/* Next Match card */}
-              {upcoming.length > 0 && (() => {
-                const nm = upcoming[0]!;
-                const isHome = nm.homeTeam === team.tla;
-                const opCrest = isHome ? nm.awayCrest : nm.homeCrest;
-                const opName = isHome ? nm.awayTeamName : nm.homeTeamName;
-                const opTla = isHome ? nm.awayTeam : nm.homeTeam;
-                const date = new Date(nm.utcDate);
-                return (
-                  <Link
-                    to={`/${comp.id}/match/${nm.apiId}`}
-                    className="block relative overflow-hidden rounded-xl border border-yc-border/50 p-4 transition-all hover:border-[var(--yc-border-accent-bright)]"
-                    style={{ background: "var(--yc-bg-glass-light)" }}
-                  >
-                    <CornerAccent position="top-right" className="text-yc-green opacity-[0.06]" />
-                    <CornerAccent position="bottom-left" className="text-yc-green opacity-[0.06]" />
-                    <span className="text-[10px] uppercase tracking-wider text-yc-text-tertiary">Next Match</span>
-                    <div className="flex items-center gap-4 mt-2">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <TeamCrest tla={team.tla} crest={team.crest} size="sm" />
-                        <span className="text-xs text-yc-text-secondary">{isHome ? "vs" : "@"}</span>
-                        {opCrest && <TeamCrest tla={opTla ?? "?"} crest={opCrest} size="sm" />}
-                        <span className="text-sm text-yc-text-primary font-medium truncate">
-                          {(() => { if (opName) { const n = tTeam(opName); if (n !== opName) return n; } return tTeam(opTla ?? "?"); })()}
+          <div className="space-y-5">
+
+            {/* ═══ Next Match — Showpiece Card ═══ */}
+            {upcoming.length > 0 && (() => {
+              const nm = upcoming[0]!;
+              const isHome = nm.homeTeam === team.tla;
+              const opCrest = isHome ? nm.awayCrest : nm.homeCrest;
+              const opName = isHome ? nm.awayTeamName : nm.homeTeamName;
+              const opTla = isHome ? nm.awayTeam : nm.homeTeam;
+              const date = new Date(nm.utcDate);
+              const resolvedOpName = (() => { if (opName) { const n = tTeam(opName); if (n !== opName) return n; } return tTeam(opTla ?? "?"); })();
+              const msUntil = date.getTime() - Date.now();
+              const hoursUntil = Math.max(0, Math.floor(msUntil / 3600000));
+              const daysUntil = Math.floor(hoursUntil / 24);
+              const countdownText = daysUntil > 0 ? `${daysUntil}d ${hoursUntil % 24}h` : hoursUntil > 0 ? `${hoursUntil}h` : null;
+
+              return (
+                <Link to={`/${comp.id}/match/${nm.apiId}`} className="block group">
+                  <div className="yc-showpiece relative p-5 sm:p-6">
+                    {/* Background patterns */}
+                    <RosetteLattice className="absolute inset-0 text-yc-green opacity-[0.03] pointer-events-none" />
+                    <ArchFrame className="text-yc-green opacity-[0.06]" />
+                    <CornerAccent position="top-left" className="text-yc-green opacity-10" />
+                    <CornerAccent position="top-right" className="text-yc-green opacity-10" />
+
+                    {/* Content */}
+                    <div className="relative z-10">
+                      {/* Header label */}
+                      <div className="flex items-center justify-center gap-2 mb-4">
+                        <div className="h-px flex-1 bg-gradient-to-r from-transparent to-yc-green/20" />
+                        <span className="text-[10px] uppercase tracking-[0.15em] text-yc-text-tertiary font-medium">
+                          Next Match
+                        </span>
+                        <div className="h-px flex-1 bg-gradient-to-l from-transparent to-yc-green/20" />
+                      </div>
+
+                      {/* Team vs Team — centered hero layout */}
+                      <div className="flex items-center justify-center gap-3 sm:gap-6">
+                        {/* Home side */}
+                        <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 transition-transform duration-300 group-hover:scale-105">
+                            <TeamCrest tla={team.tla} crest={team.crest} size="lg" />
+                          </div>
+                          <span className="text-xs sm:text-sm font-semibold text-yc-text-primary text-center line-clamp-1">
+                            {isHome ? displayName : resolvedOpName}
+                          </span>
+                          <span className="text-[9px] uppercase tracking-wider text-yc-text-tertiary">
+                            {isHome ? "Home" : "Away"}
+                          </span>
+                        </div>
+
+                        {/* Center — date, time, countdown */}
+                        <div className="flex flex-col items-center gap-1 shrink-0 px-2">
+                          <span className="text-[10px] text-yc-text-tertiary">
+                            {date.toLocaleDateString(getLocale(lang), { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })}
+                          </span>
+                          <span className="font-mono text-lg sm:text-xl font-bold text-yc-green tracking-tight">
+                            {formatTimeWithTZ(date, lang)}
+                          </span>
+                          {countdownText && (
+                            <span className="text-[10px] font-mono text-yc-warning/80 bg-yc-warning/8 px-2 py-0.5 rounded-full">
+                              {countdownText}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Away side */}
+                        <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 transition-transform duration-300 group-hover:scale-105">
+                            {opCrest ? (
+                              <TeamCrest tla={opTla ?? "?"} crest={opCrest} size="lg" />
+                            ) : (
+                              <div className="w-full h-full rounded-full bg-yc-bg-elevated border border-yc-border flex items-center justify-center">
+                                <Shield size={20} className="text-yc-text-tertiary" />
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-xs sm:text-sm font-semibold text-yc-text-primary text-center line-clamp-1">
+                            {isHome ? resolvedOpName : displayName}
+                          </span>
+                          <span className="text-[9px] uppercase tracking-wider text-yc-text-tertiary">
+                            {isHome ? "Away" : "Home"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* CTA */}
+                      <div className="flex justify-center mt-4">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-yc-bg-deep bg-yc-green px-4 py-1.5 rounded-lg transition-all group-hover:brightness-110 group-hover:shadow-[0_0_16px_rgba(0,255,136,0.3)]">
+                          <Target size={12} />
+                          Predict
                         </span>
                       </div>
-                      <div className="text-right shrink-0">
-                        <div className="text-xs text-yc-text-secondary">
-                          {date.toLocaleDateString(getLocale(lang), { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })}
-                        </div>
-                        <div className="text-xs font-mono text-yc-green">{formatTimeWithTZ(date, lang)}</div>
-                      </div>
                     </div>
-                    <div className="mt-3 flex justify-end">
-                      <span className="text-[10px] uppercase tracking-wider font-semibold text-yc-green bg-yc-green/10 px-2.5 py-1 rounded-full">
-                        Predict
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })()}
+                  </div>
+                </Link>
+              );
+            })()}
 
-              {/* Form sparkline */}
-              {form.length >= 2 && (
-                <div>
-                  <h4 className="text-[10px] uppercase tracking-wider text-yc-text-tertiary mb-2">Form</h4>
-                  <FormSparkline results={form.slice(0, 10).map(f => f.result)} />
-                  <div className="flex gap-1 mt-1.5">
-                    {form.slice(0, 10).map((f, i) => <FormDot key={i} result={f.result} />)}
-                  </div>
-                </div>
-              )}
-
-              {/* Recent 3 results */}
-              {form.length > 0 && (
-                <div>
-                  <h4 className="text-[10px] uppercase tracking-wider text-yc-text-tertiary mb-2">Recent Results</h4>
-                  <div className="space-y-1">
-                    {form.slice(0, 3).map((m) => {
-                      const date = new Date(m.utcDate);
-                      return (
-                        <div key={m.apiId} className="flex items-center gap-3 px-3 py-2 bg-yc-bg-surface border border-yc-border/50 rounded-lg text-sm">
-                          <FormDot result={m.result} />
-                          <span className="text-xs text-yc-text-tertiary w-16 shrink-0">
-                            {date.toLocaleDateString(getLocale(lang), { month: "short", day: "numeric", timeZone: "UTC" })}
-                          </span>
-                          <span className="text-yc-text-secondary text-xs w-6 text-center">{m.isHome ? "H" : "A"}</span>
-                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                            {m.opponentCrest && <TeamCrest tla={m.opponentTla ?? "?"} crest={m.opponentCrest} size="xs" />}
-                            <span className="text-yc-text-primary truncate">{(() => { if (m.opponentName) { const n = tTeam(m.opponentName); if (n !== m.opponentName) return n; } return tTeam(m.opponentTla ?? "?"); })()}</span>
-                          </div>
-                          <span className="font-mono font-bold text-yc-text-primary shrink-0">{m.goalsFor}-{m.goalsAgainst}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Right column — position + stats */}
-            <div className="lg:col-span-2 space-y-4">
-              {/* League position */}
-              {leaguePosition && (
-                <div className="yc-card p-4 rounded-xl text-center">
-                  <span className="text-[10px] uppercase tracking-wider text-yc-text-tertiary">League Position</span>
-                  <div className={`font-heading text-4xl font-bold mt-1 ${
-                    leaguePosition.position <= 4 ? "text-yc-green" :
-                    leaguePosition.position <= 6 ? "text-yc-info" :
-                    leaguePosition.position >= 18 ? "text-yc-danger" : "text-yc-text-primary"
-                  }`}>
-                    #{leaguePosition.position}
-                  </div>
-                  <div className="text-xs text-yc-text-secondary mt-1">
-                    {leaguePosition.points} pts · {leaguePosition.playedGames} played
-                  </div>
-                </div>
-              )}
-
-              {/* Stats grid 2×2 */}
-              {stats && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="yc-card p-3 rounded-xl">
-                    <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider block">Scored</span>
-                    <span className="font-heading text-xl font-bold text-yc-green">{stats.goalsFor}</span>
-                  </div>
-                  <div className="yc-card p-3 rounded-xl">
-                    <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider block">Conceded</span>
-                    <span className="font-heading text-xl font-bold text-yc-danger">{stats.goalsConceded}</span>
-                  </div>
-                  <div className="yc-card p-3 rounded-xl">
-                    <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider block">Clean Sheets</span>
-                    <span className="font-heading text-xl font-bold text-yc-text-primary">{stats.cleanSheets}</span>
-                  </div>
-                  <div className="yc-card p-3 rounded-xl">
-                    <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider block">Win Rate</span>
-                    <span className="font-heading text-xl font-bold text-yc-text-primary">{stats.winRate}%</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Streak + H/A records */}
-              {stats && (
-                <div className="space-y-2">
-                  {stats.streak && (
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${
-                      stats.streak.endsWith("W") ? "bg-yc-green/10 text-yc-green border-yc-green/20" :
-                      stats.streak.endsWith("L") ? "bg-yc-danger/10 text-yc-danger border-yc-danger/20" :
-                      "bg-yc-bg-elevated text-yc-text-secondary border-yc-border"
+            {/* ═══ Hero Metrics Strip — 3 key numbers ═══ */}
+            {(leaguePosition || stats) && (
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                {/* League Position */}
+                {leaguePosition ? (
+                  <div className="yc-metric-card p-3 sm:p-4 text-center">
+                    <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-yc-text-tertiary block mb-1">Position</span>
+                    <div className={`font-heading text-2xl sm:text-3xl font-bold ${
+                      leaguePosition.position <= 4 ? "text-yc-green" :
+                      leaguePosition.position <= 6 ? "text-yc-info" :
+                      leaguePosition.position >= 18 ? "text-yc-danger" : "text-yc-text-primary"
                     }`}>
-                      {stats.streak} streak
-                    </span>
+                      #{leaguePosition.position}
+                    </div>
+                    <span className="text-[10px] text-yc-text-secondary font-mono">{leaguePosition.points} pts</span>
+                  </div>
+                ) : (
+                  <div className="yc-metric-card p-3 sm:p-4 text-center">
+                    <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-yc-text-tertiary block mb-1">Position</span>
+                    <div className="font-heading text-2xl sm:text-3xl font-bold text-yc-text-tertiary">—</div>
+                  </div>
+                )}
+
+                {/* Win Rate */}
+                <div className="yc-metric-card p-3 sm:p-4 text-center">
+                  <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-yc-text-tertiary block mb-1">Win Rate</span>
+                  <div className="font-heading text-2xl sm:text-3xl font-bold text-yc-text-primary">
+                    {stats?.winRate ?? 0}<span className="text-sm text-yc-text-secondary">%</span>
+                  </div>
+                  {stats && (
+                    <div className="h-1 bg-yc-bg-elevated rounded-full mt-1.5 overflow-hidden">
+                      <div className="h-full rounded-full bg-gradient-to-r from-yc-green-dark to-yc-green transition-all duration-700" style={{ width: `${stats.winRate}%` }} />
+                    </div>
                   )}
-                  <div className="flex gap-3 text-xs text-yc-text-secondary">
-                    <span className="flex items-center gap-1"><Home size={12} className="text-yc-text-tertiary" /> {stats.homeRecord}</span>
-                    <span className="flex items-center gap-1"><Plane size={12} className="text-yc-text-tertiary" /> {stats.awayRecord}</span>
+                </div>
+
+                {/* Goals / Match */}
+                <div className="yc-metric-card p-3 sm:p-4 text-center">
+                  <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-yc-text-tertiary block mb-1">Goals/Match</span>
+                  <div className="font-heading text-2xl sm:text-3xl font-bold text-yc-text-primary">
+                    {stats?.goalsPerMatch ?? "0"}
+                  </div>
+                  {stats && (
+                    <span className="text-[10px] font-mono text-yc-green">{stats.goalsFor} scored</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ═══ Quick Facts — streak, H/A, clean sheets ═══ */}
+            {stats && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {stats.streak && (
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${
+                    stats.streak.endsWith("W") ? "bg-yc-green/10 text-yc-green border-yc-green/20" :
+                    stats.streak.endsWith("L") ? "bg-yc-danger/10 text-yc-danger border-yc-danger/20" :
+                    "bg-yc-bg-elevated text-yc-text-secondary border-yc-border"
+                  }`}>
+                    <TrendingUp size={12} />
+                    {stats.streak} streak
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-yc-bg-elevated/60 text-yc-text-secondary border border-yc-border/50">
+                  <Shield size={11} className="text-yc-text-tertiary" />
+                  {stats.cleanSheets} clean sheets
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-yc-bg-elevated/60 text-yc-text-secondary border border-yc-border/50">
+                  <Home size={11} className="text-yc-text-tertiary" />
+                  {stats.homeRecord}
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-yc-bg-elevated/60 text-yc-text-secondary border border-yc-border/50">
+                  <Plane size={11} className="text-yc-text-tertiary" />
+                  {stats.awayRecord}
+                </span>
+              </div>
+            )}
+
+            {/* ═══ Form Guide — sparkline + opponent crests ═══ */}
+            {form.length >= 2 && (
+              <div className="yc-card-premium p-4 sm:p-5">
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-[10px] uppercase tracking-[0.12em] text-yc-text-tertiary font-medium">Form Guide</h4>
+                    <span className="text-[10px] font-mono text-yc-text-tertiary">Last {Math.min(form.length, 10)} matches</span>
+                  </div>
+                  <FormSparkline results={form.slice(0, 10).map(f => f.result)} />
+                  {/* Form dots with opponent crests below */}
+                  <div className="flex gap-0.5 sm:gap-1 mt-2 justify-between">
+                    {form.slice(0, 10).map((f, i) => (
+                      <div key={i} className="flex flex-col items-center gap-1 min-w-0">
+                        <FormDot result={f.result} />
+                        {f.opponentCrest && (
+                          <div className="w-4 h-4 sm:w-5 sm:h-5 opacity-60">
+                            <TeamCrest tla={f.opponentTla ?? "?"} crest={f.opponentCrest} size="xs" />
+                          </div>
+                        )}
+                        <span className="text-[7px] sm:text-[8px] font-mono text-yc-text-tertiary">
+                          {f.goalsFor}-{f.goalsAgainst}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* ═══ Recent Results — mini match cards ═��═ */}
+            {form.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-2.5">
+                  <h4 className="text-[10px] uppercase tracking-[0.12em] text-yc-text-tertiary font-medium">Recent Results</h4>
+                  <OrnamentDivider className="text-yc-green opacity-20 w-16 h-4" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {form.slice(0, 4).map((m) => {
+                    const date = new Date(m.utcDate);
+                    const resolvedName = (() => { if (m.opponentName) { const n = tTeam(m.opponentName); if (n !== m.opponentName) return n; } return tTeam(m.opponentTla ?? "?"); })();
+                    return (
+                      <Link
+                        key={m.apiId}
+                        to={`/${comp.id}/match/${m.apiId}`}
+                        className="yc-result-strip p-3 ps-4"
+                        data-result={m.result}
+                      >
+                        <div className="flex items-center gap-3">
+                          {/* Opponent crest */}
+                          <div className="w-8 h-8 shrink-0">
+                            {m.opponentCrest ? (
+                              <TeamCrest tla={m.opponentTla ?? "?"} crest={m.opponentCrest} size="sm" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-yc-bg-elevated border border-yc-border flex items-center justify-center">
+                                <Shield size={14} className="text-yc-text-tertiary" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Name + date */}
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium text-yc-text-primary block truncate">{resolvedName}</span>
+                            <span className="text-[10px] text-yc-text-tertiary">
+                              {date.toLocaleDateString(getLocale(lang), { month: "short", day: "numeric", timeZone: "UTC" })}
+                              {" · "}
+                              {m.isHome ? "H" : "A"}
+                            </span>
+                          </div>
+
+                          {/* Score */}
+                          <div className="shrink-0 text-right">
+                            <span className={`font-mono text-base font-bold ${
+                              m.result === "W" ? "text-yc-green" : m.result === "L" ? "text-yc-danger" : "text-yc-text-secondary"
+                            }`}>
+                              {m.goalsFor}–{m.goalsAgainst}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
           </div>
         </Accordion>
 

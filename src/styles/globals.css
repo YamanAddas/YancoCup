@@ -113,6 +113,148 @@ body {
     0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
+/* ── Premium gradient-border card — animated conic shimmer ── */
+.yc-card-premium {
+  position: relative;
+  border-radius: 12px;
+  background: linear-gradient(170deg, rgba(12, 22, 40, 0.95) 0%, rgba(6, 11, 20, 0.98) 100%);
+  overflow: hidden;
+  isolation: isolate;
+}
+.yc-card-premium::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 255, 136, 0.03) 0deg,
+    rgba(0, 255, 136, 0.15) 60deg,
+    rgba(0, 255, 136, 0.03) 120deg,
+    rgba(0, 255, 136, 0.08) 180deg,
+    rgba(0, 255, 136, 0.03) 240deg,
+    rgba(0, 255, 136, 0.12) 300deg,
+    rgba(0, 255, 136, 0.03) 360deg
+  );
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+  z-index: 1;
+}
+.yc-card-premium:hover::before {
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 255, 136, 0.06) 0deg,
+    rgba(0, 255, 136, 0.25) 60deg,
+    rgba(0, 255, 136, 0.06) 120deg,
+    rgba(0, 255, 136, 0.15) 180deg,
+    rgba(0, 255, 136, 0.06) 240deg,
+    rgba(0, 255, 136, 0.2) 300deg,
+    rgba(0, 255, 136, 0.06) 360deg
+  );
+}
+.yc-card-premium:hover {
+  box-shadow:
+    0 0 30px rgba(0, 255, 136, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Showpiece card — for matchday hero (extra glow + inner radiance) ── */
+.yc-showpiece {
+  position: relative;
+  border-radius: 16px;
+  background: linear-gradient(175deg, rgba(14, 26, 48, 0.95) 0%, rgba(6, 11, 20, 0.98) 100%);
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow:
+    0 0 40px rgba(0, 255, 136, 0.04),
+    0 4px 24px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.yc-showpiece::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from 180deg,
+    rgba(0, 255, 136, 0.04) 0deg,
+    rgba(0, 255, 136, 0.2) 45deg,
+    rgba(255, 200, 0, 0.08) 90deg,
+    rgba(0, 255, 136, 0.04) 135deg,
+    rgba(0, 255, 136, 0.15) 225deg,
+    rgba(255, 200, 0, 0.06) 270deg,
+    rgba(0, 255, 136, 0.04) 360deg
+  );
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+  z-index: 1;
+}
+.yc-showpiece:hover {
+  box-shadow:
+    0 0 50px rgba(0, 255, 136, 0.1),
+    0 8px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ── Metric card — compact stat cell with top-glow line ── */
+.yc-metric-card {
+  position: relative;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(12, 22, 40, 0.8) 0%, rgba(8, 14, 26, 0.9) 100%);
+  border: 1px solid var(--yc-accent-dim);
+  overflow: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+.yc-metric-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.3), transparent);
+  pointer-events: none;
+}
+.yc-metric-card:hover {
+  border-color: var(--yc-border-accent);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.06);
+  transform: translateY(-1px);
+}
+
+/* ── Result strip — mini match card with colored left accent ── */
+.yc-result-strip {
+  position: relative;
+  border-radius: 10px;
+  background: linear-gradient(170deg, rgba(12, 22, 40, 0.7) 0%, rgba(8, 14, 26, 0.85) 100%);
+  border: 1px solid rgba(0, 255, 136, 0.05);
+  overflow: hidden;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+.yc-result-strip:hover {
+  border-color: var(--yc-border-accent);
+  transform: translateY(-1px);
+}
+.yc-result-strip::before {
+  content: '';
+  position: absolute;
+  top: 15%;
+  bottom: 15%;
+  left: 0;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+}
+.yc-result-strip[data-result="W"]::before { background: var(--color-yc-green); }
+.yc-result-strip[data-result="D"]::before { background: var(--color-yc-warning); }
+.yc-result-strip[data-result="L"]::before { background: var(--color-yc-danger); }
+
 /* ══════════════════════════════════════════════════════
    HEX CARD — Horizontal hexagonal crystal card system
    Ported from YancoHub carousel + gaming grid cards.
