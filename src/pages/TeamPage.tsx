@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, User, MapPin, Calendar, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star, Activity, Users, ChevronDown } from "lucide-react";
+import { ArrowLeft, User, MapPin, Calendar, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star, Activity, Users, ChevronDown, BarChart3, MessageCircle, TrendingUp, Shield, Crosshair, Lock } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
+import { useAuth } from "../lib/auth";
 import { formatTimeWithTZ, getLocale } from "../lib/formatDate";
 import TeamCrest from "../components/match/TeamCrest";
 import { fetchTeamNews, WORKER_URL, type NewsArticle } from "../lib/api";
+import { supabase } from "../lib/supabase";
 import { ArabesqueLattice, GeometricBand, StarDivider, CornerAccent } from "../components/ui/ArabesquePatterns";
 import { Accordion } from "../components/ui/Accordion";
 
@@ -272,7 +274,15 @@ function TeamNewspaper({ teamTla, teamName }: { teamTla: string; teamName: strin
     );
   }
 
-  if (articles.length === 0) return null;
+  if (articles.length === 0) {
+    return (
+      <div className="text-center py-6 relative">
+        <ArabesqueLattice className="absolute inset-0 text-yc-green opacity-[0.03]" />
+        <Newspaper size={24} className="text-yc-text-tertiary mx-auto mb-2 relative z-10" />
+        <p className="text-sm text-yc-text-tertiary relative z-10">No recent news for {teamName}</p>
+      </div>
+    );
+  }
 
   const heroArticle = articles[0]!;
   const sideArticles = articles.slice(1, 6);
@@ -407,6 +417,50 @@ function TeamNewsCompact({ article }: { article: NewsArticle }) {
 }
 
 // ---------------------------------------------------------------------------
+// Stats helpers
+// ---------------------------------------------------------------------------
+
+function StatRow({ label, value, max, display, danger, custom }: {
+  label: string; value: number; max: number; display?: string; danger?: boolean;
+  custom?: React.ReactNode;
+}) {
+  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  return (
+    <div className="group">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-yc-text-secondary">{label}</span>
+        <span className="text-sm font-mono font-bold text-yc-text-primary">{display ?? value}</span>
+      </div>
+      {custom ?? (
+        <div className="h-1 group-hover:h-1.5 bg-yc-bg-elevated rounded-full transition-all duration-200 overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${danger ? "bg-gradient-to-r from-red-900 to-red-400" : "bg-gradient-to-r from-yc-green-dark to-yc-green"}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HomeAwayBar({ record }: { record: string }) {
+  const parts = record.match(/(\d+)W\s+(\d+)D\s+(\d+)L/);
+  if (!parts) return null;
+  const w = parseInt(parts[1]!), d = parseInt(parts[2]!), l = parseInt(parts[3]!);
+  const total = w + d + l;
+  if (total === 0) return null;
+  const wPct = (w / total) * 100;
+  const dPct = (d / total) * 100;
+  return (
+    <div className="h-1 group-hover:h-1.5 bg-yc-bg-elevated rounded-full transition-all duration-200 overflow-hidden flex">
+      <div className="h-full bg-yc-green transition-all" style={{ width: `${wPct}%` }} />
+      <div className="h-full bg-yc-text-tertiary transition-all" style={{ width: `${dPct}%` }} />
+      {/* Remaining = losses, shown by the bg-yc-bg-elevated background */}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Hero helpers
 // ---------------------------------------------------------------------------
 
@@ -429,9 +483,11 @@ function parseTeamColor(clubColors: string | null): string | null {
 
 const TEAM_SECTIONS = [
   { id: "overview", label: "Overview" },
+  { id: "stats", label: "Stats" },
   { id: "fixtures", label: "Fixtures" },
   { id: "news", label: "News" },
   { id: "squad", label: "Squad" },
+  { id: "community", label: "Community" },
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -447,8 +503,17 @@ export default function TeamPage() {
   const [leaguePosition, setLeaguePosition] = useState<StandingEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [playerPhotos, setPlayerPhotos] = useState<Record<string, string>>({});
+  const { user } = useAuth();
   const [fixtureFilter, setFixtureFilter] = useState<"all" | "upcoming" | "results">("all");
   const [expandedPlayer, setExpandedPlayer] = useState<Record<string, number | null>>({});
+  const [statCategory, setStatCategory] = useState<"attack" | "defense">("attack");
+  const [communityData, setCommunityData] = useState<{
+    nextMatchConsensus: { home: number; draw: number; away: number; total: number } | null;
+    nextMatchOpponent: string | null;
+    nextMatchIsHome: boolean;
+    userPredictions: { total: number; correct: number; accuracy: number } | null;
+  }>({ nextMatchConsensus: null, nextMatchOpponent: null, nextMatchIsHome: true, userPredictions: null });
+  const [communityLoading, setCommunityLoading] = useState(true);
   const heroRef = useRef<HTMLDivElement>(null);
   const [heroVisible, setHeroVisible] = useState(true);
   const [activeSection, setActiveSection] = useState("overview");
@@ -500,6 +565,87 @@ export default function TeamPage() {
     }
     load();
   }, [teamId, comp.id]);
+
+  // Community data — prediction consensus + user history
+  useEffect(() => {
+    if (!team || matches.length === 0) { setCommunityLoading(false); return; }
+    const tla = team.tla;
+    let cancelled = false;
+
+    async function loadCommunity() {
+      // Find upcoming matches for this team (need match IDs for prediction queries)
+      const upcomingMatches = matches
+        .filter((m) => m.status === "TIMED" && (m.homeTeam === tla || m.awayTeam === tla))
+        .sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime());
+
+      const finishedMatches = matches
+        .filter((m) => m.status === "FINISHED" && (m.homeTeam === tla || m.awayTeam === tla));
+
+      let nextMatchConsensus: typeof communityData.nextMatchConsensus = null;
+      let nextMatchOpponent: string | null = null;
+      let nextMatchIsHome = true;
+
+      // Consensus for next match (only from finished predictions visible after kickoff)
+      if (upcomingMatches.length > 0) {
+        const nm = upcomingMatches[0]!;
+        nextMatchIsHome = nm.homeTeam === tla;
+        nextMatchOpponent = nextMatchIsHome ? nm.awayTeamName : nm.homeTeamName;
+
+        const { data: preds } = await supabase
+          .from("yc_predictions")
+          .select("home_score, away_score, quick_pick")
+          .eq("match_id", nm.apiId)
+          .eq("competition_id", comp.id);
+
+        if (preds && preds.length >= 2) {
+          let h = 0, d = 0, a = 0;
+          for (const p of preds) {
+            if (p.quick_pick) { if (p.quick_pick === "H") h++; else if (p.quick_pick === "D") d++; else a++; }
+            else if (p.home_score != null && p.away_score != null) {
+              if (p.home_score > p.away_score) h++; else if (p.home_score === p.away_score) d++; else a++;
+            }
+          }
+          const total = h + d + a;
+          if (total >= 2) {
+            nextMatchConsensus = {
+              home: Math.round((h / total) * 100),
+              draw: Math.round((d / total) * 100),
+              away: Math.round((a / total) * 100),
+              total,
+            };
+          }
+        }
+      }
+
+      // User prediction history for this team
+      let userPredictions: typeof communityData.userPredictions = null;
+      if (user) {
+        const finishedIds = finishedMatches.map((m) => m.apiId);
+        if (finishedIds.length > 0) {
+          const { data: userPreds } = await supabase
+            .from("yc_predictions")
+            .select("match_id, home_score, away_score, quick_pick, points")
+            .eq("user_id", user.id)
+            .eq("competition_id", comp.id)
+            .in("match_id", finishedIds);
+
+          if (userPreds && userPreds.length > 0) {
+            const total = userPreds.length;
+            const correct = userPreds.filter((p) => p.points != null && p.points > 0).length;
+            userPredictions = { total, correct, accuracy: Math.round((correct / total) * 100) };
+          }
+        }
+      }
+
+      if (!cancelled) {
+        setCommunityData({ nextMatchConsensus, nextMatchOpponent, nextMatchIsHome, userPredictions });
+        setCommunityLoading(false);
+      }
+    }
+
+    loadCommunity();
+    return () => { cancelled = true; };
+  }, [team, matches, user, comp.id]);
 
   // Hero visibility — show mini crest in sticky nav when hero scrolls out
   useEffect(() => {
@@ -929,6 +1075,92 @@ export default function TeamPage() {
           </div>
         </Accordion>
 
+        {/* ── Stats accordion ── */}
+        <Accordion
+          id="section-stats"
+          icon={<BarChart3 size={16} />}
+          title="Stats"
+          summary={stats ? `${stats.played} matches · ${stats.winRate}% win rate` : "No data"}
+        >
+          {stats ? (
+            <div>
+              {/* Category chips */}
+              <div className="flex items-center gap-1.5 mb-4">
+                <button
+                  onClick={() => setStatCategory("attack")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    statCategory === "attack"
+                      ? "bg-yc-green/15 text-yc-green border border-yc-green/20"
+                      : "text-yc-text-secondary border border-yc-border/50 hover:text-yc-text-primary hover:border-[var(--yc-border-accent)]"
+                  }`}
+                >
+                  <Crosshair size={12} /> Attack
+                </button>
+                <button
+                  onClick={() => setStatCategory("defense")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    statCategory === "defense"
+                      ? "bg-yc-green/15 text-yc-green border border-yc-green/20"
+                      : "text-yc-text-secondary border border-yc-border/50 hover:text-yc-text-primary hover:border-[var(--yc-border-accent)]"
+                  }`}
+                >
+                  <Shield size={12} /> Defense
+                </button>
+              </div>
+
+              {statCategory === "attack" ? (
+                <div className="space-y-3">
+                  <StatRow label="Goals Scored" value={stats.goalsFor} max={Math.max(stats.goalsFor, stats.goalsConceded, 1) * 1.3} />
+                  <StatRow label="Goals / Match" value={parseFloat(stats.goalsPerMatch)} max={4} display={stats.goalsPerMatch} />
+                  <StatRow label="Win Rate" value={stats.winRate} max={100} display={`${stats.winRate}%`} />
+                  <StarDivider className="opacity-20 my-1" />
+                  <StatRow label="Current Streak" value={stats.streak ? parseInt(stats.streak) : 0} max={10} display={stats.streak ?? "—"} />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <StatRow label="Goals Conceded" value={stats.goalsConceded} max={Math.max(stats.goalsFor, stats.goalsConceded, 1) * 1.3} danger />
+                  <StatRow label="Clean Sheets" value={stats.cleanSheets} max={stats.played} />
+                  <StarDivider className="opacity-20 my-1" />
+                  <StatRow label="Home" value={0} max={1} display={stats.homeRecord} custom={<HomeAwayBar record={stats.homeRecord} />} />
+                  <StatRow label="Away" value={0} max={1} display={stats.awayRecord} custom={<HomeAwayBar record={stats.awayRecord} />} />
+                </div>
+              )}
+
+              {/* Auto-tags — strengths/weaknesses */}
+              {(() => {
+                const tags: Array<{ label: string; positive: boolean }> = [];
+                if (stats.winRate >= 60) tags.push({ label: `Strong form: ${stats.winRate}% wins`, positive: true });
+                if (stats.winRate <= 30 && stats.played >= 5) tags.push({ label: `Struggling: ${stats.winRate}% wins`, positive: false });
+                if (stats.cleanSheets >= stats.played * 0.4 && stats.played >= 5) tags.push({ label: `Solid defense: ${stats.cleanSheets} clean sheets`, positive: true });
+                if (parseFloat(stats.goalsPerMatch) >= 2) tags.push({ label: `Clinical attack: ${stats.goalsPerMatch} goals/match`, positive: true });
+                const homeW = parseInt(stats.homeRecord);
+                const homeL = parseInt(stats.homeRecord.split(" ").pop()!);
+                if (homeW >= 5 && homeL <= 2) tags.push({ label: `Fortress at home: ${stats.homeRecord}`, positive: true });
+                if (stats.streak && parseInt(stats.streak) >= 3) {
+                  const type = stats.streak.endsWith("W") ? "winning" : stats.streak.endsWith("L") ? "losing" : "draw";
+                  tags.push({ label: `${parseInt(stats.streak)}-match ${type} streak`, positive: type === "winning" });
+                }
+                if (tags.length === 0) return null;
+                return (
+                  <div className="flex flex-wrap gap-1.5 mt-4">
+                    {tags.map((tag, i) => (
+                      <span key={i} className={`text-[10px] font-medium px-2.5 py-1 rounded-full border ${
+                        tag.positive
+                          ? "bg-yc-green/8 text-yc-green border-yc-green/15"
+                          : "bg-red-500/8 text-red-400 border-red-500/15"
+                      }`}>
+                        {tag.label}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          ) : (
+            <p className="text-sm text-yc-text-tertiary">No match data available for stats.</p>
+          )}
+        </Accordion>
+
         {/* ── Fixtures accordion ── */}
         <Accordion
           id="section-fixtures"
@@ -1023,7 +1255,7 @@ export default function TeamPage() {
           id="section-news"
           icon={<Newspaper size={16} />}
           title="News"
-          summary="Latest stories"
+          summary={`AI-curated · ${displayName}`}
         >
           <TeamNewspaper teamTla={team.tla} teamName={displayName} teamCrest={team.crest} />
         </Accordion>
@@ -1120,6 +1352,97 @@ export default function TeamPage() {
             </div>
           ) : (
             <p className="text-sm text-yc-text-tertiary">Squad data unavailable.</p>
+          )}
+        </Accordion>
+
+        {/* ── Community accordion ── */}
+        <Accordion
+          id="section-community"
+          icon={<MessageCircle size={16} />}
+          title="Community"
+          summary={communityData.nextMatchConsensus ? `${communityData.nextMatchConsensus.total} predictions` : "YancoCup predictions"}
+        >
+          {!user ? (
+            <div className="text-center py-6">
+              <div className="w-12 h-12 rounded-full bg-yc-bg-elevated flex items-center justify-center mx-auto mb-3">
+                <Lock size={20} className="text-yc-text-tertiary" />
+              </div>
+              <p className="text-sm text-yc-text-secondary mb-1">Sign in to see community predictions</p>
+              <Link to="/sign-in" className="text-xs text-yc-green hover:underline">Sign in</Link>
+            </div>
+          ) : communityLoading ? (
+            <div className="space-y-3">
+              <div className="h-16 bg-yc-bg-elevated rounded-xl animate-pulse" />
+              <div className="h-12 bg-yc-bg-elevated rounded-xl animate-pulse" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Next match consensus */}
+              {communityData.nextMatchConsensus && (
+                <div className="rounded-xl border border-yc-border/50 p-4" style={{ background: "var(--yc-bg-glass-light)" }}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp size={14} className="text-yc-green" />
+                    <span className="text-xs font-medium text-yc-text-primary">
+                      Next Match — {communityData.nextMatchConsensus.total} predictions
+                    </span>
+                  </div>
+                  <div className="flex gap-1 h-2.5 rounded-full overflow-hidden mb-2">
+                    <div className="bg-yc-green rounded-l-full transition-all" style={{ width: `${communityData.nextMatchConsensus.home}%` }} />
+                    <div className="bg-yc-text-tertiary transition-all" style={{ width: `${communityData.nextMatchConsensus.draw}%` }} />
+                    <div className="bg-yc-danger rounded-r-full transition-all" style={{ width: `${communityData.nextMatchConsensus.away}%` }} />
+                  </div>
+                  <div className="flex justify-between text-[10px]">
+                    <span className="text-yc-green font-mono font-bold">{communityData.nextMatchConsensus.home}% {communityData.nextMatchIsHome ? displayName : communityData.nextMatchOpponent}</span>
+                    <span className="text-yc-text-tertiary font-mono">{communityData.nextMatchConsensus.draw}% Draw</span>
+                    <span className="text-yc-danger font-mono font-bold">{communityData.nextMatchConsensus.away}% {communityData.nextMatchIsHome ? communityData.nextMatchOpponent : displayName}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Fan confidence meter */}
+              {stats && (
+                <div className="rounded-xl border border-yc-border/50 p-4" style={{ background: "var(--yc-bg-glass-light)" }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Activity size={14} className="text-yc-green" />
+                    <span className="text-xs font-medium text-yc-text-primary">Fan Confidence</span>
+                  </div>
+                  <div className="h-2 bg-yc-bg-elevated rounded-full overflow-hidden mb-1.5">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-yc-green-dark to-yc-green transition-all duration-500"
+                      style={{ width: `${stats.winRate}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-yc-text-tertiary">
+                    Based on {stats.winRate}% win rate across {stats.played} matches this season
+                  </p>
+                </div>
+              )}
+
+              {/* Your prediction history */}
+              {communityData.userPredictions ? (
+                <div className="rounded-xl border border-yc-border/50 p-4" style={{ background: "var(--yc-bg-glass-light)" }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Star size={14} className="text-yc-warning" />
+                    <span className="text-xs font-medium text-yc-text-primary">Your Prediction History</span>
+                  </div>
+                  <div className="flex items-baseline gap-3">
+                    <span className="font-heading text-2xl font-bold text-yc-green">{communityData.userPredictions.accuracy}%</span>
+                    <span className="text-xs text-yc-text-secondary">
+                      accuracy — {communityData.userPredictions.correct}/{communityData.userPredictions.total} correct predictions for {displayName}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-yc-text-tertiary">You haven't predicted any matches for {displayName} yet.</p>
+              )}
+
+              {!communityData.nextMatchConsensus && !communityData.userPredictions && (
+                <div className="text-center py-4 relative">
+                  <ArabesqueLattice className="absolute inset-0 text-yc-green opacity-[0.03]" />
+                  <p className="text-sm text-yc-text-tertiary relative z-10">No community predictions available yet.</p>
+                </div>
+              )}
+            </div>
           )}
         </Accordion>
 
