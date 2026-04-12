@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { NavLink } from "react-router-dom";
 import GlobeView from "../components/globe/GlobeView";
 import Countdown from "../components/layout/Countdown";
@@ -225,71 +225,92 @@ function TodaysMatches() {
   const [upcomingLeague, setUpcomingLeague] = useState<Match[]>([]);
   // Track per-match competition code for detail page linking
   const [matchCompMap, setMatchCompMap] = useState<Map<number, string>>(new Map());
+  // Track kickoff times for minute computation
+  const [kickoffMap, setKickoffMap] = useState<Map<number, string>>(new Map());
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isLive = liveMatches.length > 0;
 
-  useEffect(() => {
-    async function fetchLive() {
-      const compMap = new Map<number, string>();
+  const fetchLive = useCallback(async () => {
+    const compMap = new Map<number, string>();
+    const koMap = new Map<number, string>();
 
-      // Fetch live matches across all competitions
-      try {
-        const res = await fetch(`${WORKER_URL}/api/live`);
-        if (res.ok) {
-          const data = (await res.json()) as { matches: WorkerMatch[] };
-          if (data.matches.length > 0) {
-            for (const m of data.matches) compMap.set(m.apiId, m.competitionCode);
-            setLiveMatches(data.matches.map(convertWorkerMatch));
+    // Fetch live matches across all competitions
+    try {
+      const res = await fetch(`${WORKER_URL}/api/live`);
+      if (res.ok) {
+        const data = (await res.json()) as { matches: WorkerMatch[] };
+        if (data.matches.length > 0) {
+          for (const m of data.matches) {
+            compMap.set(m.apiId, m.competitionCode);
+            koMap.set(m.apiId, m.utcDate);
           }
+          setLiveMatches(data.matches.map(convertWorkerMatch));
+        } else {
+          setLiveMatches([]);
         }
-      } catch { /* */ }
+      }
+    } catch { /* */ }
 
-      // Fetch upcoming from ALL league competitions in parallel
-      try {
-        const results = await Promise.allSettled(
-          LEAGUE_COMPS.map(async (comp) => {
-            const res = await fetch(`${WORKER_URL}/api/${comp}/scores`);
-            if (!res.ok) return [];
-            const data = (await res.json()) as { matches: WorkerMatch[] };
-            return data.matches ?? [];
-          }),
-        );
+    // Fetch upcoming from ALL league competitions in parallel
+    try {
+      const results = await Promise.allSettled(
+        LEAGUE_COMPS.map(async (comp) => {
+          const res = await fetch(`${WORKER_URL}/api/${comp}/scores`);
+          if (!res.ok) return [];
+          const data = (await res.json()) as { matches: WorkerMatch[] };
+          return data.matches ?? [];
+        }),
+      );
 
-        const now = new Date().toISOString();
-        const allUpcoming: WorkerMatch[] = [];
+      const now = new Date().toISOString();
+      const allUpcoming: WorkerMatch[] = [];
 
-        for (const result of results) {
-          if (result.status === "fulfilled") {
-            for (const m of result.value) {
-              if (m.status === "TIMED" && m.utcDate > now) {
-                allUpcoming.push(m);
-              }
+      for (const result of results) {
+        if (result.status === "fulfilled") {
+          for (const m of result.value) {
+            if (m.status === "TIMED" && m.utcDate > now) {
+              allUpcoming.push(m);
             }
           }
         }
+      }
 
-        // Sort by date, take nearest 6
-        allUpcoming.sort((a, b) => a.utcDate.localeCompare(b.utcDate));
-        const nearest = allUpcoming.slice(0, 6);
+      // Sort by date, take nearest 6
+      allUpcoming.sort((a, b) => a.utcDate.localeCompare(b.utcDate));
+      const nearest = allUpcoming.slice(0, 6);
 
-        if (nearest.length > 0) {
-          for (const m of nearest) compMap.set(m.apiId, m.competitionCode);
-          setUpcomingLeague(nearest.map(convertWorkerMatch));
-        }
-      } catch { /* */ }
+      if (nearest.length > 0) {
+        for (const m of nearest) compMap.set(m.apiId, m.competitionCode);
+        setUpcomingLeague(nearest.map(convertWorkerMatch));
+      }
+    } catch { /* */ }
 
-      setMatchCompMap(compMap);
-    }
-    fetchLive();
+    setMatchCompMap(compMap);
+    setKickoffMap(koMap);
   }, []);
+
+  // Initial fetch + polling: 30s when live, 5min otherwise
+  useEffect(() => {
+    fetchLive();
+
+    function startPoll() {
+      if (pollRef.current) clearInterval(pollRef.current);
+      const ms = isLive ? 30_000 : 300_000;
+      pollRef.current = setInterval(fetchLive, ms);
+    }
+    startPoll();
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [fetchLive, isLive]);
 
   const displayMatches = useMemo(() => {
     if (liveMatches.length > 0) {
-      return { matches: liveMatches, label: t("home.liveNow"), comp: "" };
+      return { matches: liveMatches, label: t("home.liveNow"), comp: "", isLive: true };
     }
 
     const today = new Date().toISOString().slice(0, 10);
     const todaysWc = wcMatches.filter((m) => m.date === today);
     if (todaysWc.length > 0) {
-      return { matches: todaysWc, label: t("home.todaysMatches"), comp: "WC" };
+      return { matches: todaysWc, label: t("home.todaysMatches"), comp: "WC", isLive: false };
     }
 
     if (upcomingLeague.length > 0) {
@@ -302,6 +323,7 @@ function TodaysMatches() {
         matches: upcomingLeague,
         label: `${t("home.nextMatches")} — ${dateLabel}`,
         comp: "",
+        isLive: false,
       };
     }
 
@@ -318,10 +340,11 @@ function TodaysMatches() {
         matches: nextMatches,
         label: `${t("home.nextMatches")} — ${dateLabel}`,
         comp: "WC",
+        isLive: false,
       };
     }
 
-    return { matches: [], label: t("home.noUpcoming"), comp: "" };
+    return { matches: [], label: t("home.noUpcoming"), comp: "", isLive: false };
   }, [liveMatches, upcomingLeague, wcMatches, t]);
 
   // Resolve the competition for each match: use per-match map, then fallback to section comp, then WC
@@ -334,10 +357,27 @@ function TodaysMatches() {
     <section ref={matchesRef} className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
-          <Calendar size={18} className="text-yc-green" />
-          <h3 className="font-heading text-xl font-bold">
-            {displayMatches.label}
-          </h3>
+          {displayMatches.isLive ? (
+            <>
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yc-live opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-yc-live" />
+              </span>
+              <h3 className="font-heading text-xl font-bold text-yc-live">
+                {displayMatches.label}
+              </h3>
+              <span className="px-2 py-0.5 rounded-full bg-yc-live/15 text-yc-live text-xs font-mono font-bold">
+                {t("home.liveCount", { count: String(displayMatches.matches.length) })}
+              </span>
+            </>
+          ) : (
+            <>
+              <Calendar size={18} className="text-yc-green" />
+              <h3 className="font-heading text-xl font-bold">
+                {displayMatches.label}
+              </h3>
+            </>
+          )}
         </div>
         {displayMatches.comp ? (
           <NavLink
@@ -370,6 +410,7 @@ function TodaysMatches() {
                 liveScore={scoreMap.get(m.id)}
                 competitionId={getMatchComp(m.id)}
                 predicted={predictedIds.has(m.id)}
+                kickoffUtc={kickoffMap.get(m.id)}
                 compact
               />
             </div>

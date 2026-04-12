@@ -84,16 +84,37 @@ const ROUND_KEYS: Record<Match["round"], string> = {
   final: "round.final",
 };
 
-function StatusBadge({ status }: { status: string }) {
+/** Compute approximate match minute from kickoff time */
+function getApproxMinute(kickoffUtc: string | undefined, status: string): string | null {
+  if (!kickoffUtc) return null;
+  if (status === "PAUSED") return null; // HT handled by StatusBadge
+  if (status !== "IN_PLAY") return null;
+
+  const elapsed = Math.floor((Date.now() - new Date(kickoffUtc).getTime()) / 60_000);
+  if (elapsed < 0) return null;
+
+  // First half: 0-47min → show as-is (buffer for stoppage)
+  if (elapsed <= 47) return `${Math.min(elapsed, 45)}+`;
+  // Half-time break ~15min: elapsed 48-62
+  if (elapsed <= 62) return null;
+  // Second half: subtract ~15min break
+  const secondHalf = elapsed - 15;
+  if (secondHalf <= 90) return `${secondHalf}'`;
+  // Extra time / stoppage
+  return "90+";
+}
+
+function StatusBadge({ status, kickoffUtc }: { status: string; kickoffUtc?: string }) {
   const { t } = useI18n();
   if (status === "IN_PLAY" || status === "PAUSED") {
+    const minute = getApproxMinute(kickoffUtc, status);
     return (
       <span className="flex items-center gap-1.5 text-yc-green text-xs font-medium">
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yc-green opacity-75" />
           <span className="relative inline-flex rounded-full h-2 w-2 bg-yc-green" />
         </span>
-        {status === "PAUSED" ? t("match.ht") : t("match.live")}
+        {status === "PAUSED" ? t("match.ht") : minute ?? t("match.live")}
       </span>
     );
   }
@@ -113,6 +134,8 @@ interface MatchCardProps {
   predicted?: boolean;
   /** ISO timestamp of last Worker poll — used for staleness indicator on live matches */
   fetchedAt?: string | null;
+  /** ISO kickoff time — used to compute approximate match minute for live cards */
+  kickoffUtc?: string;
 }
 
 function StaleBadge({ fetchedAt }: { fetchedAt?: string | null }) {
@@ -127,7 +150,7 @@ function StaleBadge({ fetchedAt }: { fetchedAt?: string | null }) {
   );
 }
 
-export default function MatchCard({ match, teamMap, venueMap, liveScore, compact, competitionId, predicted, fetchedAt }: MatchCardProps) {
+export default function MatchCard({ match, teamMap, venueMap, liveScore, compact, competitionId, predicted, fetchedAt, kickoffUtc }: MatchCardProps) {
   const { t, lang, tTeam, tVenue } = useI18n();
   const wrapRef = useRef<HTMLDivElement>(null);
   const specRef = useRef<HTMLDivElement>(null);
@@ -245,7 +268,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
               </span>
               {effectiveStatus && (effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED" || effectiveStatus === "FINISHED") ? (
                 <span className="flex items-center gap-2">
-                  <StatusBadge status={effectiveStatus} />
+                  <StatusBadge status={effectiveStatus} kickoffUtc={kickoffUtc ?? `${match.date}T${match.time}:00Z`} />
                   {isLive && <StaleBadge fetchedAt={fetchedAt} />}
                 </span>
               ) : (

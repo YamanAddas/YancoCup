@@ -16,6 +16,7 @@
   "home.cta": "Predice partidos con tus amigos",
   "home.competitions": "Competiciones",
   "home.liveNow": "En vivo",
+  "home.liveCount": "{count}",
   "home.todaysMatches": "Partidos de hoy",
   "home.nextMatches": "Próximos partidos",
   "home.noUpcoming": "No hay partidos próximos",

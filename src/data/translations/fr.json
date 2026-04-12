@@ -16,6 +16,7 @@
   "home.cta": "Pronostiquez les matchs avec vos amis",
   "home.competitions": "Compétitions",
   "home.liveNow": "En direct",
+  "home.liveCount": "{count}",
   "home.todaysMatches": "Matchs du jour",
   "home.nextMatches": "Prochains matchs",
   "home.noUpcoming": "Aucun match à venir",
