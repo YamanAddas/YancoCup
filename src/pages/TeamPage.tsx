@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, User, MapPin, Calendar, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star, Activity, Users, ChevronDown, BarChart3, MessageCircle, TrendingUp, Shield, Crosshair, Lock, Heart } from "lucide-react";
+import { ArrowLeft, User, MapPin, Calendar, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star, Activity, Users, BarChart3, MessageCircle, TrendingUp, Shield, Crosshair, Lock, Heart } from "lucide-react";
 import { useFollowedTeams } from "../hooks/useFollowedTeams";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
@@ -126,70 +126,124 @@ const POS_BG: Record<string, string> = {
   Unknown: "bg-yc-bg-elevated text-yc-text-tertiary border-yc-border",
 };
 
-function PlayerAvatar({ name, position, photoUrl }: { name: string; position: string; photoUrl?: string }) {
+function PlayerHexCard({ player, position, photoUrl }: { player: Player; position: string; photoUrl?: string }) {
   const [imgError, setImgError] = useState(false);
-  const initials = name
+  const initials = player.name
     .split(" ")
     .filter(Boolean)
     .map((w) => w[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
-  const colors = POS_BG[position] ?? POS_BG.Unknown!;
-
-  if (photoUrl && !imgError) {
-    return (
-      <img
-        src={photoUrl}
-        alt={name}
-        onError={() => setImgError(true)}
-        className="w-9 h-9 rounded-full object-cover shrink-0 border border-yc-border"
-      />
-    );
-  }
+  const posColor = POS_COLORS[position] ?? "text-yc-text-tertiary";
+  const posBg = POS_BG[position] ?? POS_BG.Unknown!;
+  const posLabel = position === "Goalkeeper" ? "GK" : position === "Defence" ? "DEF" : position === "Midfield" ? "MID" : position === "Offence" ? "FWD" : "—";
+  const hasPhoto = photoUrl && !imgError;
+  const age = player.dateOfBirth ? new Date().getFullYear() - new Date(player.dateOfBirth).getFullYear() : null;
 
   return (
-    <div className={`w-9 h-9 rounded-full border flex items-center justify-center shrink-0 ${colors}`}>
-      <span className="text-[11px] font-bold font-mono leading-none">{initials}</span>
+    <div className="hex-sm-3d">
+      <div className="hex-sm-wrap group">
+        <div className="hex-sm-border" />
+        <div className="hex-sm-card p-3 flex flex-col items-center text-center gap-1.5">
+          <div className="hex-sm-glass" />
+          <div className="relative z-10 flex flex-col items-center gap-1.5 w-full">
+            {/* Photo or monogram */}
+            <div className="relative">
+              {hasPhoto ? (
+                <img
+                  src={photoUrl}
+                  alt={player.name}
+                  onError={() => setImgError(true)}
+                  className="w-16 h-16 rounded-full object-cover border-2 border-yc-border"
+                  loading="lazy"
+                />
+              ) : (
+                <div className={`w-16 h-16 rounded-full border-2 flex items-center justify-center ${posBg}`}>
+                  <span className="text-lg font-bold font-mono">{initials}</span>
+                </div>
+              )}
+              {/* Shirt number badge */}
+              {player.shirtNumber != null && (
+                <span className="absolute -bottom-1 -end-1 min-w-[22px] h-[22px] flex items-center justify-center rounded-full bg-yc-bg-deep border border-yc-border text-[10px] font-mono font-bold text-yc-text-primary px-1">
+                  {player.shirtNumber}
+                </span>
+              )}
+            </div>
+
+            {/* Name */}
+            <p className="text-xs font-semibold text-yc-text-primary leading-tight truncate w-full">{player.name}</p>
+
+            {/* Position + nationality */}
+            <div className="flex items-center gap-1.5">
+              <span className={`text-[10px] font-mono font-bold ${posColor}`}>{posLabel}</span>
+              <NationalityFlag nationality={player.nationality} />
+              {age != null && <span className="text-[10px] font-mono text-yc-text-tertiary">{age}</span>}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
+}
+
+/** Strip diacritics: "Müller" → "Muller", "Magalhães" → "Magalhaes" */
+function stripDiacritics(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
 /**
  * Find a player photo by fuzzy name matching.
  * API-Football uses short names ("B. Saka", "Kepa") while football-data.org
- * uses full names ("Bukayo Saka", "Kepa Arrizabalaga"). We try multiple strategies.
+ * uses full names ("Bukayo Saka", "Kepa Arrizabalaga"). We try multiple strategies
+ * with diacritics-stripped comparison for accented names.
  */
 function findPhoto(name: string, photos: Record<string, string>): string | undefined {
   if (!name || Object.keys(photos).length === 0) return undefined;
   // Exact match
   if (photos[name]) return photos[name];
-  const lower = name.toLowerCase();
+
+  const norm = (s: string) => stripDiacritics(s.toLowerCase().replace(/[.\-']/g, "").trim());
+  const fdNorm = norm(name);
   const entries = Object.entries(photos);
-  // Case-insensitive exact
+
+  // Pass 1: normalized exact match
   for (const [k, v] of entries) {
-    if (k.toLowerCase() === lower) return v;
+    if (norm(k) === fdNorm) return v;
   }
-  const fdParts = lower.split(" ").filter(Boolean);
+
+  const fdParts = fdNorm.split(/\s+/).filter(Boolean);
   if (fdParts.length === 0) return undefined;
   const fdLast = fdParts[fdParts.length - 1]!;
   const fdFirst = fdParts[0]!;
+
+  // Compound surname: "Van Dijk" → "van dijk", "De Bruyne" → "de bruyne"
+  // Take last 2+ parts for compound matching: "virgil van dijk" → "van dijk"
+  const fdCompound = fdParts.length >= 3 ? fdParts.slice(-2).join(" ") : null;
+
   for (const [k, v] of entries) {
-    const afLower = k.toLowerCase();
-    const afParts = afLower.split(" ").filter(Boolean);
+    const afNorm = norm(k);
+    const afParts = afNorm.split(/\s+/).filter(Boolean);
     if (afParts.length === 0) continue;
     const afLast = afParts[afParts.length - 1]!;
     const afFirst = afParts[0]!;
-    // Last name match: "Bukayo Saka" ↔ "B. Saka"
+    const afCompound = afParts.length >= 2 ? afParts.slice(-2).join(" ") : null;
+
+    // Last name match: "Bukayo Saka" ↔ "B Saka"
     if (fdLast.length > 2 && afLast === fdLast) return v;
+    // Compound surname match: "Virgil van Dijk" ↔ "V. van Dijk"
+    if (fdCompound && afCompound && fdCompound === afCompound) return v;
     // AF single name is fd first name: "Kepa" ↔ "Kepa Arrizabalaga"
-    if (afParts.length === 1 && afLower === fdFirst) return v;
+    if (afParts.length === 1 && afNorm === fdFirst) return v;
     // FD single name is AF first name: "Gabriel" ↔ "Gabriel Magalhães"
-    if (fdParts.length === 1 && lower === afFirst) return v;
-    // AF "X. LastName" pattern: check initial matches fd first name
-    if (afParts.length >= 2 && afFirst.length <= 2 && afFirst.endsWith(".")) {
+    if (fdParts.length === 1 && fdNorm === afFirst) return v;
+    // Initial + last name: "B Saka" ↔ "Bukayo Saka" (initial stripped of dot)
+    if (afParts.length >= 2 && afFirst.length === 1) {
       if (afLast === fdLast && fdFirst[0] === afFirst[0]) return v;
     }
+    // FD contains AF name or vice versa (handles mononyms and partial)
+    if (afNorm.length > 3 && fdNorm.includes(afNorm)) return v;
+    if (fdNorm.length > 3 && afNorm.includes(fdNorm)) return v;
   }
   return undefined;
 }
@@ -507,7 +561,6 @@ export default function TeamPage() {
   const [playerPhotos, setPlayerPhotos] = useState<Record<string, string>>({});
   const { user } = useAuth();
   const [fixtureFilter, setFixtureFilter] = useState<"all" | "upcoming" | "results">("all");
-  const [expandedPlayer, setExpandedPlayer] = useState<Record<string, number | null>>({});
   const [statCategory, setStatCategory] = useState<"attack" | "defense">("attack");
   const [communityData, setCommunityData] = useState<{
     nextMatchConsensus: { home: number; draw: number; away: number; total: number } | null;
@@ -1310,87 +1363,33 @@ export default function TeamPage() {
           count={team.squad.length > 0 ? team.squad.length : undefined}
         >
           {team.squad.length > 0 ? (
-            <div className="space-y-1">
-              {[...squadByPosition.entries()].map(([position, players]) => {
-                const isGroupOpen = expandedPlayer[position] !== undefined;
-                return (
-                  <div key={position}>
-                    {/* Position group header with geometric left border */}
-                    <button
-                      onClick={() => setExpandedPlayer((prev) => {
-                        const next = { ...prev };
-                        if (position in next) { delete next[position]; } else { next[position] = null; }
-                        return next;
-                      })}
-                      className="w-full flex items-center gap-2.5 py-2.5 cursor-pointer group"
-                    >
-                      {/* Geometric left accent — interlocking diamonds */}
-                      <svg aria-hidden="true" width="4" height="20" viewBox="0 0 4 20" className={`shrink-0 ${POS_COLORS[position] ?? "text-yc-text-tertiary"} opacity-50`}>
-                        <path d="M2 0L4 3L2 6L0 3Z M2 7L4 10L2 13L0 10Z M2 14L4 17L2 20L0 17Z" fill="currentColor" />
-                      </svg>
-                      <span className={`text-xs font-medium uppercase tracking-wider ${POS_COLORS[position] ?? "text-yc-text-tertiary"}`}>
-                        {POS_LABELS[position] ?? position}
-                      </span>
-                      <span className="text-[10px] font-mono text-yc-text-tertiary">{players.length}</span>
-                      <span className="flex-1" />
-                      <ChevronDown size={14} className={`text-yc-text-tertiary transition-transform duration-200 ${isGroupOpen ? "rotate-180" : ""}`} />
-                    </button>
-
-                    {/* Player list — collapsible */}
-                    <div className={`grid ${isGroupOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"} transition-[grid-template-rows] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]`}>
-                      <div className={`overflow-hidden min-h-0 transition-opacity duration-150 ${isGroupOpen ? "opacity-100" : "opacity-0"}`}>
-                        <div className="space-y-0.5 pb-2">
-                          {players.map((p) => {
-                            const isExpanded = expandedPlayer[position] === p.id;
-                            const age = p.dateOfBirth ? new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear() : null;
-                            return (
-                              <div key={p.id}>
-                                <button
-                                  onClick={() => setExpandedPlayer((prev) => ({
-                                    ...prev,
-                                    [position]: prev[position] === p.id ? null : p.id,
-                                  }))}
-                                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors cursor-pointer ${
-                                    isExpanded ? "bg-yc-bg-elevated/50" : "hover:bg-yc-bg-elevated/30"
-                                  }`}
-                                >
-                                  <PlayerAvatar name={p.name} position={position} photoUrl={findPhoto(p.name, playerPhotos)} />
-                                  <span className="text-xs font-mono text-yc-text-tertiary w-6 text-center shrink-0">{p.shirtNumber ?? "—"}</span>
-                                  <span className="text-sm text-yc-text-primary font-medium truncate flex-1 text-left">{p.name}</span>
-                                  <NationalityFlag nationality={p.nationality} />
-                                  {age != null && <span className="text-[11px] text-yc-text-tertiary font-mono shrink-0">{age}</span>}
-                                </button>
-
-                                {/* Expandable detail strip */}
-                                <div className={`grid ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"} transition-[grid-template-rows] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]`}>
-                                  <div className={`overflow-hidden min-h-0 transition-opacity duration-150 ${isExpanded ? "opacity-100" : "opacity-0"}`}>
-                                    <div className="flex items-center gap-4 px-3 py-2 ml-12 text-xs text-yc-text-secondary border-l-2 border-yc-border">
-                                      <span className="flex items-center gap-1.5">
-                                        <NationalityFlag nationality={p.nationality} />
-                                        {p.nationality}
-                                      </span>
-                                      {p.position && (
-                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${POS_BG[position] ?? ""}`}>
-                                          {p.position}
-                                        </span>
-                                      )}
-                                      {p.dateOfBirth && (
-                                        <span className="text-yc-text-tertiary">
-                                          Born {new Date(p.dateOfBirth).toLocaleDateString(getLocale(lang), { year: "numeric", month: "short", day: "numeric" })}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
+            <div className="space-y-6">
+              {[...squadByPosition.entries()].map(([position, players]) => (
+                <div key={position}>
+                  {/* Position group header */}
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <svg aria-hidden="true" width="4" height="20" viewBox="0 0 4 20" className={`shrink-0 ${POS_COLORS[position] ?? "text-yc-text-tertiary"} opacity-50`}>
+                      <path d="M2 0L4 3L2 6L0 3Z M2 7L4 10L2 13L0 10Z M2 14L4 17L2 20L0 17Z" fill="currentColor" />
+                    </svg>
+                    <span className={`text-xs font-medium uppercase tracking-wider ${POS_COLORS[position] ?? "text-yc-text-tertiary"}`}>
+                      {POS_LABELS[position] ?? position}
+                    </span>
+                    <span className="text-[10px] font-mono text-yc-text-tertiary">{players.length}</span>
                   </div>
-                );
-              })}
+
+                  {/* Player hex card grid */}
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
+                    {players.map((p) => (
+                      <PlayerHexCard
+                        key={p.id}
+                        player={p}
+                        position={position}
+                        photoUrl={findPhoto(p.name, playerPhotos)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <p className="text-sm text-yc-text-tertiary">Squad data unavailable.</p>

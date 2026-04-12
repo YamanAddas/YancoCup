@@ -2607,10 +2607,12 @@ app.get("/api/team/:teamId/photos", async (c) => {
           players: Array<{ id: number; name: string; photo: string }>;
         }>;
       };
-      const players = squadData.response?.[0]?.players ?? [];
-      for (const p of players) {
-        if (p.photo) {
-          photos[p.name] = p.photo;
+      // Read ALL response entries (some teams have multiple sub-arrays for reserves/loans)
+      for (const entry of squadData.response ?? []) {
+        for (const p of entry.players ?? []) {
+          if (p.photo) {
+            photos[p.name] = p.photo;
+          }
         }
       }
     }
