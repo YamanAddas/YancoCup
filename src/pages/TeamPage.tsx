@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, User, MapPin, Calendar, Shield, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star } from "lucide-react";
+import { ArrowLeft, User, MapPin, Calendar, Home, Plane, Newspaper, Clock, ExternalLink, Languages, Star, Activity, Users, ChevronDown } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
 import { formatTimeWithTZ, getLocale } from "../lib/formatDate";
 import TeamCrest from "../components/match/TeamCrest";
 import { fetchTeamNews, WORKER_URL, type NewsArticle } from "../lib/api";
-import { ArabesqueLattice, GeometricBand, StarDivider } from "../components/ui/ArabesquePatterns";
+import { ArabesqueLattice, GeometricBand, StarDivider, CornerAccent } from "../components/ui/ArabesquePatterns";
+import { Accordion } from "../components/ui/Accordion";
 
 // ---------------------------------------------------------------------------
 // Types — football-data.org /v4/competitions/{code}/teams response
@@ -193,6 +194,29 @@ function findPhoto(name: string, photos: Record<string, string>): string | undef
 function FormDot({ result }: { result: "W" | "D" | "L" }) {
   const colors = { W: "bg-yc-green", D: "bg-yc-text-tertiary", L: "bg-red-500" };
   return <span className={`inline-block w-3 h-3 rounded-full ${colors[result]}`} title={result} />;
+}
+
+/** Tiny line chart: W=top, D=mid, L=bottom. Replaces flat dots with a sparkline. */
+function FormSparkline({ results }: { results: Array<"W" | "D" | "L"> }) {
+  if (results.length < 2) return null;
+  const h = 32;
+  const pad = 6;
+  const yMap = { W: pad, D: h / 2, L: h - pad };
+  const n = results.length;
+  const viewW = (n - 1) * 28 + pad * 2;
+  const gap = (viewW - pad * 2) / (n - 1);
+  const pts = results.map((r, i) => ({ x: pad + i * gap, y: yMap[r], r }));
+  const d = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+  const fill = { W: "var(--color-yc-green)", D: "var(--color-yc-text-tertiary)", L: "var(--color-yc-danger)" };
+
+  return (
+    <svg viewBox={`0 0 ${viewW} ${h}`} className="w-full h-8" aria-hidden="true">
+      <path d={d} fill="none" stroke="var(--color-yc-border-hover)" strokeWidth="1.5" strokeLinejoin="round" />
+      {pts.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r="3.5" fill={fill[p.r]} />
+      ))}
+    </svg>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -423,6 +447,8 @@ export default function TeamPage() {
   const [leaguePosition, setLeaguePosition] = useState<StandingEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [playerPhotos, setPlayerPhotos] = useState<Record<string, string>>({});
+  const [fixtureFilter, setFixtureFilter] = useState<"all" | "upcoming" | "results">("all");
+  const [expandedPlayer, setExpandedPlayer] = useState<Record<string, number | null>>({});
   const heroRef = useRef<HTMLDivElement>(null);
   const [heroVisible, setHeroVisible] = useState(true);
   const [activeSection, setActiveSection] = useState("overview");
@@ -541,12 +567,14 @@ export default function TeamPage() {
     let homeW = 0, homeD = 0, homeL = 0;
     let awayW = 0, awayD = 0, awayL = 0;
     let totalGoals = 0;
+    let totalConceded = 0;
 
     for (const m of finishedAll) {
       const isHome = m.homeTeam === tla;
       const gf = isHome ? m.homeScore! : m.awayScore!;
       const ga = isHome ? m.awayScore! : m.homeScore!;
       totalGoals += gf;
+      totalConceded += ga;
       if (ga === 0) cleanSheets++;
       const result = gf > ga ? "W" : gf < ga ? "L" : "D";
       if (isHome) { if (result === "W") homeW++; else if (result === "D") homeD++; else homeL++; }
@@ -561,10 +589,14 @@ export default function TeamPage() {
       else break;
     }
 
+    const totalWins = homeW + awayW;
     return {
       cleanSheets,
       homeRecord: `${homeW}W ${homeD}D ${homeL}L`,
       awayRecord: `${awayW}W ${awayD}D ${awayL}L`,
+      goalsFor: totalGoals,
+      goalsConceded: totalConceded,
+      winRate: finishedAll.length > 0 ? Math.round((totalWins / finishedAll.length) * 100) : 0,
       goalsPerMatch: finishedAll.length > 0 ? (totalGoals / finishedAll.length).toFixed(1) : "0",
       streak: streakResult ? `${streakCount}${streakResult}` : null,
       played: finishedAll.length,
@@ -579,6 +611,15 @@ export default function TeamPage() {
       .filter((m) => m.status === "TIMED" && (m.homeTeam === tla || m.awayTeam === tla))
       .sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime())
       .slice(0, 5);
+  }, [team, matches]);
+
+  // Played (finished) matches for fixtures section
+  const played = useMemo(() => {
+    if (!team) return [];
+    const tla = team.tla;
+    return matches
+      .filter((m) => m.status === "FINISHED" && (m.homeTeam === tla || m.awayTeam === tla))
+      .sort((a, b) => new Date(b.utcDate).getTime() - new Date(a.utcDate).getTime());
   }, [team, matches]);
 
   // Group squad by normalized position (4 broad groups)
@@ -733,172 +774,355 @@ export default function TeamPage() {
 
       {/* ── Content ── */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
-        <section id="section-overview">
-      {/* Stats cards */}
-      {stats && (
-        <div className="grid grid-cols-3 gap-3 mb-8">
-          {stats && (
-            <>
-              <div className="yc-card p-3 rounded-xl">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Shield size={12} className="text-yc-text-tertiary" />
-                  <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider">Clean Sheets</span>
-                </div>
-                <span className="font-heading text-xl font-bold text-yc-text-primary">{stats.cleanSheets}</span>
-                <span className="text-xs text-yc-text-tertiary ml-1">/ {stats.played}</span>
-              </div>
-              <div className="yc-card p-3 rounded-xl">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Home size={12} className="text-yc-text-tertiary" />
-                  <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider">Home</span>
-                </div>
-                <span className="font-mono text-sm font-bold text-yc-text-primary">{stats.homeRecord}</span>
-              </div>
-              <div className="yc-card p-3 rounded-xl">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Plane size={12} className="text-yc-text-tertiary" />
-                  <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider">Away</span>
-                </div>
-                <span className="font-mono text-sm font-bold text-yc-text-primary">{stats.awayRecord}</span>
-              </div>
-            </>
-          )}
-        </div>
-      )}
 
-      {/* Streak + goals/match */}
-      {stats && (
-        <div className="flex flex-wrap gap-3 mb-6">
-          {stats.streak && (
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${
-              stats.streak.endsWith("W") ? "bg-yc-green/10 text-yc-green border-yc-green/20" :
-              stats.streak.endsWith("L") ? "bg-red-500/10 text-red-400 border-red-500/20" :
-              "bg-yc-bg-elevated text-yc-text-secondary border-yc-border"
-            }`}>
-              {stats.streak.endsWith("W") ? "🔥" : stats.streak.endsWith("L") ? "📉" : "➡️"} {stats.streak} streak
-            </span>
-          )}
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-yc-bg-elevated text-yc-text-secondary border border-yc-border">
-            {stats.goalsPerMatch} goals/match
-          </span>
-        </div>
-      )}
-
-      {/* Form guide */}
-      {form.length > 0 && (
-        <div className="mb-8">
-          <h3 className="text-sm font-medium text-yc-text-tertiary uppercase tracking-wider mb-3">
-            Recent Form
-          </h3>
-          <div className="space-y-1">
-            {form.slice(0, 5).map((m) => {
-              const date = new Date(m.utcDate);
-              return (
-                <div key={m.apiId} className="flex items-center gap-3 px-3 py-2 bg-yc-bg-surface border border-yc-border/50 rounded-lg text-sm">
-                  <FormDot result={m.result} />
-                  <span className="text-xs text-yc-text-tertiary w-16 shrink-0">
-                    {date.toLocaleDateString(getLocale(lang), { month: "short", day: "numeric", timeZone: "UTC" })}
-                  </span>
-                  <span className="text-yc-text-secondary text-xs w-6 text-center">{m.isHome ? "H" : "A"}</span>
-                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                    {m.opponentCrest && (
-                      <TeamCrest tla={m.opponentTla ?? "?"} crest={m.opponentCrest} size="xs" />
-                    )}
-                    <span className="text-yc-text-primary truncate">{(() => { if (m.opponentName) { const n = tTeam(m.opponentName); if (n !== m.opponentName) return n; } return tTeam(m.opponentTla ?? "?"); })()}</span>
-                  </div>
-                  <span className="font-mono font-bold text-yc-text-primary shrink-0">
-                    {m.goalsFor}-{m.goalsAgainst}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-        </section>
-
-        <section id="section-fixtures">
-      {/* Upcoming fixtures */}
-      {upcoming.length > 0 && (
-        <div className="mb-8">
-          <h3 className="text-sm font-medium text-yc-text-tertiary uppercase tracking-wider mb-3">
-            Upcoming Fixtures
-          </h3>
-          <div className="space-y-1">
-            {upcoming.map((m) => {
-              const isHome = m.homeTeam === team.tla;
-              const opCrest = isHome ? m.awayCrest : m.homeCrest;
-              const opName = isHome ? m.awayTeamName : m.homeTeamName;
-              const opTla = isHome ? m.awayTeam : m.homeTeam;
-              const date = new Date(m.utcDate);
-              return (
-                <div key={m.apiId} className="flex items-center gap-3 px-3 py-2 bg-yc-bg-surface border border-yc-border/50 rounded-lg text-sm">
-                  <span className="text-xs text-yc-text-tertiary w-16 shrink-0">
-                    {date.toLocaleDateString(getLocale(lang), { month: "short", day: "numeric", timeZone: "UTC" })}
-                  </span>
-                  <span className="text-yc-text-secondary text-xs w-6 text-center">{isHome ? "H" : "A"}</span>
-                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                    {opCrest && <TeamCrest tla={opTla ?? "?"} crest={opCrest} size="xs" />}
-                    <span className="text-yc-text-primary truncate">{(() => { if (opName) { const n = tTeam(opName); if (n !== opName) return n; } return tTeam(opTla ?? "?"); })()}</span>
-                  </div>
-                  <span className="text-xs text-yc-text-tertiary">
-                    {formatTimeWithTZ(date, lang)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-        </section>
-
-        <section id="section-news">
-      <TeamNewspaper teamTla={team.tla} teamName={displayName} teamCrest={team.crest} />
-        </section>
-
-        <section id="section-squad">
-      {/* Squad */}
-      {team.squad.length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium text-yc-text-tertiary uppercase tracking-wider mb-3">
-            Squad ({team.squad.length} players)
-          </h3>
-          {[...squadByPosition.entries()].map(([position, players]) => (
-            <div key={position} className="mb-4">
-              <p className={`text-xs font-medium uppercase tracking-wider mb-1.5 ${POS_COLORS[position] ?? "text-yc-text-tertiary"}`}>
-                {POS_LABELS[position] ?? position}
-              </p>
-              <div className="space-y-1">
-                {players.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-yc-bg-elevated/30 transition-colors"
+        {/* ── Overview accordion (default open) ── */}
+        <Accordion
+          id="section-overview"
+          icon={<Activity size={16} />}
+          title="Overview"
+          summary={leaguePosition ? `#${leaguePosition.position} · ${leaguePosition.points}pts` : undefined}
+          defaultOpen
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
+            {/* Left column — next match + form */}
+            <div className="lg:col-span-3 space-y-4">
+              {/* Next Match card */}
+              {upcoming.length > 0 && (() => {
+                const nm = upcoming[0]!;
+                const isHome = nm.homeTeam === team.tla;
+                const opCrest = isHome ? nm.awayCrest : nm.homeCrest;
+                const opName = isHome ? nm.awayTeamName : nm.homeTeamName;
+                const opTla = isHome ? nm.awayTeam : nm.homeTeam;
+                const date = new Date(nm.utcDate);
+                return (
+                  <Link
+                    to={`/${comp.id}/match/${nm.apiId}`}
+                    className="block relative overflow-hidden rounded-xl border border-yc-border/50 p-4 transition-all hover:border-[var(--yc-border-accent-bright)]"
+                    style={{ background: "var(--yc-bg-glass-light)" }}
                   >
-                    <PlayerAvatar name={p.name} position={position} photoUrl={findPhoto(p.name, playerPhotos)} />
-                    <span className="text-xs font-mono text-yc-text-tertiary w-6 text-center shrink-0">
-                      {p.shirtNumber ?? "—"}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm text-yc-text-primary font-medium truncate block">{p.name}</span>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <NationalityFlag nationality={p.nationality} />
-                        <span className="text-[11px] text-yc-text-tertiary">{p.nationality}</span>
-                        {p.dateOfBirth && (
-                          <span className="text-[11px] text-yc-text-tertiary">
-                            · {new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()} yrs
+                    <CornerAccent position="top-right" className="text-yc-green opacity-[0.06]" />
+                    <CornerAccent position="bottom-left" className="text-yc-green opacity-[0.06]" />
+                    <span className="text-[10px] uppercase tracking-wider text-yc-text-tertiary">Next Match</span>
+                    <div className="flex items-center gap-4 mt-2">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <TeamCrest tla={team.tla} crest={team.crest} size="sm" />
+                        <span className="text-xs text-yc-text-secondary">{isHome ? "vs" : "@"}</span>
+                        {opCrest && <TeamCrest tla={opTla ?? "?"} crest={opCrest} size="sm" />}
+                        <span className="text-sm text-yc-text-primary font-medium truncate">
+                          {(() => { if (opName) { const n = tTeam(opName); if (n !== opName) return n; } return tTeam(opTla ?? "?"); })()}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-xs text-yc-text-secondary">
+                          {date.toLocaleDateString(getLocale(lang), { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })}
+                        </div>
+                        <div className="text-xs font-mono text-yc-green">{formatTimeWithTZ(date, lang)}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <span className="text-[10px] uppercase tracking-wider font-semibold text-yc-green bg-yc-green/10 px-2.5 py-1 rounded-full">
+                        Predict
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })()}
+
+              {/* Form sparkline */}
+              {form.length >= 2 && (
+                <div>
+                  <h4 className="text-[10px] uppercase tracking-wider text-yc-text-tertiary mb-2">Form</h4>
+                  <FormSparkline results={form.slice(0, 10).map(f => f.result)} />
+                  <div className="flex gap-1 mt-1.5">
+                    {form.slice(0, 10).map((f, i) => <FormDot key={i} result={f.result} />)}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent 3 results */}
+              {form.length > 0 && (
+                <div>
+                  <h4 className="text-[10px] uppercase tracking-wider text-yc-text-tertiary mb-2">Recent Results</h4>
+                  <div className="space-y-1">
+                    {form.slice(0, 3).map((m) => {
+                      const date = new Date(m.utcDate);
+                      return (
+                        <div key={m.apiId} className="flex items-center gap-3 px-3 py-2 bg-yc-bg-surface border border-yc-border/50 rounded-lg text-sm">
+                          <FormDot result={m.result} />
+                          <span className="text-xs text-yc-text-tertiary w-16 shrink-0">
+                            {date.toLocaleDateString(getLocale(lang), { month: "short", day: "numeric", timeZone: "UTC" })}
                           </span>
+                          <span className="text-yc-text-secondary text-xs w-6 text-center">{m.isHome ? "H" : "A"}</span>
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                            {m.opponentCrest && <TeamCrest tla={m.opponentTla ?? "?"} crest={m.opponentCrest} size="xs" />}
+                            <span className="text-yc-text-primary truncate">{(() => { if (m.opponentName) { const n = tTeam(m.opponentName); if (n !== m.opponentName) return n; } return tTeam(m.opponentTla ?? "?"); })()}</span>
+                          </div>
+                          <span className="font-mono font-bold text-yc-text-primary shrink-0">{m.goalsFor}-{m.goalsAgainst}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right column — position + stats */}
+            <div className="lg:col-span-2 space-y-4">
+              {/* League position */}
+              {leaguePosition && (
+                <div className="yc-card p-4 rounded-xl text-center">
+                  <span className="text-[10px] uppercase tracking-wider text-yc-text-tertiary">League Position</span>
+                  <div className={`font-heading text-4xl font-bold mt-1 ${
+                    leaguePosition.position <= 4 ? "text-yc-green" :
+                    leaguePosition.position <= 6 ? "text-yc-info" :
+                    leaguePosition.position >= 18 ? "text-yc-danger" : "text-yc-text-primary"
+                  }`}>
+                    #{leaguePosition.position}
+                  </div>
+                  <div className="text-xs text-yc-text-secondary mt-1">
+                    {leaguePosition.points} pts · {leaguePosition.playedGames} played
+                  </div>
+                </div>
+              )}
+
+              {/* Stats grid 2×2 */}
+              {stats && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="yc-card p-3 rounded-xl">
+                    <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider block">Scored</span>
+                    <span className="font-heading text-xl font-bold text-yc-green">{stats.goalsFor}</span>
+                  </div>
+                  <div className="yc-card p-3 rounded-xl">
+                    <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider block">Conceded</span>
+                    <span className="font-heading text-xl font-bold text-yc-danger">{stats.goalsConceded}</span>
+                  </div>
+                  <div className="yc-card p-3 rounded-xl">
+                    <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider block">Clean Sheets</span>
+                    <span className="font-heading text-xl font-bold text-yc-text-primary">{stats.cleanSheets}</span>
+                  </div>
+                  <div className="yc-card p-3 rounded-xl">
+                    <span className="text-[10px] text-yc-text-tertiary uppercase tracking-wider block">Win Rate</span>
+                    <span className="font-heading text-xl font-bold text-yc-text-primary">{stats.winRate}%</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Streak + H/A records */}
+              {stats && (
+                <div className="space-y-2">
+                  {stats.streak && (
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${
+                      stats.streak.endsWith("W") ? "bg-yc-green/10 text-yc-green border-yc-green/20" :
+                      stats.streak.endsWith("L") ? "bg-red-500/10 text-red-400 border-red-500/20" :
+                      "bg-yc-bg-elevated text-yc-text-secondary border-yc-border"
+                    }`}>
+                      {stats.streak} streak
+                    </span>
+                  )}
+                  <div className="flex gap-3 text-xs text-yc-text-secondary">
+                    <span className="flex items-center gap-1"><Home size={12} className="text-yc-text-tertiary" /> {stats.homeRecord}</span>
+                    <span className="flex items-center gap-1"><Plane size={12} className="text-yc-text-tertiary" /> {stats.awayRecord}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </Accordion>
+
+        {/* ── Fixtures accordion ── */}
+        <Accordion
+          id="section-fixtures"
+          icon={<Calendar size={16} />}
+          title="Fixtures"
+          count={upcoming.length + played.length > 0 ? upcoming.length + played.length : undefined}
+          summary={[upcoming.length > 0 && `${upcoming.length} upcoming`, played.length > 0 && `${played.length} played`].filter(Boolean).join(", ") || "No fixtures"}
+        >
+          {/* Filter pills */}
+          <div className="flex items-center gap-1.5 mb-3">
+            {(["all", "upcoming", "results"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFixtureFilter(f)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  fixtureFilter === f
+                    ? "bg-yc-green/15 text-yc-green border border-yc-green/20"
+                    : "text-yc-text-secondary border border-yc-border/50 hover:text-yc-text-primary hover:border-[var(--yc-border-accent)]"
+                }`}
+              >
+                {f === "all" ? "All" : f === "upcoming" ? "Upcoming" : "Results"}
+              </button>
+            ))}
+          </div>
+
+          {(() => {
+            const showUpcoming = fixtureFilter === "all" || fixtureFilter === "upcoming";
+            const showResults = fixtureFilter === "all" || fixtureFilter === "results";
+            const upcomingList = showUpcoming ? upcoming : [];
+            const resultsList = showResults ? played : [];
+            const allFixtures = [...upcomingList.map(m => ({ ...m, type: "upcoming" as const })), ...resultsList.map(m => ({ ...m, type: "result" as const }))];
+
+            if (allFixtures.length === 0) {
+              return <p className="text-sm text-yc-text-tertiary">No fixtures to show.</p>;
+            }
+
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                {allFixtures.map((m) => {
+                  const isHome = m.homeTeam === team.tla;
+                  const opCrest = isHome ? m.awayCrest : m.homeCrest;
+                  const opName = isHome ? m.awayTeamName : m.homeTeamName;
+                  const opTla = isHome ? m.awayTeam : m.homeTeam;
+                  const date = new Date(m.utcDate);
+
+                  // Result color for left border
+                  let borderColor = "border-l-yc-border";
+                  if (m.type === "result" && m.homeScore != null && m.awayScore != null) {
+                    const gf = isHome ? m.homeScore : m.awayScore;
+                    const ga = isHome ? m.awayScore : m.homeScore;
+                    borderColor = gf > ga ? "border-l-yc-green" : gf < ga ? "border-l-yc-danger" : "border-l-yc-warning";
+                  }
+
+                  return (
+                    <Link
+                      key={m.apiId}
+                      to={`/${comp.id}/match/${m.apiId}`}
+                      className={`block rounded-xl border border-yc-border/50 border-l-[3px] ${borderColor} p-3 transition-all hover:border-[var(--yc-border-accent-bright)]`}
+                      style={{ background: "var(--yc-bg-glass-light)" }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] uppercase tracking-wider text-yc-text-tertiary">
+                          {date.toLocaleDateString(getLocale(lang), { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })}
+                        </span>
+                        <span className="text-[10px] text-yc-text-tertiary">{isHome ? "Home" : "Away"}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <TeamCrest tla={team.tla} crest={team.crest} size="sm" />
+                        <span className="text-xs text-yc-text-tertiary">vs</span>
+                        {opCrest && <TeamCrest tla={opTla ?? "?"} crest={opCrest} size="sm" />}
+                        <span className="text-sm text-yc-text-primary font-medium truncate flex-1">
+                          {(() => { if (opName) { const n = tTeam(opName); if (n !== opName) return n; } return tTeam(opTla ?? "?"); })()}
+                        </span>
+                        {m.type === "result" && m.homeScore != null && m.awayScore != null ? (
+                          <span className="font-mono font-bold text-sm text-yc-text-primary shrink-0">
+                            {isHome ? m.homeScore : m.awayScore}–{isHome ? m.awayScore : m.homeScore}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-mono text-yc-green shrink-0">{formatTimeWithTZ(date, lang)}</span>
                         )}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </Accordion>
+
+        {/* ── News accordion ── */}
+        <Accordion
+          id="section-news"
+          icon={<Newspaper size={16} />}
+          title="News"
+          summary="Latest stories"
+        >
+          <TeamNewspaper teamTla={team.tla} teamName={displayName} teamCrest={team.crest} />
+        </Accordion>
+
+        {/* ── Squad accordion ── */}
+        <Accordion
+          id="section-squad"
+          icon={<Users size={16} />}
+          title="Squad"
+          count={team.squad.length > 0 ? team.squad.length : undefined}
+        >
+          {team.squad.length > 0 ? (
+            <div className="space-y-1">
+              {[...squadByPosition.entries()].map(([position, players]) => {
+                const isGroupOpen = expandedPlayer[position] !== undefined;
+                return (
+                  <div key={position}>
+                    {/* Position group header with geometric left border */}
+                    <button
+                      onClick={() => setExpandedPlayer((prev) => {
+                        const next = { ...prev };
+                        if (position in next) { delete next[position]; } else { next[position] = null; }
+                        return next;
+                      })}
+                      className="w-full flex items-center gap-2.5 py-2.5 cursor-pointer group"
+                    >
+                      {/* Geometric left accent — interlocking diamonds */}
+                      <svg aria-hidden="true" width="4" height="20" viewBox="0 0 4 20" className={`shrink-0 ${POS_COLORS[position] ?? "text-yc-text-tertiary"} opacity-50`}>
+                        <path d="M2 0L4 3L2 6L0 3Z M2 7L4 10L2 13L0 10Z M2 14L4 17L2 20L0 17Z" fill="currentColor" />
+                      </svg>
+                      <span className={`text-xs font-medium uppercase tracking-wider ${POS_COLORS[position] ?? "text-yc-text-tertiary"}`}>
+                        {POS_LABELS[position] ?? position}
+                      </span>
+                      <span className="text-[10px] font-mono text-yc-text-tertiary">{players.length}</span>
+                      <span className="flex-1" />
+                      <ChevronDown size={14} className={`text-yc-text-tertiary transition-transform duration-200 ${isGroupOpen ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {/* Player list — collapsible */}
+                    <div className={`grid ${isGroupOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"} transition-[grid-template-rows] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]`}>
+                      <div className={`overflow-hidden min-h-0 transition-opacity duration-150 ${isGroupOpen ? "opacity-100" : "opacity-0"}`}>
+                        <div className="space-y-0.5 pb-2">
+                          {players.map((p) => {
+                            const isExpanded = expandedPlayer[position] === p.id;
+                            const age = p.dateOfBirth ? new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear() : null;
+                            return (
+                              <div key={p.id}>
+                                <button
+                                  onClick={() => setExpandedPlayer((prev) => ({
+                                    ...prev,
+                                    [position]: prev[position] === p.id ? null : p.id,
+                                  }))}
+                                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors cursor-pointer ${
+                                    isExpanded ? "bg-yc-bg-elevated/50" : "hover:bg-yc-bg-elevated/30"
+                                  }`}
+                                >
+                                  <PlayerAvatar name={p.name} position={position} photoUrl={findPhoto(p.name, playerPhotos)} />
+                                  <span className="text-xs font-mono text-yc-text-tertiary w-6 text-center shrink-0">{p.shirtNumber ?? "—"}</span>
+                                  <span className="text-sm text-yc-text-primary font-medium truncate flex-1 text-left">{p.name}</span>
+                                  <NationalityFlag nationality={p.nationality} />
+                                  {age != null && <span className="text-[11px] text-yc-text-tertiary font-mono shrink-0">{age}</span>}
+                                </button>
+
+                                {/* Expandable detail strip */}
+                                <div className={`grid ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"} transition-[grid-template-rows] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]`}>
+                                  <div className={`overflow-hidden min-h-0 transition-opacity duration-150 ${isExpanded ? "opacity-100" : "opacity-0"}`}>
+                                    <div className="flex items-center gap-4 px-3 py-2 ml-12 text-xs text-yc-text-secondary border-l-2 border-yc-border">
+                                      <span className="flex items-center gap-1.5">
+                                        <NationalityFlag nationality={p.nationality} />
+                                        {p.nationality}
+                                      </span>
+                                      {p.position && (
+                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${POS_BG[position] ?? ""}`}>
+                                          {p.position}
+                                        </span>
+                                      )}
+                                      {p.dateOfBirth && (
+                                        <span className="text-yc-text-tertiary">
+                                          Born {new Date(p.dateOfBirth).toLocaleDateString(getLocale(lang), { year: "numeric", month: "short", day: "numeric" })}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
-      )}
-        </section>
+          ) : (
+            <p className="text-sm text-yc-text-tertiary">Squad data unavailable.</p>
+          )}
+        </Accordion>
+
       </div>
     </div>
   );
