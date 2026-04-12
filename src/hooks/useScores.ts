@@ -56,6 +56,14 @@ export function useScores(comp?: string) {
     setError(null);
     setFetchedAt(ts);
 
+    // Defensive: ensure raw is iterable (Fixes YANCOCUP-E)
+    if (!Array.isArray(raw)) {
+      setScoreMap(new Map());
+      setHasLive(false);
+      setLoading(false);
+      return;
+    }
+
     if (raw.length === 0) {
       setScoreMap(new Map());
       setHasLive(false);
