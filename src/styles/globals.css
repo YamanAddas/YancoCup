@@ -480,6 +480,41 @@ body {
   50% { opacity: 1; }
 }
 
+/* ── Mobile: strip heavy GPU layers to prevent tab crashes ── */
+@media (max-width: 640px) {
+  .yc-hex-3d { perspective: none; }
+  .yc-hex-wrap {
+    filter: none;
+    transform-style: flat;
+    will-change: auto;
+  }
+  .yc-hex-wrap.is-live {
+    filter: none;
+    box-shadow: 0 0 12px rgba(0, 255, 136, 0.15);
+  }
+  .yc-hex-glass,
+  .yc-hex-depth,
+  .yc-hex-specular,
+  .yc-hex-reflect,
+  .yc-hex-glow { display: none; }
+  .yc-hex-border {
+    clip-path: none;
+    inset: 0;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 255, 136, 0.1);
+    background: none;
+  }
+  .yc-hex-card {
+    clip-path: none;
+    border-radius: 12px;
+  }
+  .yc-hex-wrap.is-live .yc-hex-border {
+    border-color: rgba(0, 255, 136, 0.3);
+    animation: none;
+  }
+  .yc-hex-enter { animation: none; opacity: 1; }
+}
+
 /* ── Entry animation (3D materialize from YancoVerse) ── */
 @keyframes yc-hex-materialize {
   0% {

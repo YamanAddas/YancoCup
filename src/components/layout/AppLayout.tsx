@@ -56,7 +56,7 @@ export default function AppLayout() {
       <SpotlightCursor />
       <NavBar />
       <main className="relative z-10 pb-16 sm:pb-0">
-        <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
+        <Sentry.ErrorBoundary fallback={({ error, componentStack }) => <ErrorFallback error={error instanceof Error ? error : new Error(String(error))} componentStack={componentStack} />}>
           <Outlet />
         </Sentry.ErrorBoundary>
       </main>
