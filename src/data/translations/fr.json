@@ -186,6 +186,8 @@
   "match.ft": "FIN",
   "match.vs": "c.",
   "match.predictNow": "Pronostiquez",
+  "match.secondsAgo": "il y a {count}s",
+  "match.minutesAgo": "il y a {count}m",
   "match.group": "Groupe {id}",
   "match.tbd": "À déterminer",
   "match.htScore": "MT {home}-{away}",

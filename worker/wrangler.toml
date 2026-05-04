@@ -8,8 +8,17 @@ binding = "SCORES_KV"
 id = "c28d05b0f84a402aa441c0473de4a35a"
 
 # Cron Triggers — poll live scores
-# Every 5 min during pre-tournament (leagues only).
-# Switch to "* * * * *" (every 60s) during WC match windows (June 11 - July 19).
+# Currently every 5 min (pre-tournament, leagues only).
+#
+# WC SWITCH (perform on/around 2026-06-10):
+#   1. Change crons to ["* * * * *"] (every 60s)
+#   2. In src/index.ts handleCron, simultaneously update tick thresholds to
+#      keep periodic budgets unchanged:
+#        tick % 5  → tick % 25  (5-min upcoming-week refresh)
+#        tick % 10 → tick % 50  (50-min API-Football enrichment;
+#                                MUST stay <=100 calls/day)
+#   3. Revert thresholds AND cron after the WC final (2026-07-19) to save
+#      API budget during off-season.
 [triggers]
 crons = ["*/5 * * * *"]
 

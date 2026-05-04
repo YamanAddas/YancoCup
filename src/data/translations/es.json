@@ -186,6 +186,8 @@
   "match.ft": "FT",
   "match.vs": "vs",
   "match.predictNow": "Predice ya",
+  "match.secondsAgo": "hace {count}s",
+  "match.minutesAgo": "hace {count}m",
   "match.group": "Grupo {id}",
   "match.tbd": "Por definir",
   "match.htScore": "ET {home}-{away}",

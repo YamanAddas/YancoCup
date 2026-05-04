@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { MapPin, Clock, Check, Zap } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
@@ -140,10 +140,30 @@ interface MatchCardProps {
 }
 
 function StaleBadge({ fetchedAt }: { fetchedAt?: string | null }) {
+  const { t } = useI18n();
+  // Self-tick so "Xs ago" stays accurate between parent re-renders.
+  // Adaptive interval: every second under 60s, every 15s otherwise.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!fetchedAt) return;
+    const target = new Date(fetchedAt).getTime();
+    let timerId: ReturnType<typeof setTimeout>;
+    function tick() {
+      setTick((n) => n + 1);
+      const ago = (Date.now() - target) / 1000;
+      timerId = setTimeout(tick, ago < 60 ? 1000 : 15_000);
+    }
+    timerId = setTimeout(tick, 1000);
+    return () => clearTimeout(timerId);
+  }, [fetchedAt]);
+
   if (!fetchedAt) return null;
   const ago = Math.round((Date.now() - new Date(fetchedAt).getTime()) / 1000);
-  if (ago < 10) return null; // fresh enough
-  const label = ago < 60 ? `${ago}s ago` : `${Math.round(ago / 60)}m ago`;
+  if (ago < 10) return null; // fresh enough — don't distract
+  const label =
+    ago < 60
+      ? t("match.secondsAgo", { count: ago })
+      : t("match.minutesAgo", { count: Math.round(ago / 60) });
   return (
     <span className="text-yc-text-tertiary text-[9px] font-mono" title={fetchedAt}>
       ↻ {label}

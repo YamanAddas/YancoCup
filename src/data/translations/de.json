@@ -186,6 +186,8 @@
   "match.ft": "Ende",
   "match.vs": "vs",
   "match.predictNow": "Jetzt tippen",
+  "match.secondsAgo": "vor {count}s",
+  "match.minutesAgo": "vor {count}m",
   "match.group": "Gruppe {id}",
   "match.tbd": "N.N.",
   "match.htScore": "HZ {home}-{away}",

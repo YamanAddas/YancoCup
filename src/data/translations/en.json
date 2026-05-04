@@ -190,6 +190,8 @@
   "match.ft": "FT",
   "match.vs": "vs",
   "match.predictNow": "Predict now",
+  "match.secondsAgo": "{count}s ago",
+  "match.minutesAgo": "{count}m ago",
   "match.group": "Group {id}",
   "match.tbd": "TBD",
   "match.htScore": "HT {home}-{away}",

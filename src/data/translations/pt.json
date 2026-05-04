@@ -186,6 +186,8 @@
   "match.ft": "FJ",
   "match.vs": "x",
   "match.predictNow": "Preveja já",
+  "match.secondsAgo": "há {count}s",
+  "match.minutesAgo": "há {count}m",
   "match.group": "Grupo {id}",
   "match.tbd": "A definir",
   "match.htScore": "INT {home}-{away}",
