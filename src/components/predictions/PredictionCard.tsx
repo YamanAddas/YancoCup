@@ -78,19 +78,47 @@ export default function PredictionCard({
   const hasPrediction = prediction !== undefined;
   const prevScoredRef = useRef(prediction?.scored_at);
   const [justScored, setJustScored] = useState(false);
+  /** Counter that animates 0→points during the reveal moment.
+   *  Once justScored flips back to false, the static prediction.points
+   *  takes over via the conditional in render. */
+  const [animatedPoints, setAnimatedPoints] = useState(0);
 
   useEffect(() => {
     if (prevScoredRef.current === null && prediction?.scored_at) {
       setJustScored(true);
-      // Fire confetti on exact score (10+ pts)
-      if (prediction.points !== null && prediction.points >= 10) {
-        confetti({
-          particleCount: 80,
-          spread: 60,
-          origin: { y: 0.7 },
-          colors: (() => { const s = getComputedStyle(document.documentElement); return [s.getPropertyValue("--color-yc-green").trim() || "#00ff88", s.getPropertyValue("--color-yc-warning").trim() || "#ffc800", s.getPropertyValue("--color-yc-info").trim() || "#4488ff"]; })(),
-          disableForReducedMotion: true,
-        });
+      // Counter animation 0→points over 800ms with ease-out cubic.
+      const target = prediction.points ?? 0;
+      if (target > 0) {
+        const start = performance.now();
+        const duration = 800;
+        let raf: number;
+        function tick(now: number) {
+          const t = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - t, 3);
+          setAnimatedPoints(Math.round(target * eased));
+          if (t < 1) raf = requestAnimationFrame(tick);
+        }
+        raf = requestAnimationFrame(tick);
+        // No explicit cancel — when justScored flips false (1.5s later) the
+        // animation is already done. Stale frames just no-op.
+        void raf;
+      } else {
+        setAnimatedPoints(0);
+      }
+      // Cinematic confetti: gold rain for exact (10+), modest burst for any positive points.
+      if (prediction.points !== null && prediction.points > 0) {
+        const styles = getComputedStyle(document.documentElement);
+        const green = styles.getPropertyValue("--color-yc-green").trim() || "#00ff88";
+        const gold = styles.getPropertyValue("--color-yc-warning").trim() || "#ffc800";
+        const info = styles.getPropertyValue("--color-yc-info").trim() || "#4488ff";
+        if (prediction.points >= 10) {
+          // Exact score — twin bursts in gold + green
+          const palette = ["#ffd700", "#fff7a8", gold, green];
+          confetti({ particleCount: 100, spread: 80, origin: { x: 0.3, y: 0.7 }, colors: palette, disableForReducedMotion: true });
+          confetti({ particleCount: 100, spread: 80, origin: { x: 0.7, y: 0.7 }, colors: palette, disableForReducedMotion: true });
+        } else {
+          confetti({ particleCount: 50, spread: 55, origin: { y: 0.7 }, colors: [green, gold, info], disableForReducedMotion: true });
+        }
       }
       const timer = setTimeout(() => setJustScored(false), 1500);
       return () => clearTimeout(timer);
@@ -428,20 +456,29 @@ export default function PredictionCard({
                 : `${prediction.home_score} : ${prediction.away_score}`}
             </span>
             {prediction.points !== null ? (
-              <div className="yc-flip-container">
-                <span
-                  className={`yc-flip-inner inline-block font-mono text-xs font-bold px-1.5 py-0.5 rounded transition-all duration-500 ${
-                    justScored ? "flipped animate-points-reveal" : ""
-                  } ${
-                    prediction.points >= 10
-                      ? "text-yc-green bg-yc-green/10"
-                      : prediction.points > 0
-                        ? "text-yc-warning bg-yc-warning/10"
-                        : "text-yc-text-tertiary bg-yc-bg-elevated"
-                  }`}
-                >
-                  {t("predictions.pts", { count: prediction.points })}
-                </span>
+              <div className="flex items-center gap-1.5">
+                {prediction.is_joker && justScored && (
+                  <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-yc-warning/15 text-yc-warning border border-yc-warning/30 animate-points-reveal">
+                    2x
+                  </span>
+                )}
+                <div className="yc-flip-container">
+                  <span
+                    className={`yc-flip-inner inline-block font-mono text-xs font-bold px-1.5 py-0.5 rounded transition-all duration-500 ${
+                      justScored ? "flipped animate-points-reveal" : ""
+                    } ${
+                      prediction.points >= 10
+                        ? "text-yc-green bg-yc-green/10"
+                        : prediction.points > 0
+                          ? "text-yc-warning bg-yc-warning/10"
+                          : "text-yc-text-tertiary bg-yc-bg-elevated"
+                    }`}
+                  >
+                    {t("predictions.pts", {
+                      count: justScored ? animatedPoints : prediction.points,
+                    })}
+                  </span>
+                </div>
               </div>
             ) : (
               <span className="text-yc-text-tertiary text-xs flex items-center gap-1">
