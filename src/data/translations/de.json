@@ -77,6 +77,8 @@
   "predictions.copying": "Kopiere...",
   "predictions.signInTitle": "Anmelden zum Tippen",
   "predictions.signInDesc": "Tippe Spielergebnisse und tritt gegen Freunde in der Rangliste an.",
+  "predictions.anonBanner": "Du hast {count} Tipps abgegeben. Registriere dich, um sie zu sichern und in die Rangliste zu kommen.",
+  "predictions.anonBannerCta": "Registrieren",
   "predictions.nudge": "Du hast {count} bevorstehendes Spiel ohne Tipp.",
   "predictions.nudgePlural": "Du hast {count} bevorstehende Spiele ohne Tipp.",
   "predictions.openSection": "Offen für Tipps ({count})",

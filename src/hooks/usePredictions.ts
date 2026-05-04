@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
+import {
+  ANON_USER_ID,
+  readAnonPredictions,
+  upsertAnonPrediction,
+  toPrediction,
+} from "../lib/anonPredictions";
 
 export interface Prediction {
   id: string;
@@ -19,7 +25,9 @@ export interface Prediction {
   updated_at: string;
 }
 
-/** All predictions for the signed-in user, filtered by competition */
+/** All predictions for the signed-in user, filtered by competition.
+ *  When no user is signed in, returns predictions from local anonymous storage
+ *  so the prediction UI still works pre-signup. */
 export function useMyPredictions(competitionId = "WC") {
   const { user } = useAuth();
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -27,7 +35,9 @@ export function useMyPredictions(competitionId = "WC") {
 
   const refresh = useCallback(async () => {
     if (!user) {
-      setPredictions([]);
+      // Anonymous mode — read from localStorage
+      const anon = readAnonPredictions(competitionId).map(toPrediction);
+      setPredictions(anon);
       setLoading(false);
       return;
     }
@@ -46,12 +56,18 @@ export function useMyPredictions(competitionId = "WC") {
 
   useEffect(() => {
     refresh();
-  }, [refresh]);
+    if (!user && typeof window !== "undefined") {
+      const handler = () => refresh();
+      window.addEventListener("yc:anon-predictions", handler);
+      return () => window.removeEventListener("yc:anon-predictions", handler);
+    }
+  }, [refresh, user]);
 
   return { predictions, loading, refresh };
 }
 
-/** Upsert an exact-score prediction */
+/** Upsert an exact-score prediction.
+ *  When userId is the ANON_USER_ID sentinel, writes to localStorage instead. */
 export async function upsertPrediction(
   userId: string,
   matchId: number,
@@ -62,6 +78,18 @@ export async function upsertPrediction(
   kickoffTime?: string,
   confidence: 1 | 2 | 3 | null = null,
 ): Promise<string | null> {
+  if (userId === ANON_USER_ID) {
+    upsertAnonPrediction({
+      match_id: matchId,
+      competition_id: competitionId,
+      home_score: homeScore,
+      away_score: awayScore,
+      quick_pick: null,
+      is_joker: isJoker,
+      confidence,
+    });
+    return null;
+  }
   const { error } = await supabase.from("yc_predictions").upsert(
     {
       user_id: userId,
@@ -80,7 +108,8 @@ export async function upsertPrediction(
   return error?.message ?? null;
 }
 
-/** Upsert a quick-predict (1X2) prediction */
+/** Upsert a quick-predict (1X2) prediction.
+ *  When userId is the ANON_USER_ID sentinel, writes to localStorage instead. */
 export async function upsertQuickPrediction(
   userId: string,
   matchId: number,
@@ -90,6 +119,18 @@ export async function upsertQuickPrediction(
   kickoffTime?: string,
   confidence: 1 | 2 | 3 | null = null,
 ): Promise<string | null> {
+  if (userId === ANON_USER_ID) {
+    upsertAnonPrediction({
+      match_id: matchId,
+      competition_id: competitionId,
+      home_score: null,
+      away_score: null,
+      quick_pick: pick,
+      is_joker: isJoker,
+      confidence,
+    });
+    return null;
+  }
   const { error } = await supabase.from("yc_predictions").upsert(
     {
       user_id: userId,
@@ -131,14 +172,23 @@ export function usePredictionCounts(competitionId = "WC") {
   return counts;
 }
 
-/** Set of match IDs the signed-in user has predicted (for checkmark indicators).
- *  Pass competitionId to scope, or omit for all competitions. */
+/** Set of match IDs the user has predicted (for checkmark indicators).
+ *  Pass competitionId to scope, or omit for all competitions.
+ *  Falls back to anonymous storage when no user. */
 export function usePredictedMatchIds(competitionId?: string) {
   const { user } = useAuth();
   const [ids, setIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    if (!user) { setIds(new Set()); return; }
+    if (!user) {
+      const fromAnon = () =>
+        new Set(readAnonPredictions(competitionId).map((p) => p.match_id));
+      setIds(fromAnon());
+      if (typeof window === "undefined") return;
+      const handler = () => setIds(fromAnon());
+      window.addEventListener("yc:anon-predictions", handler);
+      return () => window.removeEventListener("yc:anon-predictions", handler);
+    }
     let cancelled = false;
     async function load() {
       let query = supabase

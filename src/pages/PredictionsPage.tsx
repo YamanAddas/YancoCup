@@ -12,6 +12,7 @@ import {
   upsertPrediction,
   upsertQuickPrediction,
 } from "../hooks/usePredictions";
+import { ANON_USER_ID, countAnonPredictions } from "../lib/anonPredictions";
 import { supabase } from "../lib/supabase";
 import { useAutoScore } from "../hooks/useAutoScore";
 import PredictionCard from "../components/predictions/PredictionCard";
@@ -22,10 +23,42 @@ import { LogIn, AlertCircle, ChevronLeft, ChevronRight, CheckCircle, Clock, Flam
 import { fetchStreak } from "../lib/badges";
 import type { StreakData } from "../lib/badges";
 
+/** Sticky banner urging anon users to sign up once they have 3+ picks. */
+function AnonSaveBanner() {
+  const { t } = useI18n();
+  const [count, setCount] = useState(() => countAnonPredictions());
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => setCount(countAnonPredictions());
+    window.addEventListener("yc:anon-predictions", handler);
+    return () => window.removeEventListener("yc:anon-predictions", handler);
+  }, []);
+  if (count < 3) return null;
+  return (
+    <div className="yc-card p-4 rounded-xl mb-4 flex items-center gap-3 border border-yc-green-muted/30 bg-yc-green/[0.04]">
+      <Shield size={20} className="text-yc-green shrink-0" />
+      <p className="flex-1 text-sm text-yc-text-primary">
+        {t("predictions.anonBanner", { count })}
+      </p>
+      <NavLink
+        to="/sign-in"
+        className="inline-flex items-center gap-1.5 bg-yc-green text-yc-bg-deep font-semibold px-3 py-2 rounded-lg text-xs hover:brightness-110 active:scale-[0.97] transition-all shrink-0"
+      >
+        <LogIn size={14} />
+        {t("predictions.anonBannerCta")}
+      </NavLink>
+    </div>
+  );
+}
+
 export default function PredictionsPage() {
   const { user, loading: authLoading } = useAuth();
   const { t } = useI18n();
   const comp = useCompetition();
+  // Use ANON_USER_ID as a sentinel so anonymous visitors can predict without
+  // signing in. Their picks live in localStorage until sign-up migration.
+  const userId = user?.id ?? ANON_USER_ID;
+  const isAnon = !user;
   const { matches: allMatches, matchdays } = useCompetitionSchedule();
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
@@ -175,39 +208,14 @@ export default function PredictionsPage() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="max-w-lg mx-auto text-center py-16">
-          <LogIn size={48} className="text-yc-text-tertiary mx-auto mb-4 opacity-40" />
-          <h2 className="font-heading text-2xl font-bold mb-2">
-            {t("predictions.signInTitle")}
-          </h2>
-          <p className="text-yc-text-secondary text-sm mb-6">
-            {t("predictions.signInDesc")}
-          </p>
-          <NavLink
-            to="/sign-in"
-            className="inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(0,255,136,0.2)]"
-          >
-            <LogIn size={18} />
-            {t("nav.signIn")}
-          </NavLink>
-        </div>
-
-        <div className="max-w-lg mx-auto mt-8">
-          <HowToPlay />
-        </div>
-      </div>
-    );
-  }
-
   const nudgeText = unpredicted.length !== 1
     ? t("predictions.nudgePlural", { count: unpredicted.length })
     : t("predictions.nudge", { count: unpredicted.length });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      {isAnon && <AnonSaveBanner />}
+
       {/* Prediction stats + mode toggle */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 text-sm">
@@ -375,7 +383,7 @@ export default function PredictionsPage() {
                   matches={open}
                   teamMap={teamMap}
                   predictions={predictionMap}
-                  userId={user.id}
+                  userId={userId}
                   competitionId={comp.id}
                   quickMode={quickMode}
                   onSaved={refresh}
@@ -390,7 +398,7 @@ export default function PredictionsPage() {
                       venueMap={venueMap}
                       prediction={predictionMap.get(m.id)}
                       predictionCount={predictionCounts.get(m.id) ?? 0}
-                      userId={user.id}
+                      userId={userId}
                       competitionId={comp.id}
                       userPredictionCount={predictions.length}
                       jokerUsedThisMatchday={jokerMatchId !== null && jokerMatchId !== m.id}
@@ -419,7 +427,7 @@ export default function PredictionsPage() {
                     venueMap={venueMap}
                     prediction={predictionMap.get(m.id)}
                     predictionCount={predictionCounts.get(m.id) ?? 0}
-                    userId={user.id}
+                    userId={userId}
                     competitionId={comp.id}
                     onSaved={refresh}
                   />

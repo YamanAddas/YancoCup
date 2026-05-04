@@ -77,6 +77,8 @@
   "predictions.copying": "Copiando...",
   "predictions.signInTitle": "Inicia sesión para predecir",
   "predictions.signInDesc": "Predice resultados de partidos y compite con tus amigos en la clasificación.",
+  "predictions.anonBanner": "Has hecho {count} predicciones. Regístrate para guardarlas y entrar en la clasificación.",
+  "predictions.anonBannerCta": "Regístrate",
   "predictions.nudge": "Tienes {count} partido próximo sin predicción.",
   "predictions.nudgePlural": "Tienes {count} partidos próximos sin predicción.",
   "predictions.openSection": "Abiertos para predicciones ({count})",

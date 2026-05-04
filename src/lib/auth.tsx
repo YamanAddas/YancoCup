@@ -7,6 +7,36 @@ import {
 } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
+import {
+  readAnonPredictions,
+  clearAnonPredictions,
+} from "./anonPredictions";
+
+/** Migrate any locally-stored anonymous predictions into the user's account. */
+async function migrateAnonPredictions(userId: string): Promise<void> {
+  const anon = readAnonPredictions();
+  if (anon.length === 0) return;
+  const now = new Date().toISOString();
+  const rows = anon.map((p) => ({
+    user_id: userId,
+    match_id: p.match_id,
+    competition_id: p.competition_id,
+    home_score: p.home_score,
+    away_score: p.away_score,
+    quick_pick: p.quick_pick,
+    is_joker: p.is_joker,
+    confidence: p.confidence,
+    updated_at: now,
+  }));
+  const { error } = await supabase
+    .from("yc_predictions")
+    .upsert(rows, { onConflict: "user_id,competition_id,match_id" });
+  if (error) {
+    console.error("Failed to migrate anon predictions:", error.message);
+    return;
+  }
+  clearAnonPredictions();
+}
 
 export interface Profile {
   id: string;
@@ -58,11 +88,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
+    } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
         fetchProfile(s.user.id);
+        // Only migrate on actual sign-in events, not on session restore /
+        // token refresh. Avoids re-running migration every page reload.
+        if (event === "SIGNED_IN") {
+          migrateAnonPredictions(s.user.id);
+        }
       } else {
         setProfile(null);
       }

@@ -77,6 +77,8 @@
   "predictions.copying": "جاري النسخ...",
   "predictions.signInTitle": "سجّل الدخول للتوقّع",
   "predictions.signInDesc": "توقّع نتائج المباريات وتنافس مع أصدقائك على الترتيب.",
+  "predictions.anonBanner": "لقد توقّعت {count} مباراة. سجّل لحفظها والانضمام للترتيب.",
+  "predictions.anonBannerCta": "سجّل للحفظ",
   "predictions.nudge": "لديك {count} مباراة قادمة بدون توقّع.",
   "predictions.nudgePlural": "لديك {count} مباريات قادمة بدون توقّع.",
   "predictions.openSection": "مفتوحة للتوقعات ({count})",

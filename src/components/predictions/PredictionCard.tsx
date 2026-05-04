@@ -3,6 +3,7 @@ import confetti from "canvas-confetti";
 import { Lock, Check, Loader2, Users as UsersIcon, Share2, Sparkles, Zap, Star } from "lucide-react";
 import { upsertPrediction, upsertQuickPrediction, canPredict } from "../../hooks/usePredictions";
 import { useConsensus } from "../../hooks/useConsensus";
+import { ANON_USER_ID } from "../../lib/anonPredictions";
 import { checkActivityBadges } from "../../lib/badges";
 import { useI18n } from "../../lib/i18n";
 import { formatTimeWithTZ, getLocale } from "../../lib/formatDate";
@@ -107,6 +108,12 @@ export default function PredictionCard({
     if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
     savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
     const newCount = hasPrediction ? userPredictionCount : userPredictionCount + 1;
+    // Skip badge check for anonymous users — badges live in Supabase under a
+    // real user_id and will get awarded retroactively after sign-up migration.
+    if (userId === ANON_USER_ID) {
+      onSaved();
+      return;
+    }
     checkActivityBadges(userId, newCount).catch((err) =>
       console.error("Badge check failed:", err),
     );
