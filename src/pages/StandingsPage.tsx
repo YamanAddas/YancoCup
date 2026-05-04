@@ -100,6 +100,11 @@ export default function StandingsPage() {
   const [standings, setStandings] = useState<StandingRow[]>([]);
   const [matchScores, setMatchScores] = useState<MatchScore[]>([]);
   const [scorers, setScorers] = useState<Scorer[]>([]);
+  const [statTab, setStatTab] = useState<"goals" | "assists" | "penalties">("goals");
+  const sortedScorers = useMemo(
+    () => [...scorers].sort((a, b) => (b[statTab] ?? 0) - (a[statTab] ?? 0)),
+    [scorers, statTab],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -404,12 +409,27 @@ export default function StandingsPage() {
               )}
             </div>
           )}
-          {/* Top Scorers */}
+          {/* Stat leaders — tabbed view: Goals / Assists / Penalties */}
           {scorers.length > 0 && (
             <div className="mt-8">
               <div className="flex items-center gap-2 mb-4">
                 <Target size={18} className="text-yc-green" />
-                <h3 className="font-heading text-lg font-bold">{t("stats.topScorers")}</h3>
+                <h3 className="font-heading text-lg font-bold">{t("stats.statLeaders")}</h3>
+              </div>
+              <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+                {(["goals", "assists", "penalties"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setStatTab(tab)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                      statTab === tab
+                        ? "bg-yc-green/15 text-yc-green border border-yc-green-muted/30"
+                        : "bg-yc-bg-elevated text-yc-text-secondary border border-yc-border hover:border-yc-border-hover"
+                    }`}
+                  >
+                    {t(`stats.stat${tab[0]!.toUpperCase()}${tab.slice(1)}`)}
+                  </button>
+                ))}
               </div>
               <div className="yc-card rounded-xl overflow-x-auto">
                 <table className="w-full text-sm">
@@ -419,12 +439,13 @@ export default function StandingsPage() {
                       <th className="text-start py-3 px-2">{t("stats.player")}</th>
                       <th className="text-start py-3 px-2 hidden sm:table-cell">{t("stats.team")}</th>
                       <th className="text-center py-3 px-2 w-10">{t("stats.mp")}</th>
-                      <th className="text-center py-3 px-2 w-10 font-bold">{t("stats.goals")}</th>
-                      <th className="text-center py-3 px-2 w-10">{t("stats.assists")}</th>
+                      <th className={`text-center py-3 px-2 w-10 ${statTab === "goals" ? "font-bold text-yc-green" : ""}`}>{t("stats.goals")}</th>
+                      <th className={`text-center py-3 px-2 w-10 ${statTab === "assists" ? "font-bold text-yc-green" : ""}`}>{t("stats.assists")}</th>
+                      <th className={`text-center py-3 px-2 w-10 ${statTab === "penalties" ? "font-bold text-yc-green" : ""}`}>{t("stats.penalties")}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {scorers.slice(0, 10).map((s, i) => (
+                    {sortedScorers.slice(0, 10).map((s, i) => (
                       <tr
                         key={s.player.id}
                         className="border-b border-yc-border/30 hover:bg-white/[0.02] transition-colors"
@@ -447,11 +468,14 @@ export default function StandingsPage() {
                         <td className="py-2.5 px-2 text-center text-yc-text-secondary">
                           {s.playedMatches}
                         </td>
-                        <td className="py-2.5 px-2 text-center font-bold text-yc-green">
+                        <td className={`py-2.5 px-2 text-center font-mono ${statTab === "goals" ? "font-bold text-yc-green" : "text-yc-text-secondary"}`}>
                           {s.goals ?? 0}
                         </td>
-                        <td className="py-2.5 px-2 text-center text-yc-text-secondary">
+                        <td className={`py-2.5 px-2 text-center font-mono ${statTab === "assists" ? "font-bold text-yc-green" : "text-yc-text-secondary"}`}>
                           {s.assists ?? 0}
+                        </td>
+                        <td className={`py-2.5 px-2 text-center font-mono ${statTab === "penalties" ? "font-bold text-yc-green" : "text-yc-text-secondary"}`}>
+                          {s.penalties ?? 0}
                         </td>
                       </tr>
                     ))}
