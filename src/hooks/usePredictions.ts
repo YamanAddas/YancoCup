@@ -13,6 +13,8 @@ export interface Prediction {
   points: number | null;
   scored_at: string | null;
   is_joker: boolean;
+  /** 1 = Wild Guess, 2 = Risky Call, 3 = Sure Thing. Null = unset. */
+  confidence: 1 | 2 | 3 | null;
   created_at: string;
   updated_at: string;
 }
@@ -58,6 +60,7 @@ export async function upsertPrediction(
   competitionId = "WC",
   isJoker = false,
   kickoffTime?: string,
+  confidence: 1 | 2 | 3 | null = null,
 ): Promise<string | null> {
   const { error } = await supabase.from("yc_predictions").upsert(
     {
@@ -68,6 +71,7 @@ export async function upsertPrediction(
       away_score: awayScore,
       quick_pick: null,
       is_joker: isJoker,
+      confidence,
       updated_at: new Date().toISOString(),
       ...(kickoffTime ? { kickoff_time: kickoffTime } : {}),
     },
@@ -84,6 +88,7 @@ export async function upsertQuickPrediction(
   competitionId = "WC",
   isJoker = false,
   kickoffTime?: string,
+  confidence: 1 | 2 | 3 | null = null,
 ): Promise<string | null> {
   const { error } = await supabase.from("yc_predictions").upsert(
     {
@@ -94,6 +99,7 @@ export async function upsertQuickPrediction(
       away_score: null,
       quick_pick: pick,
       is_joker: isJoker,
+      confidence,
       updated_at: new Date().toISOString(),
       ...(kickoffTime ? { kickoff_time: kickoffTime } : {}),
     },

@@ -59,6 +59,7 @@ export default function PredictionCard({
       setAwayScore(prediction.away_score != null ? String(prediction.away_score) : "");
       setQuickPick(prediction.quick_pick);
       setIsJoker(prediction.is_joker);
+      setConfidence(prediction.confidence ?? null);
     }
   }, [prediction]);
   const [saved, setSaved] = useState(false);
@@ -122,20 +123,20 @@ export default function PredictionCard({
     setSaving(true);
     setError(null);
     const kickoffIso = new Date(`${match.date}T${match.time}:00Z`).toISOString();
-    const err = await upsertPrediction(userId, match.id, h, a, competitionId, isJoker, kickoffIso);
+    const err = await upsertPrediction(userId, match.id, h, a, competitionId, isJoker, kickoffIso, confidence);
     setSaving(false);
     if (err) { setError(err); } else { afterSave(); }
   };
 
   const handleQuickPick = async (pick: "H" | "D" | "A") => {
     if (locked) return;
-    // If same pick tapped again, do nothing
-    if (pick === quickPick && hasPrediction) return;
+    // If same pick tapped again with same confidence, do nothing
+    if (pick === quickPick && hasPrediction && confidence === (prediction?.confidence ?? null)) return;
     setQuickPick(pick);
     setSaving(true);
     setError(null);
     const kickoffIso = new Date(`${match.date}T${match.time}:00Z`).toISOString();
-    const err = await upsertQuickPrediction(userId, match.id, pick, competitionId, isJoker, kickoffIso);
+    const err = await upsertQuickPrediction(userId, match.id, pick, competitionId, isJoker, kickoffIso, confidence);
     setSaving(false);
     if (err) { setError(err); } else { afterSave(); }
   };
@@ -388,7 +389,7 @@ export default function PredictionCard({
         {!locked && !quickMode && (
           <button
             onClick={handleSave}
-            disabled={saving || (!hasChanged && hasPrediction && isJoker === (prediction?.is_joker ?? false)) || !homeScore || !awayScore}
+            disabled={saving || (!hasChanged && hasPrediction && isJoker === (prediction?.is_joker ?? false) && confidence === (prediction?.confidence ?? null)) || !homeScore || !awayScore}
             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none bg-yc-green text-yc-bg-deep hover:brightness-110 active:scale-[0.97] shadow-[0_0_12px_rgba(0,255,136,0.15)]"
           >
             {saving ? (
