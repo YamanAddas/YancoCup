@@ -20,7 +20,10 @@ export function notificationsEnabled(): boolean {
   return "Notification" in window && Notification.permission === "granted";
 }
 
-/** Send a notification */
+/** Send a notification.
+ *  Prefers ServiceWorkerRegistration.showNotification when an SW is active —
+ *  this lets the notification persist past tab close once Part 2 (push send)
+ *  is wired up. Falls back to the basic Notification API otherwise. */
 export function sendNotification(
   title: string,
   body: string,
@@ -28,13 +31,31 @@ export function sendNotification(
 ): void {
   if (!notificationsEnabled()) return;
 
-  new Notification(title, {
+  const icon = `${window.location.origin}${import.meta.env.BASE_URL}logo-192.png`;
+  const badge = `${window.location.origin}${import.meta.env.BASE_URL}logo-160.png`;
+  const options: NotificationOptions = {
     body,
-    icon: `${window.location.origin}${import.meta.env.BASE_URL}logo-192.png`,
-    badge: `${window.location.origin}${import.meta.env.BASE_URL}logo-160.png`,
+    icon,
+    badge,
     tag: tag ?? "yancocup",
     silent: false,
-  });
+  };
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.ready
+      .then((reg) => reg.showNotification(title, options))
+      .catch(() => {
+        // Fall back to plain Notification if SW unavailable
+        try {
+          new Notification(title, options);
+        } catch {
+          /* ignore */
+        }
+      });
+    return;
+  }
+
+  new Notification(title, options);
 }
 
 /** Notify about an upcoming match deadline */

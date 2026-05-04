@@ -30,6 +30,16 @@ async function handleAuthRedirect() {
   }
 }
 
+/** Register the service worker so push events can wake the browser even
+ *  when no YancoCup tab is open. SW file is at public/sw.js. */
+function registerServiceWorker() {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+  const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+  navigator.serviceWorker
+    .register(swUrl, { scope: import.meta.env.BASE_URL })
+    .catch((err) => console.error("SW registration failed:", err));
+}
+
 handleAuthRedirect()
   .catch((err) => console.error("Auth redirect failed:", err))
   .then(() => {
@@ -38,4 +48,5 @@ handleAuthRedirect()
         <App />
       </StrictMode>,
     );
+    registerServiceWorker();
   });

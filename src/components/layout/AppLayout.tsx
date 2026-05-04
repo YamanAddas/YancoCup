@@ -6,6 +6,7 @@ import MobileNav from "./MobileNav";
 import Footer from "./Footer";
 import ErrorFallback from "./ErrorFallback";
 import SpotlightCursor from "./SpotlightCursor";
+import PushPromptBanner from "../notifications/PushPromptBanner";
 import { WORKER_URL } from "../../lib/api";
 
 type Atmosphere = "calm" | "upcoming" | "live";
@@ -62,6 +63,7 @@ export default function AppLayout() {
       </main>
       <Footer />
       <MobileNav />
+      <PushPromptBanner />
     </div>
   );
 }
