@@ -15,6 +15,9 @@ interface Env {
   SUPABASE_URL: string;
   SUPABASE_SERVICE_KEY: string;
   RESEND_API_KEY: string;
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+  VAPID_SUBJECT?: string;
 }
 
 /** Competition configuration */
@@ -152,6 +155,7 @@ function kvSchedule(comp: string): string {
 const KV_LAST_POLL = "config:last_poll";
 const KV_TICK = "config:tick_count";
 const KV_CRON_ERRORS = "cron:error:count";
+const KV_MATCH_STATUSES = "config:match_statuses";
 
 // ---------------------------------------------------------------------------
 // Upstream API
@@ -1573,6 +1577,103 @@ async function handleNewsPhase(env: Env, phase: number): Promise<void> {
 // Cron handler — polls upstream, writes to KV
 // ---------------------------------------------------------------------------
 
+/** Send push notifications for matches that just kicked off or finished.
+ *  Queries Supabase for users who predicted each match, fans out to their
+ *  push subscriptions, deletes any that come back 410/Gone. Best-effort —
+ *  swallows errors so a flaky push service doesn't fail the cron. */
+async function dispatchMatchPushes(
+  env: Env,
+  kickedOff: MatchScore[],
+  finished: MatchScore[],
+): Promise<void> {
+  if (!env.VAPID_PRIVATE_KEY || !env.VAPID_PUBLIC_KEY || !env.VAPID_SUBJECT) {
+    return; // VAPID not configured — silently no-op
+  }
+  if (kickedOff.length === 0 && finished.length === 0) return;
+
+  const { sendPush } = await import("./webPush");
+  const vapid = {
+    privateKey: env.VAPID_PRIVATE_KEY,
+    publicKey: env.VAPID_PUBLIC_KEY,
+    subject: env.VAPID_SUBJECT,
+  };
+
+  function teamLabel(name: string | null, code: string | null): string {
+    return name ?? code ?? "TBD";
+  }
+
+  type PushEvent = { matchId: number; payload: string };
+  const events: PushEvent[] = [];
+
+  for (const m of kickedOff) {
+    const home = teamLabel(m.homeTeamName, m.homeTeam);
+    const away = teamLabel(m.awayTeamName, m.awayTeam);
+    events.push({
+      matchId: m.apiId,
+      payload: JSON.stringify({
+        title: `${home} vs ${away}`,
+        body: "Kickoff — match is live now",
+        url: `/${m.competitionCode}/match/${m.apiId}`,
+        tag: `kickoff-${m.apiId}`,
+      }),
+    });
+  }
+
+  for (const m of finished) {
+    const home = teamLabel(m.homeTeamName, m.homeTeam);
+    const away = teamLabel(m.awayTeamName, m.awayTeam);
+    events.push({
+      matchId: m.apiId,
+      payload: JSON.stringify({
+        title: `FT: ${home} ${m.homeScore ?? 0}-${m.awayScore ?? 0} ${away}`,
+        body: "Match finished — see your points",
+        url: `/${m.competitionCode}/match/${m.apiId}`,
+        tag: `ft-${m.apiId}`,
+      }),
+    });
+  }
+
+  for (const e of events) {
+    const predRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/yc_predictions?match_id=eq.${e.matchId}&select=user_id`,
+      { headers: sbHeaders(env.SUPABASE_SERVICE_KEY) },
+    );
+    if (!predRes.ok) continue;
+    const preds = (await predRes.json()) as Array<{ user_id: string }>;
+    if (preds.length === 0) continue;
+    const userIds = [...new Set(preds.map((p) => p.user_id))];
+
+    const idsList = userIds.map((u) => `"${u}"`).join(",");
+    const subsRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/yc_push_subscriptions?user_id=in.(${idsList})&select=id,endpoint,p256dh,auth_secret`,
+      { headers: sbHeaders(env.SUPABASE_SERVICE_KEY) },
+    );
+    if (!subsRes.ok) continue;
+    const subs = (await subsRes.json()) as Array<{
+      id: string;
+      endpoint: string;
+      p256dh: string;
+      auth_secret: string;
+    }>;
+
+    await Promise.all(
+      subs.map(async (s) => {
+        try {
+          const r = await sendPush(s, e.payload, vapid);
+          if (r.expired) {
+            await fetch(
+              `${env.SUPABASE_URL}/rest/v1/yc_push_subscriptions?id=eq.${s.id}`,
+              { method: "DELETE", headers: sbHeaders(env.SUPABASE_SERVICE_KEY) },
+            );
+          }
+        } catch (err) {
+          console.error("Push send failed:", err);
+        }
+      }),
+    );
+  }
+}
+
 async function handleCron(env: Env): Promise<void> {
   try {
     // Get tick count for periodic actions (write every 5th tick to save KV budget)
@@ -1599,6 +1700,13 @@ async function handleCron(env: Env): Promise<void> {
       // Group by competition code
       const allLive: MatchScore[] = [];
 
+      // Detect match status transitions for push notifications.
+      const prevStatusJson = await env.SCORES_KV.get(KV_MATCH_STATUSES);
+      const prevStatus = prevStatusJson ? safeParse<Record<string, string>>(prevStatusJson) ?? {} : {};
+      const newStatus: Record<string, string> = {};
+      const justKickedOff: MatchScore[] = [];
+      const justFinished: MatchScore[] = [];
+
       for (const m of data.matches) {
         const score = transformMatch(m);
         const code = score.competitionCode;
@@ -1613,6 +1721,25 @@ async function handleCron(env: Env): Promise<void> {
         if (m.status === "IN_PLAY" || m.status === "PAUSED") {
           allLive.push(score);
         }
+
+        // Track status transitions
+        const idKey = String(m.id);
+        newStatus[idKey] = m.status;
+        const before = prevStatus[idKey];
+        if (before === "TIMED" && m.status === "IN_PLAY") justKickedOff.push(score);
+        if ((before === "IN_PLAY" || before === "PAUSED") && m.status === "FINISHED") {
+          justFinished.push(score);
+        }
+      }
+
+      // Persist status map for next tick. TTL = 7 days.
+      await kvPut(env.SCORES_KV, KV_MATCH_STATUSES, JSON.stringify(newStatus), {
+        expirationTtl: 7 * 86400,
+      });
+
+      // Fire pushes for transitions (best-effort, doesn't block KV writes below).
+      if (justKickedOff.length > 0 || justFinished.length > 0) {
+        await dispatchMatchPushes(env, justKickedOff, justFinished);
       }
 
       // Write per-competition score KV entries — ONLY if data changed (#31)
@@ -3371,6 +3498,63 @@ app.post("/api/push/subscribe", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /api/push/test — admin sends a test push to their own subscriptions.
+// Proves VAPID + encryption + delivery work end-to-end.
+// ---------------------------------------------------------------------------
+
+app.post("/api/push/test", async (c) => {
+  const authHeader = c.req.header("Authorization") ?? "";
+  const accessToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!accessToken) return c.json({ error: "Missing Authorization" }, 401);
+
+  const userRes = await fetch(`${c.env.SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: c.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${accessToken}` },
+  });
+  if (!userRes.ok) return c.json({ error: "Invalid session" }, 401);
+  const userData = (await userRes.json()) as { id?: string };
+  if (!userData.id) return c.json({ error: "Invalid session" }, 401);
+
+  if (!c.env.VAPID_PRIVATE_KEY || !c.env.VAPID_PUBLIC_KEY || !c.env.VAPID_SUBJECT) {
+    return c.json({ error: "Worker missing VAPID secrets" }, 500);
+  }
+
+  const subsRes = await fetch(
+    `${c.env.SUPABASE_URL}/rest/v1/yc_push_subscriptions?user_id=eq.${userData.id}&select=id,endpoint,p256dh,auth_secret`,
+    { headers: sbHeaders(c.env.SUPABASE_SERVICE_KEY) },
+  );
+  if (!subsRes.ok) return c.json({ error: "Could not load subscriptions" }, 500);
+  const subs = (await subsRes.json()) as Array<{ id: string; endpoint: string; p256dh: string; auth_secret: string }>;
+  if (subs.length === 0) return c.json({ error: "No subscriptions found — enable alerts first" }, 404);
+
+  const { sendPush } = await import("./webPush");
+  const vapid = {
+    privateKey: c.env.VAPID_PRIVATE_KEY,
+    publicKey: c.env.VAPID_PUBLIC_KEY,
+    subject: c.env.VAPID_SUBJECT,
+  };
+  const payload = JSON.stringify({
+    title: "YancoCup test",
+    body: "Push pipeline is live ⚽",
+    url: "/",
+    tag: "yc-test",
+  });
+
+  const results = await Promise.all(
+    subs.map(async (s) => {
+      const r = await sendPush(s, payload, vapid);
+      if (r.expired) {
+        await fetch(`${c.env.SUPABASE_URL}/rest/v1/yc_push_subscriptions?id=eq.${s.id}`, {
+          method: "DELETE",
+          headers: sbHeaders(c.env.SUPABASE_SERVICE_KEY),
+        });
+      }
+      return { id: s.id, status: r.status, ok: r.ok, expired: r.expired };
+    }),
+  );
+  return c.json({ count: results.length, results });
+});
+
+// ---------------------------------------------------------------------------
 // 404 fallback
 // ---------------------------------------------------------------------------
 
@@ -3398,6 +3582,7 @@ app.notFound((c) => {
         "GET /api/health",
         "POST /api/contact",
         "POST /api/push/subscribe",
+        "POST /api/push/test",
       ],
     },
     404,
