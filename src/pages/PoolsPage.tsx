@@ -36,6 +36,7 @@ import {
 import { NavLink } from "react-router-dom";
 import PoolChat from "../components/pool/PoolChat";
 import PoolRecap from "../components/pool/PoolRecap";
+import WallOfFame from "../components/pool/WallOfFame";
 import ConfidenceBadge from "../components/predictions/ConfidenceBadge";
 import { CornerAccent } from "../components/ui/ArabesquePatterns";
 
@@ -625,6 +626,11 @@ function PoolCard({
               {/* Pool matchday recap */}
               <div className="pt-2 border-t border-yc-border/50">
                 <PoolRecap poolId={pool.id} competitionId={pool.competition_id} members={members} />
+              </div>
+
+              {/* Wall of Fame & Shame — last 7 days */}
+              <div className="pt-2 border-t border-yc-border/50">
+                <WallOfFame competitionId={pool.competition_id} members={members} />
               </div>
             </>
           )}
