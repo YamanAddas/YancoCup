@@ -8,6 +8,11 @@ import { useScores } from "../hooks/useScores";
 import { useMyPredictions, type Prediction } from "../hooks/usePredictions";
 import TeamCrest from "../components/match/TeamCrest";
 import { useI18n } from "../lib/i18n";
+import {
+  computeGroupStandings,
+  computeKnockoutResults,
+  resolveBracketPlaceholder,
+} from "../lib/bracketResolver";
 import type { Match, Team } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -20,6 +25,9 @@ interface BracketMatch {
   awayLabel: string;
   homeCrest?: string | null;
   awayCrest?: string | null;
+  /** TLA resolved from group standings or prior knockout result, when m.homeTeam is null. */
+  resolvedHomeTla?: string;
+  resolvedAwayTla?: string;
 }
 
 type RoundId = "playoff" | "round-of-32" | "round-of-16" | "quarterfinal" | "semifinal" | "final";
@@ -61,14 +69,18 @@ function BracketNode({
   const awayScore = liveScore?.awayScore ?? m.awayScore;
   const hasScore = homeScore !== null && awayScore !== null;
 
-  const homeTeam = m.homeTeam ? teamMap.get(m.homeTeam) : undefined;
-  const awayTeam = m.awayTeam ? teamMap.get(m.awayTeam) : undefined;
-  const homeName = m.homeTeam ? tTeam(m.homeTeam) : (m.homeTeamName ?? bm.homeLabel);
-  const awayName = m.awayTeam ? tTeam(m.awayTeam) : (m.awayTeamName ?? bm.awayLabel);
+  // Prefer the live homeTeam from the schedule (set once football-data.org confirms).
+  // If absent, use the placeholder we resolved from standings / prior KO results.
+  const homeKey = m.homeTeam ?? bm.resolvedHomeTla ?? null;
+  const awayKey = m.awayTeam ?? bm.resolvedAwayTla ?? null;
+  const homeTeam = homeKey ? teamMap.get(homeKey) : undefined;
+  const awayTeam = awayKey ? teamMap.get(awayKey) : undefined;
+  const homeName = homeKey ? tTeam(homeKey) : (m.homeTeamName ?? bm.homeLabel);
+  const awayName = awayKey ? tTeam(awayKey) : (m.awayTeamName ?? bm.awayLabel);
   const homeCrest = m.homeCrest ?? bm.homeCrest;
   const awayCrest = m.awayCrest ?? bm.awayCrest;
-  const homeTla = m.homeTeam?.toUpperCase() ?? "TBD";
-  const awayTla = m.awayTeam?.toUpperCase() ?? "TBD";
+  const homeTla = homeKey?.toUpperCase() ?? "TBD";
+  const awayTla = awayKey?.toUpperCase() ?? "TBD";
   const homeWin = hasScore && (homeScore ?? 0) > (awayScore ?? 0);
   const awayWin = hasScore && (awayScore ?? 0) > (homeScore ?? 0);
 
@@ -83,7 +95,7 @@ function BracketNode({
         {/* Home row */}
         <div className={`flex items-center gap-1.5 px-3 py-1.5 relative z-2 ${homeWin && isFinished ? "bg-yc-green/[0.06]" : ""}`}>
           <TeamCrest tla={homeTla} isoCode={homeTeam?.isoCode} crest={homeCrest} size="xs" />
-          <span className={`text-xs flex-1 truncate ${m.homeTeam ? "text-yc-text-primary" : "text-yc-text-tertiary"} ${homeWin && isFinished ? "font-semibold" : ""}`}>
+          <span className={`text-xs flex-1 truncate ${homeKey ? "text-yc-text-primary" : "text-yc-text-tertiary"} ${homeWin && isFinished ? "font-semibold" : ""}`}>
             {homeName}
           </span>
           {hasScore && (
@@ -99,7 +111,7 @@ function BracketNode({
         {/* Away row */}
         <div className={`flex items-center gap-1.5 px-3 py-1.5 relative z-2 ${awayWin && isFinished ? "bg-yc-green/[0.06]" : ""}`}>
           <TeamCrest tla={awayTla} isoCode={awayTeam?.isoCode} crest={awayCrest} size="xs" />
-          <span className={`text-xs flex-1 truncate ${m.awayTeam ? "text-yc-text-primary" : "text-yc-text-tertiary"} ${awayWin && isFinished ? "font-semibold" : ""}`}>
+          <span className={`text-xs flex-1 truncate ${awayKey ? "text-yc-text-primary" : "text-yc-text-tertiary"} ${awayWin && isFinished ? "font-semibold" : ""}`}>
             {awayName}
           </span>
           {hasScore && (
@@ -275,6 +287,15 @@ export default function BracketPage() {
 
   const roundOrder: RoundId[] = ["playoff", "round-of-32", "round-of-16", "quarterfinal", "semifinal", "final"];
 
+  const standings = useMemo(
+    () => computeGroupStandings(matches, scoreMap),
+    [matches, scoreMap],
+  );
+  const koResults = useMemo(
+    () => computeKnockoutResults(matches, scoreMap),
+    [matches, scoreMap],
+  );
+
   const bracketRounds = useMemo(() => {
     const rounds: Array<{ id: RoundId; matches: BracketMatch[] }> = [];
 
@@ -285,13 +306,25 @@ export default function BracketPage() {
           const dateCompare = a.date.localeCompare(b.date);
           return dateCompare !== 0 ? dateCompare : a.id - b.id;
         })
-        .map((m): BracketMatch => ({
-          match: m,
-          homeLabel: m.homePlaceholder ?? m.homeTeamName ?? m.homeTeam?.toUpperCase() ?? "TBD",
-          awayLabel: m.awayPlaceholder ?? m.awayTeamName ?? m.awayTeam?.toUpperCase() ?? "TBD",
-          homeCrest: m.homeCrest,
-          awayCrest: m.awayCrest,
-        }));
+        .map((m): BracketMatch => {
+          const resolvedHomeTla =
+            m.homeTeam == null
+              ? (resolveBracketPlaceholder(m.homePlaceholder, standings, koResults) ?? undefined)
+              : undefined;
+          const resolvedAwayTla =
+            m.awayTeam == null
+              ? (resolveBracketPlaceholder(m.awayPlaceholder, standings, koResults) ?? undefined)
+              : undefined;
+          return {
+            match: m,
+            homeLabel: m.homePlaceholder ?? m.homeTeamName ?? m.homeTeam?.toUpperCase() ?? "TBD",
+            awayLabel: m.awayPlaceholder ?? m.awayTeamName ?? m.awayTeam?.toUpperCase() ?? "TBD",
+            homeCrest: m.homeCrest,
+            awayCrest: m.awayCrest,
+            resolvedHomeTla,
+            resolvedAwayTla,
+          };
+        });
 
       if (roundMatches.length > 0) {
         rounds.push({ id: roundId, matches: roundMatches });
@@ -299,7 +332,7 @@ export default function BracketPage() {
     }
 
     return rounds;
-  }, [matches]);
+  }, [matches, standings, koResults]);
 
   const thirdPlace = matches.find((m) => m.round === "third-place");
 
