@@ -1,10 +1,11 @@
 import { useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Clock, Check } from "lucide-react";
+import { MapPin, Clock, Check, Zap } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
 import TeamCrest from "./TeamCrest";
 import ScoreOdometer from "./ScoreOdometer";
 import { formatTimeWithTZ, formatMatchDate as fmtDate } from "../../lib/formatDate";
+import { useCountdown, formatCountdown, getUrgencyTier } from "../../hooks/useCountdown";
 import type { Match, Team, Venue } from "../../types";
 import type { LocalLiveScore } from "../../hooks/useScores";
 
@@ -183,6 +184,13 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
 
   const tbd = t("match.tbd");
 
+  // Per-match countdown — only ticks when not yet kicked off and not finished
+  const kickoffIso = kickoffUtc ?? `${match.date}T${match.time}:00Z`;
+  const countdown = useCountdown(
+    !isLive && !isFinished ? kickoffIso : undefined,
+  );
+  const urgency = getUrgencyTier(countdown);
+
   const headerLabel = match.group
     ? t("match.group", { id: match.group })
     : match.matchday && match.round === "group"
@@ -309,6 +317,37 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
                   </>
                 ) : isFinished ? (
                   <span className="text-yc-text-tertiary font-mono text-sm font-medium">{t("match.ft")}</span>
+                ) : countdown && urgency !== "static" ? (
+                  <>
+                    <span
+                      className={`font-mono text-lg font-bold ${
+                        urgency === "urgent"
+                          ? "text-yc-danger animate-pulse"
+                          : urgency === "warn"
+                            ? "text-yc-warning"
+                            : "text-yc-green"
+                      }`}
+                    >
+                      {t("match.vs")}
+                    </span>
+                    <span
+                      className={`font-mono text-[11px] font-semibold tabular-nums ${
+                        urgency === "urgent"
+                          ? "text-yc-danger"
+                          : urgency === "warn"
+                            ? "text-yc-warning"
+                            : "text-yc-text-secondary"
+                      }`}
+                    >
+                      {formatCountdown(countdown)}
+                    </span>
+                    {urgency === "urgent" && !predicted && (
+                      <span className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yc-danger/20 text-yc-danger text-[9px] font-bold uppercase tracking-wider animate-pulse">
+                        <Zap size={9} strokeWidth={3} />
+                        {t("match.predictNow")}
+                      </span>
+                    )}
+                  </>
                 ) : (
                   <>
                     <span className="text-yc-green font-mono text-lg font-bold">{t("match.vs")}</span>

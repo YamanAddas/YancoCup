@@ -185,6 +185,7 @@
   "match.ht": "HT",
   "match.ft": "FT",
   "match.vs": "vs",
+  "match.predictNow": "Predict now",
   "match.group": "Group {id}",
   "match.tbd": "TBD",
   "match.htScore": "HT {home}-{away}",

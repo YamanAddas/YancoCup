@@ -181,6 +181,7 @@
   "match.ht": "INT",
   "match.ft": "FJ",
   "match.vs": "x",
+  "match.predictNow": "Preveja já",
   "match.group": "Grupo {id}",
   "match.tbd": "A definir",
   "match.htScore": "INT {home}-{away}",

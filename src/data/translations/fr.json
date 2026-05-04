@@ -181,6 +181,7 @@
   "match.ht": "MT",
   "match.ft": "FIN",
   "match.vs": "c.",
+  "match.predictNow": "Pronostiquez",
   "match.group": "Groupe {id}",
   "match.tbd": "À déterminer",
   "match.htScore": "MT {home}-{away}",

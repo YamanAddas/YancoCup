@@ -181,6 +181,7 @@
   "match.ht": "ET",
   "match.ft": "FT",
   "match.vs": "vs",
+  "match.predictNow": "Predice ya",
   "match.group": "Grupo {id}",
   "match.tbd": "Por definir",
   "match.htScore": "ET {home}-{away}",
