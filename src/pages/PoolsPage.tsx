@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../lib/auth";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
@@ -12,6 +12,8 @@ import {
   renamePool,
   removeMember,
 } from "../hooks/usePools";
+import { useCompetitionSchedule } from "../hooks/useCompetitionSchedule";
+import { canPredict } from "../hooks/usePredictions";
 import type { Pool, PoolMember } from "../hooks/usePools";
 import {
   Users,
@@ -295,6 +297,11 @@ interface PoolPrediction {
 
 function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; competitionId: string }) {
   const { t } = useI18n();
+  const { matches } = useCompetitionSchedule();
+  const matchMap = useMemo(
+    () => new Map(matches.map((m) => [m.id, m])),
+    [matches],
+  );
   const [predictions, setPredictions] = useState<PoolPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -346,13 +353,22 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
       {predictions.map((p, i) => {
         const ago = Math.floor((Date.now() - new Date(p.created_at).getTime()) / 60000);
         const timeLabel = ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.floor(ago / 60)}h` : `${Math.floor(ago / 1440)}d`;
+        // Mask the score until kickoff — anti-copy. Match unknown = mask (safer
+        // than leaking) since we'd rather hide a few late-revealed scores than
+        // expose pre-kickoff picks across pool members.
+        const match = matchMap.get(p.match_id);
+        const matchStarted = match ? !canPredict(match.date, match.time) : false;
         return (
           <div key={i} className="flex items-center gap-2 text-xs">
             <span className="text-yc-text-primary font-medium truncate flex-1 min-w-0">
               {p.display_name ?? p.handle}
             </span>
             <span className="text-yc-text-tertiary">{t("pools.predicted")}</span>
-            <span className="text-yc-green font-mono font-bold">{p.home_score}-{p.away_score}</span>
+            {matchStarted ? (
+              <span className="text-yc-green font-mono font-bold">{p.home_score}-{p.away_score}</span>
+            ) : (
+              <span className="text-yc-text-tertiary font-mono">?-?</span>
+            )}
             <ConfidenceBadge level={p.confidence} />
             <span className="text-yc-text-tertiary ms-auto">{timeLabel}</span>
           </div>
