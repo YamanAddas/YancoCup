@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "../lib/auth";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
@@ -305,40 +305,89 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
   const [predictions, setPredictions] = useState<PoolPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** Keys of recently-arrived predictions ("user_id:match_id"). Lets us
+   *  briefly tint a row green when it shows up via Realtime. */
+  const [pulses, setPulses] = useState<Set<string>>(new Set());
+
+  const memberIds = useMemo(() => members.map((m) => m.user_id), [members]);
+  const memberMap = useMemo(
+    () => new Map(members.map((m) => [m.user_id, m])),
+    [members],
+  );
+
+  const load = useCallback(async () => {
+    if (memberIds.length === 0) { setLoading(false); return; }
+    try {
+      const { data } = await supabase
+        .from("yc_predictions")
+        .select("user_id, match_id, home_score, away_score, confidence, created_at")
+        .eq("competition_id", competitionId)
+        .in("user_id", memberIds)
+        .order("created_at", { ascending: false })
+        .limit(8);
+
+      if (data) {
+        setPredictions(data.map((p) => ({
+          handle: memberMap.get(p.user_id)?.handle ?? "?",
+          display_name: memberMap.get(p.user_id)?.display_name ?? null,
+          match_id: p.match_id,
+          home_score: p.home_score,
+          away_score: p.away_score,
+          confidence: (p.confidence ?? null) as 1 | 2 | 3 | null,
+          created_at: p.created_at,
+        })));
+      }
+    } catch {
+      setError("Could not load activity");
+    } finally {
+      setLoading(false);
+    }
+  }, [memberIds, memberMap, competitionId]);
 
   useEffect(() => {
-    async function load() {
-      if (members.length === 0) { setLoading(false); return; }
-      try {
-        const memberIds = members.map((m) => m.user_id);
-        const { data } = await supabase
-          .from("yc_predictions")
-          .select("user_id, match_id, home_score, away_score, confidence, created_at")
-          .eq("competition_id", competitionId)
-          .in("user_id", memberIds)
-          .order("created_at", { ascending: false })
-          .limit(8);
-
-        if (data) {
-          const memberMap = new Map(members.map((m) => [m.user_id, m]));
-          setPredictions(data.map((p) => ({
-            handle: memberMap.get(p.user_id)?.handle ?? "?",
-            display_name: memberMap.get(p.user_id)?.display_name ?? null,
-            match_id: p.match_id,
-            home_score: p.home_score,
-            away_score: p.away_score,
-            confidence: (p.confidence ?? null) as 1 | 2 | 3 | null,
-            created_at: p.created_at,
-          })));
-        }
-      } catch {
-        setError("Could not load activity");
-      } finally {
-        setLoading(false);
-      }
-    }
     load();
-  }, [members, competitionId]);
+  }, [load]);
+
+  // Pool Pulse: real-time INSERT/UPDATE subscription. When a pool member
+  // commits or changes a pick, the feed refreshes and the new row pulses
+  // green for ~2.5s.
+  useEffect(() => {
+    if (memberIds.length === 0) return;
+    const memberSet = new Set(memberIds);
+    const channel = supabase
+      .channel(`pool_pulse_${competitionId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "yc_predictions",
+          filter: `competition_id=eq.${competitionId}`,
+        },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as
+            | { user_id?: string; match_id?: number }
+            | null;
+          if (!row?.user_id || !memberSet.has(row.user_id)) return;
+          load();
+          if (row.match_id != null) {
+            const key = `${row.user_id}:${row.match_id}`;
+            setPulses((prev) => new Set(prev).add(key));
+            setTimeout(() => {
+              setPulses((prev) => {
+                const next = new Set(prev);
+                next.delete(key);
+                return next;
+              });
+            }, 2500);
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [memberIds, competitionId, load]);
 
   if (loading) return <div className="h-12 bg-yc-bg-elevated rounded animate-pulse" />;
   if (error) return <p className="text-center text-sm text-yc-danger py-4">{error}</p>;
@@ -350,7 +399,7 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
         <Activity size={10} />
         {t("pools.recentActivity")}
       </div>
-      {predictions.map((p, i) => {
+      {predictions.map((p) => {
         const ago = Math.floor((Date.now() - new Date(p.created_at).getTime()) / 60000);
         const timeLabel = ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.floor(ago / 60)}h` : `${Math.floor(ago / 1440)}d`;
         // Mask the score until kickoff — anti-copy. Match unknown = mask (safer
@@ -358,8 +407,13 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
         // expose pre-kickoff picks across pool members.
         const match = matchMap.get(p.match_id);
         const matchStarted = match ? !canPredict(match.date, match.time) : false;
+        const pulseKey = `${p.handle}:${p.match_id}`;
+        const isNew = pulses.has(pulseKey);
         return (
-          <div key={i} className="flex items-center gap-2 text-xs">
+          <div
+            key={pulseKey}
+            className={`flex items-center gap-2 text-xs px-2 py-1 -mx-2 rounded transition-colors duration-1000 ${isNew ? "bg-yc-green/10" : "bg-transparent"}`}
+          >
             <span className="text-yc-text-primary font-medium truncate flex-1 min-w-0">
               {p.display_name ?? p.handle}
             </span>
