@@ -120,7 +120,7 @@ function TabBar({ active, onChange }: { active: TabId; onChange: (t: TabId) => v
         >
           {t(`match.tabs.${id}`)}
           {active === id && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-yc-green rounded-t" />
+            <span className="absolute bottom-0 inset-x-0 h-0.5 bg-yc-green rounded-t" />
           )}
         </button>
       ))}
@@ -362,8 +362,8 @@ function StatsTab({ match }: { match: MatchData }) {
               <span className="text-sm font-mono text-yc-text-primary w-12 text-end">{stat.away}</span>
             </div>
             <div className="flex h-1.5 rounded-full overflow-hidden bg-yc-bg-elevated">
-              <div className="bg-yc-green rounded-l-full" style={{ width: `${homePct}%` }} />
-              <div className="bg-sky-400 rounded-r-full" style={{ width: `${100 - homePct}%` }} />
+              <div className="bg-yc-green rounded-s-full" style={{ width: `${homePct}%` }} />
+              <div className="bg-sky-400 rounded-e-full" style={{ width: `${100 - homePct}%` }} />
             </div>
           </div>
         );

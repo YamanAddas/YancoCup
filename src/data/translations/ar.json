@@ -6,9 +6,9 @@
   "nav.leaderboard": "الترتيب",
   "nav.watch": "المشاهدة",
   "nav.standings": "الترتيب",
+  "nav.bracket": "جدول الإقصاء",
   "nav.signIn": "تسجيل الدخول",
   "nav.signOut": "تسجيل الخروج",
-
   "home.title": "كأس العالم",
   "home.year": "2026",
   "home.subtitle": "الولايات المتحدة والمكسيك وكندا",
@@ -33,7 +33,6 @@
   "home.allPredictedDesc": "لقد توقعت جميع مباريات اليوم. بالتوفيق!",
   "home.greeting": "أهلاً بعودتك، {name}!",
   "home.myTeams": "فرقي",
-
   "matches.title": "جدول المباريات",
   "matches.count": "{count} مباراة",
   "matches.countPlural": "{count} مباريات",
@@ -48,7 +47,6 @@
   "matches.allGroups": "جميع المجموعات",
   "matches.allTeams": "جميع الفرق",
   "matches.allVenues": "جميع الملاعب",
-
   "round.group": "دور المجموعات",
   "round.playoff": "الملحق",
   "round.roundOf32": "دور الـ32",
@@ -57,14 +55,12 @@
   "round.semifinal": "نصف النهائي",
   "round.thirdPlace": "المركز الثالث",
   "round.final": "النهائي",
-
   "groups.title": "المجموعات",
   "groups.subtitle": "12 مجموعة من 4 فرق",
   "groups.advanceNote": "يتأهل الأول والثاني. أفضل فرق المركز الثالث تتأهل أيضاً.",
   "standings.noData": "لا تتوفر بيانات الترتيب بعد.",
   "standings.ifEnded": "لو انتهى الموسم اليوم",
   "standings.matchdayProgress": "الجولة {current}/{total} ({pct}% مكتمل)",
-
   "groupTable.team": "الفريق",
   "groupTable.played": "لعب",
   "groupTable.won": "ف",
@@ -72,7 +68,6 @@
   "groupTable.lost": "خ",
   "groupTable.gd": "فارق",
   "groupTable.pts": "نقاط",
-
   "predictions.title": "التوقعات",
   "predictions.predicted": "{count} توقّع",
   "predictions.remaining": "{count} متبقّي",
@@ -98,14 +93,13 @@
   "predictions.confidence.sure": "ثقة تامة",
   "predictions.jokerTip": "ضاعف نقاطك في هذه المباراة (واحد لكل جولة)",
   "predictions.jokerUsed": "مستخدم",
+  "predictions.scoring": "جاري الاحتساب...",
   "predictions.sharePrediction": "مشاركة التوقّع",
   "predictions.copied": "تم النسخ!",
   "predictions.failed": "فشل",
   "predictions.predicted_count": "{count} توقّع",
   "predictions.validScores": "أدخل نتيجة صحيحة (0-99)",
   "predictions.pts": "{count} نقاط",
-  "predictions.scoring": "جاري الاحتساب...",
-
   "howToPlay.title": "طريقة اللعب",
   "howToPlay.desc": "توقّع النتيجة النهائية لكل مباراة قبل الانطلاقة. تُمنح النقاط بناءً على الدقة.",
   "howToPlay.exactScore": "النتيجة الدقيقة",
@@ -126,7 +120,6 @@
   "howToPlay.knockoutDesc": "1.5x (دور 32) ← 2x (دور 16) ← 2.5x (ربع) ← 3x (نصف/نهائي)",
   "howToPlay.streakLabel": "سلسلة انتصارات",
   "howToPlay.streakDesc": "التوقعات الصحيحة المتتالية تبني وسام السلسلة",
-
   "leaderboard.title": "الترتيب",
   "leaderboard.players": "{count} لاعب يتنافس",
   "leaderboard.playersPlural": "{count} لاعبين يتنافسون",
@@ -146,7 +139,6 @@
   "leaderboard.weekly": "هذا الأسبوع",
   "leaderboard.monthly": "هذا الشهر",
   "leaderboard.allPlayers": "جميع اللاعبين",
-
   "watch.title": "أين تشاهد",
   "watch.subtitle": "ابحث عن القنوات الرسمية الناقلة لكأس العالم 2026 في بلدك.",
   "watch.search": "ابحث بالدولة أو القناة الناقلة...",
@@ -156,7 +148,6 @@
   "watch.tv": "تلفزيون",
   "watch.streaming": "بث مباشر",
   "watch.tvStreaming": "تلفزيون + بث مباشر",
-
   "auth.welcomeBack": "مرحباً بعودتك",
   "auth.joinTitle": "انضم إلى YancoVerse",
   "auth.signInDesc": "سجّل الدخول بحسابك في YancoVerse",
@@ -169,7 +160,6 @@
   "auth.hasAccount": "لديك حساب بالفعل؟ سجّل الدخول",
   "auth.handleRequired": "اسم المستخدم مطلوب",
   "auth.unified": "حساب واحد لجميع منتجات YancoVerse",
-
   "activity.noPredictions": "لا توجد توقعات بعد. كن أول من يتوقّع!",
   "activity.predicted": "توقّع",
   "activity.justNow": "الآن",
@@ -177,12 +167,10 @@
   "activity.hoursAgo": "منذ {count} س",
   "activity.daysAgo": "منذ {count} ي",
   "activity.matchNum": "المباراة #{id}",
-
   "countdown.days": "أيام",
   "countdown.hours": "ساعات",
   "countdown.min": "دقائق",
   "countdown.sec": "ثوانٍ",
-
   "match.live": "مباشر",
   "match.ht": "استراحة",
   "match.ft": "انتهت",
@@ -194,9 +182,15 @@
   "match.tbd": "لم يُحدد",
   "match.htScore": "استراحة {home}-{away}",
   "match.matchId": "#{id}",
-
+  "hub.overview": "نظرة عامة",
   "lang.title": "اللغة",
-
+  "profile.history": "سجل التوقعات",
+  "profile.accuracy": "تفصيل الدقة",
+  "profile.compStats": "إحصائيات حسب المسابقة",
+  "profile.rivals": "المنافسون",
+  "profile.addRival": "إضافة منافس",
+  "profile.searchRival": "ابحث باسم المستخدم...",
+  "profile.noRivals": "لا منافسين بعد. أضف حتى 3 أصدقاء لمقارنة الإحصائيات!",
   "pools.title": "المجموعات",
   "pools.subtitle": "تنافس مع أصدقائك",
   "pools.create": "إنشاء مجموعة",
@@ -224,7 +218,7 @@
   "chat.placeholder": "اكتب رسالة...",
   "chat.empty": "لا توجد رسائل بعد. قل مرحبا!",
   "chat.loadMore": "تحميل رسائل أقدم",
-  "recap.title": "ملخص الجولة",
+  "recap.title": "ملخص الجولة {matchday}",
   "recap.mvp": "أفضل لاعب",
   "recap.noData": "لا توجد توقعات محتسبة بعد لعرض الملخص.",
   "share.title": "مشاركة",
@@ -232,15 +226,6 @@
   "pools.rename": "إعادة تسمية",
   "pools.save": "حفظ",
   "pools.removeMember": "إزالة من المجموعة",
-
-  "hub.overview": "نظرة عامة",
-  "profile.history": "سجل التوقعات",
-  "profile.accuracy": "تفصيل الدقة",
-  "profile.compStats": "إحصائيات حسب المسابقة",
-  "profile.rivals": "المنافسون",
-  "profile.addRival": "إضافة منافس",
-  "profile.searchRival": "ابحث باسم المستخدم...",
-  "profile.noRivals": "لا منافسين بعد. أضف حتى 3 أصدقاء لمقارنة الإحصائيات!",
   "nav.news": "أخبار",
   "news.title": "أخبار",
   "news.subtitle": "أخبار كرة القدم المختارة بالذكاء الاصطناعي من أفضل المصادر العالمية",
@@ -257,10 +242,8 @@
   "news.translatedFrom": "مترجم من",
   "news.attribution": "المقالات مصدرها خلاصات RSS. الملخصات مولّدة بالذكاء الاصطناعي. تحقق دائماً من المصدر الأصلي.",
   "news.aiSummary": "ملخص ذكي",
-
   "match.upcoming": "قادمة",
   "match.matchday": "الجولة {num}",
-
   "team.notFound": "الفريق غير موجود.",
   "team.backToStandings": "العودة للترتيب",
   "team.position": "المركز",
@@ -276,7 +259,6 @@
   "team.squad": "التشكيلة",
   "team.players": "{count} لاعب",
   "team.est": "تأسس {year}",
-
   "stats.notAvailable": "الإحصائيات غير متوفرة لهذه المباراة",
   "stats.form": "الأداء",
   "stats.topScorers": "الهدافون",
@@ -285,7 +267,6 @@
   "stats.mp": "م",
   "stats.goals": "هـ",
   "stats.assists": "ص",
-
   "match.events.none": "لا أحداث بعد",
   "match.lineup.startingXI": "التشكيلة الأساسية",
   "match.lineup.bench": "البدلاء",
@@ -294,22 +275,17 @@
   "match.h2h.recentMatches": "المباريات الأخيرة",
   "match.h2h.notAvailable": "بيانات المواجهات المباشرة غير متوفرة",
   "match.h2h.previousMeetings": "{total} مواجهات سابقة",
-
   "quickPick.home": "المضيف",
   "quickPick.draw": "تعادل",
   "quickPick.away": "الضيف",
-
   "yourPrediction": "توقعت",
   "pending": "قيد الانتظار",
   "pts": "نقاط",
-
   "profile.matchNotifications": "إشعارات المباريات",
   "profile.matchNotificationsDesc": "تلقي تذكير قبل مواعيد التوقعات",
-
   "common.predict": "توقّع",
   "common.today": "اليوم",
   "common.matchday": "الجولة",
-
   "match.tabs.overview": "نظرة عامة",
   "match.tabs.stats": "إحصائيات",
   "match.tabs.lineup": "التشكيلة",
@@ -327,7 +303,6 @@
   "match.lineup.formation": "التشكيل:",
   "match.events.assist": "صناعة:",
   "match.events.ownGoal": "هدف عكسي",
-
   "stats.ballPossession": "الاستحواذ",
   "stats.totalShots": "إجمالي التسديدات",
   "stats.shotsOnGoal": "تسديدات على المرمى",
@@ -341,7 +316,6 @@
   "stats.totalPasses": "إجمالي التمريرات",
   "stats.xG": "xG",
   "stats.notAvailableShort": "الإحصائيات غير متوفرة",
-
   "predictions.full": "كامل",
   "predictions.quickPickMode": "1X2",
   "predictions.noMatches": "لا توجد مباريات متاحة للتوقع.",
@@ -356,8 +330,6 @@
   "predictions.batchDone": "تم حفظ الجميع!",
   "predictions.batchEmpty": "أدخل توقعاً واحداً على الأقل",
   "predictions.batchErrors": "فشل حفظ {count} توقعات",
-
-  "recap.title": "ملخص الجولة {matchday}",
   "recap.titleGeneric": "ملخص الجولة",
   "recap.results": "النتائج",
   "recap.points": "النقاط",
@@ -365,7 +337,6 @@
   "recap.correct": "صحيح",
   "recap.exactScores": "نتائج دقيقة",
   "recap.bestPick": "أفضل توقع",
-
   "bracket.playoffs": "الملحق",
   "bracket.roundOf32": "دور الـ32",
   "bracket.roundOf16": "دور الـ16",
@@ -377,14 +348,12 @@
   "bracket.pathToFinal": "الطريق إلى النهائي...",
   "bracket.clear": "مسح",
   "bracket.thirdPlace": "المركز الثالث",
-
   "standings.gf": "له",
   "standings.ga": "عليه",
   "standings.clZone": "دوري أبطال أوروبا",
   "standings.elZone": "الدوري الأوروبي",
   "standings.eclZone": "دوري المؤتمر",
   "standings.relegation": "هبوط",
-
   "profile.totalPoints": "إجمالي النقاط",
   "profile.predictions": "التوقعات",
   "profile.exactScores": "نتائج دقيقة",
@@ -403,23 +372,18 @@
   "profile.pred": "توقع",
   "profile.exact": "دقيق",
   "profile.player": "اللاعب",
-
   "overview.recentResults": "آخر النتائج",
   "overview.fullTable": "الجدول الكامل",
   "overview.goals": "أهداف",
-
   "rank.diamond": "ماسي",
   "rank.platinum": "بلاتيني",
   "rank.gold": "ذهبي",
   "rank.silver": "فضي",
   "rank.bronze": "برونزي",
-
   "nav.profile": "الملف الشخصي",
-
   "share.myPrediction": "توقعي لمباراة",
   "share.predictYours": "توقّع أنت أيضاً على YancoCup",
   "share.groupLabel": "المجموعة",
-
   "shareCard.myPrediction": "توقعي",
   "shareCard.actualResult": "النتيجة الفعلية",
   "shareCard.exactScore": "نتيجة دقيقة!",
@@ -442,14 +406,11 @@
   "shareCard.shared": "تمت المشاركة!",
   "shareCard.opening": "جاري الفتح...",
   "shareCard.generateFailed": "تعذّر إنشاء البطاقة",
-
   "recap.exact": "دقيق",
   "recap.predicted": "توقّع",
-
   "pools.noPredictions": "لا توجد توقعات بعد",
   "pools.recentActivity": "آخر النشاطات",
   "pools.predicted": "توقّع",
-
   "comments.title": "التعليقات",
   "comments.empty": "لا توجد تعليقات بعد. كن أول من يشارك رأيه!",
   "comments.placeholder": "شاركنا رأيك...",
@@ -484,21 +445,17 @@
   "pools.step2Desc": "كل شخص يتوقع نتائج المباريات بشكل مستقل قبل الانطلاقة.",
   "pools.step3Title": "تسلّق الترتيب",
   "pools.step3Desc": "اكسب نقاطاً على التوقعات الصحيحة وشاهد من يتصدر.",
-
   "state.errorMessage": "حدث خطأ ما",
   "state.errorHint": "تحقق من اتصالك وحاول مرة أخرى.",
   "state.retry": "حاول مرة أخرى",
   "state.loadingFailed": "تعذر تحميل البيانات",
-
   "nav.help": "المساعدة",
   "nav.terms": "الشروط",
   "nav.privacy": "الخصوصية",
   "footer.tagline": "توقّع. نافس. أثبت.",
-
   "legal.termsTitle": "شروط الخدمة",
   "legal.privacyTitle": "سياسة الخصوصية",
   "legal.lastUpdated": "آخر تحديث",
-
   "terms.acceptance": "قبول الشروط",
   "terms.description": "ما هو YancoCup",
   "terms.accounts": "حسابات المستخدمين",
@@ -510,7 +467,6 @@
   "terms.termination": "إنهاء الحساب",
   "terms.changes": "تغييرات الشروط",
   "terms.contact": "التواصل",
-
   "privacy.overview": "نظرة عامة",
   "privacy.dataCollected": "البيانات التي نجمعها",
   "privacy.accountData": "بيانات الحساب",
@@ -523,7 +479,6 @@
   "privacy.rights": "حقوقك",
   "privacy.children": "خصوصية الأطفال",
   "privacy.changes": "تغييرات هذه السياسة",
-
   "help.title": "المساعدة والأسئلة الشائعة",
   "help.subtitle": "كل ما تحتاج معرفته عن YancoCup.",
   "help.gettingStarted": "البدء",
@@ -535,7 +490,6 @@
   "help.stillNeedHelp": "هل تحتاج مساعدة إضافية؟",
   "help.stillNeedHelpDesc": "افتح مشكلة على GitHub وسنعود إليك.",
   "help.contactUs": "تواصل معنا",
-
   "help.whatIsQ": "ما هو YancoCup؟",
   "help.whatIsA": "YancoCup هو منصة مجانية لتوقع نتائج كرة القدم حيث تتوقع نتائج المباريات وتتنافس مع أصدقائك على الترتيب. يغطي كأس العالم 2026 ودوري أبطال أوروبا وأفضل الدوريات الأوروبية. لا أموال حقيقية — فقط حقوق التفاخر.",
   "help.freeQ": "هل YancoCup مجاني؟",
@@ -544,7 +498,6 @@
   "help.accountA": "اضغط على 'تسجيل الدخول' واختر 'إنشاء حساب'. ستحتاج بريداً إلكترونياً وكلمة مرور واسم مستخدم فريد. حسابك في YancoVerse يعمل عبر جميع منتجات YancoVerse.",
   "help.competitionsQ": "ما المسابقات المغطاة؟",
   "help.competitionsA": "كأس العالم 2026 (الرئيسية)، دوري أبطال أوروبا، الدوري الإنجليزي، الدوري الإسباني، البوندسليغا، الدوري الإيطالي، الدوري الفرنسي، وبطولة أوروبا.",
-
   "help.howPredictQ": "كيف أقدم توقعاً؟",
   "help.howPredictA": "انتقل إلى مسابقة، اذهب إلى التوقعات، وأدخل النتيجة التي تعتقد أن كل مباراة ستنتهي بها. يمكنك التوقع بشكل فردي أو استخدام الوضع السريع للتوقع دفعة واحدة.",
   "help.deadlineQ": "متى الموعد النهائي للتوقع؟",
@@ -553,35 +506,30 @@
   "help.changeA": "نعم، يمكنك تحديث توقعك عدة مرات قبل الانطلاقة. بمجرد بدء المباراة، يتم تثبيته.",
   "help.jokerQ": "ما هو الجوكر؟",
   "help.jokerA": "الجوكر يضاعف نقاطك في مباراة واحدة لكل جولة. اختر بحكمة — اختر المباراة التي تثق بها أكثر.",
-
   "help.scoringQ": "كيف يعمل نظام النقاط؟",
   "help.scoringA": "النتيجة الدقيقة = 3 نقاط. فارق الأهداف الصحيح = نقطتان. النتيجة الصحيحة (فوز/تعادل/خسارة) = نقطة واحدة. توقع خاطئ = 0 نقاط. مكافآت إضافية للمفاجآت والمجموعات المثالية.",
   "help.knockoutQ": "هل أدوار خروج المغلوب تستحق أكثر؟",
   "help.knockoutA": "نعم! تُضاعف النقاط في أدوار خروج المغلوب: 1.5x في دور الـ32، 2x في دور الـ16، 2.5x في ربع النهائي، و3x في نصف النهائي والنهائي.",
   "help.streakQ": "ما هي السلاسل؟",
   "help.streakA": "التوقعات الصحيحة المتتالية (أي نقاط مكتسبة) تبني عداد سلسلتك. السلاسل الأطول تمنح أوسمة. يمكنك استخدام تجميد السلسلة مرة واحدة لكل مسابقة لحمايتها.",
-
   "help.poolQ": "ما هي المجموعة؟",
   "help.poolA": "المجموعة هي مساحة خاصة تتوقع فيها أنت وأصدقاؤك نتائج المباريات وتتنافسون على ترتيب مشترك. كل مجموعة لديها دردشة خاصة وملخصات الجولات.",
   "help.joinPoolQ": "كيف أنضم لمجموعة؟",
   "help.joinPoolA": "احصل على رمز الانضمام المكون من 6 أحرف من منشئ المجموعة، اذهب إلى المجموعات، وأدخله. يمكنك أيضاً الانضمام عبر رابط المشاركة.",
   "help.poolLimitQ": "كم مجموعة يمكنني الانضمام إليها؟",
   "help.poolLimitA": "يمكنك الانضمام لعدة مجموعات والتنافس فيها جميعاً في نفس الوقت. لا يوجد حد.",
-
   "help.deleteAccountQ": "هل يمكنني حذف حسابي؟",
   "help.deleteAccountA": "نعم. تواصل معنا عبر GitHub لطلب حذف الحساب. سيتم حذف جميع توقعاتك وعضوياتك وبياناتك الشخصية نهائياً.",
   "help.languageQ": "كيف أغير اللغة؟",
   "help.languageA": "اضغط على محول اللغة في شريط التنقل. يدعم YancoCup الإنجليزية والعربية والإسبانية والفرنسية والألمانية والبرتغالية.",
   "help.dataQ": "ما البيانات التي تجمعونها؟",
   "help.dataA": "فقط ما يلزم لتشغيل المنصة: بريدك الإلكتروني، اسم المستخدم، التوقعات، والتحليلات الأساسية. لا نبيع البيانات ولا نستخدم ملفات تتبع. راجع سياسة الخصوصية للتفاصيل.",
-
   "help.scoresDelayQ": "لماذا تتأخر النتائج المباشرة؟",
   "help.scoresDelayA": "النتائج المباشرة تأتي من واجهات برمجة خارجية وقد تتأخر 1-2 دقيقة. هذا طبيعي ولا يؤثر على نقاط توقعاتك.",
   "help.notLoadingQ": "التطبيق لا يعمل بشكل صحيح",
   "help.notLoadingA": "جرب تحديث الصفحة أو مسح ذاكرة التخزين المؤقت. إذا استمرت المشكلة، تحقق من اتصالك بالإنترنت. YancoCup يعمل بشكل أفضل على المتصفحات الحديثة (Chrome, Firefox, Safari, Edge).",
   "help.bugQ": "كيف أبلغ عن خطأ؟",
   "help.bugA": "افتح مشكلة في مستودع GitHub مع وصف المشكلة ومتصفحك وأي لقطات شاشة. نقدر مساعدتك في تحسين YancoCup!",
-
   "nav.contact": "تواصل معنا",
   "contact.title": "تواصل معنا",
   "contact.subtitle": "لديك سؤال، وجدت خطأ، أو تريد اقتراح ميزة؟ يسعدنا سماع رأيك.",

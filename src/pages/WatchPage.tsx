@@ -66,7 +66,7 @@ export default function WatchPage() {
       <div className="relative mb-6">
         <Search
           size={16}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-yc-text-tertiary pointer-events-none"
+          className="absolute start-3 top-1/2 -translate-y-1/2 text-yc-text-tertiary pointer-events-none"
         />
         <input
           type="text"

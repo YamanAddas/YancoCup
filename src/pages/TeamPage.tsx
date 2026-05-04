@@ -1043,7 +1043,7 @@ export default function TeamPage() {
           )}
         </div>
 
-        <GeometricBand className="absolute bottom-0 left-0 w-full text-yc-green opacity-[0.06]" />
+        <GeometricBand className="absolute bottom-0 start-0 w-full text-yc-green opacity-[0.06]" />
       </div>
 
       {/* ── Sticky section nav ── */}
@@ -1476,12 +1476,12 @@ export default function TeamPage() {
                   const opTla = isHome ? m.awayTeam : m.homeTeam;
                   const date = new Date(m.utcDate);
 
-                  // Result color for left border
-                  let borderColor = "border-l-yc-border";
+                  // Result color for inline-start border (mirrors in RTL)
+                  let borderColor = "border-s-yc-border";
                   if (m.type === "result" && m.homeScore != null && m.awayScore != null) {
                     const gf = isHome ? m.homeScore : m.awayScore;
                     const ga = isHome ? m.awayScore : m.homeScore;
-                    borderColor = gf > ga ? "border-l-yc-green" : gf < ga ? "border-l-yc-danger" : "border-l-yc-warning";
+                    borderColor = gf > ga ? "border-s-yc-green" : gf < ga ? "border-s-yc-danger" : "border-s-yc-warning";
                   }
 
                   return (
@@ -1634,9 +1634,9 @@ export default function TeamPage() {
                     </span>
                   </div>
                   <div className="flex gap-1 h-2.5 rounded-full overflow-hidden mb-2">
-                    <div className="bg-yc-green rounded-l-full transition-all" style={{ width: `${communityData.nextMatchConsensus.home}%` }} />
+                    <div className="bg-yc-green rounded-s-full transition-all" style={{ width: `${communityData.nextMatchConsensus.home}%` }} />
                     <div className="bg-yc-text-tertiary transition-all" style={{ width: `${communityData.nextMatchConsensus.draw}%` }} />
-                    <div className="bg-yc-danger rounded-r-full transition-all" style={{ width: `${communityData.nextMatchConsensus.away}%` }} />
+                    <div className="bg-yc-danger rounded-e-full transition-all" style={{ width: `${communityData.nextMatchConsensus.away}%` }} />
                   </div>
                   <div className="flex justify-between text-[10px]">
                     <span className="text-yc-green font-mono font-bold">{communityData.nextMatchConsensus.home}% {communityData.nextMatchIsHome ? displayName : communityData.nextMatchOpponent}</span>
@@ -1722,7 +1722,7 @@ export default function TeamPage() {
                 <ArabesqueLattice className="absolute inset-0 text-yc-green opacity-[0.04] pointer-events-none hidden sm:block" />
                 <CornerAccent position="top-left" className="text-yc-green opacity-10" />
                 <CornerAccent position="top-right" className="text-yc-green opacity-10" />
-                <GeometricBand className="absolute top-0 left-0 w-full text-yc-green opacity-[0.08]" />
+                <GeometricBand className="absolute top-0 start-0 w-full text-yc-green opacity-[0.08]" />
 
                 <div className="relative z-10 px-6 pt-8 pb-6 text-center">
                   {/* Star ornament */}
@@ -1770,7 +1770,7 @@ export default function TeamPage() {
                   </Link>
                 </div>
 
-                <GeometricBand className="absolute bottom-0 left-0 w-full text-yc-green opacity-[0.08]" />
+                <GeometricBand className="absolute bottom-0 start-0 w-full text-yc-green opacity-[0.08]" />
               </div>
             </div>
           );

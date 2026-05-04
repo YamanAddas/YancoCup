@@ -49,9 +49,9 @@ export default function AppLayout() {
       data-atmosphere={atmosphere}
     >
       {/* Ambient orb decorations — shift behavior based on match state */}
-      <div className={`yc-orb yc-orb-accent w-[500px] h-[500px] -top-40 -right-40 yc-atmo-orb`} />
-      <div className={`yc-orb yc-orb-blue w-[600px] h-[600px] top-1/3 -left-60 yc-atmo-orb`} />
-      <div className={`yc-orb yc-orb-accent w-[400px] h-[400px] bottom-0 right-1/4 yc-atmo-orb`} />
+      <div className={`yc-orb yc-orb-accent w-[500px] h-[500px] -top-40 -end-40 yc-atmo-orb`} />
+      <div className={`yc-orb yc-orb-blue w-[600px] h-[600px] top-1/3 -start-60 yc-atmo-orb`} />
+      <div className={`yc-orb yc-orb-accent w-[400px] h-[400px] bottom-0 end-1/4 yc-atmo-orb`} />
 
       <SpotlightCursor />
       <NavBar />

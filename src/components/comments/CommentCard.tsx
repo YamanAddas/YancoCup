@@ -88,7 +88,7 @@ export default function CommentCard({
               ({t("comments.edited")})
             </span>
           )}
-          <span className="flex items-center gap-0.5 text-[10px] text-yc-text-tertiary ml-auto">
+          <span className="flex items-center gap-0.5 text-[10px] text-yc-text-tertiary ms-auto">
             <Clock size={10} />
             {relTime(comment.created_at)}
           </span>
@@ -156,7 +156,7 @@ export default function CommentCard({
 
           {/* More menu */}
           {user && (
-            <div className="relative ml-auto">
+            <div className="relative ms-auto">
               <button
                 onClick={() => { setShowMenu(!showMenu); setShowReport(false); }}
                 className="text-yc-text-tertiary hover:text-yc-text-secondary transition-colors p-2 min-h-11 min-w-11 flex items-center justify-center"
@@ -165,7 +165,7 @@ export default function CommentCard({
               </button>
 
               {showMenu && (
-                <div className="absolute right-0 top-6 z-20 bg-yc-bg-surface border border-yc-border rounded-lg shadow-xl py-1 min-w-[140px]">
+                <div className="absolute end-0 top-6 z-20 bg-yc-bg-surface border border-yc-border rounded-lg shadow-xl py-1 min-w-[140px]">
                   {isOwner && (
                     <>
                       <button
@@ -198,7 +198,7 @@ export default function CommentCard({
 
               {/* Report reasons dropdown */}
               {showReport && (
-                <div className="absolute right-0 top-12 z-20 bg-yc-bg-surface border border-yc-border rounded-lg shadow-xl py-1 min-w-[140px]">
+                <div className="absolute end-0 top-12 z-20 bg-yc-bg-surface border border-yc-border rounded-lg shadow-xl py-1 min-w-[140px]">
                   {REPORT_REASONS.map((reason) => (
                     <button
                       key={reason}

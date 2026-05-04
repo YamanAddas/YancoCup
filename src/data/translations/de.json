@@ -6,9 +6,9 @@
   "nav.leaderboard": "Rangliste",
   "nav.watch": "Schauen",
   "nav.standings": "Tabelle",
+  "nav.bracket": "Tableau",
   "nav.signIn": "Anmelden",
   "nav.signOut": "Abmelden",
-
   "home.title": "Weltmeisterschaft",
   "home.year": "2026",
   "home.subtitle": "USA, Mexiko & Kanada",
@@ -33,12 +33,12 @@
   "home.allPredictedDesc": "Du hast alle heutigen Spiele getippt. Viel Glück!",
   "home.greeting": "Willkommen zurück, {name}!",
   "home.myTeams": "Meine Teams",
-
   "matches.title": "Spielplan",
   "matches.count": "{count} Spiel",
   "matches.countPlural": "{count} Spiele",
   "matches.clearFilters": "Filter zurücksetzen",
   "matches.noResults": "Keine Spiele für die ausgewählten Filter gefunden.",
+  "matches.scoreError": "Live-Ergebnisse vorübergehend nicht verfügbar. Anzeige aus dem Cache.",
   "matches.filterRound": "Runde",
   "matches.filterGroup": "Gruppe",
   "matches.filterTeam": "Team",
@@ -47,7 +47,6 @@
   "matches.allGroups": "Alle Gruppen",
   "matches.allTeams": "Alle Teams",
   "matches.allVenues": "Alle Spielorte",
-
   "round.group": "Gruppenphase",
   "round.playoff": "Playoffs",
   "round.roundOf32": "Sechzehntelfinale",
@@ -56,14 +55,12 @@
   "round.semifinal": "Halbfinale",
   "round.thirdPlace": "Spiel um Platz 3",
   "round.final": "Finale",
-
   "groups.title": "Gruppen",
   "groups.subtitle": "12 Gruppen mit je 4 Teams",
   "groups.advanceNote": "Die besten 2 kommen weiter. Die besten Gruppendritten qualifizieren sich ebenfalls.",
   "standings.noData": "Noch keine Tabellendaten verfügbar.",
   "standings.ifEnded": "Wenn die Saison heute enden würde",
   "standings.matchdayProgress": "Spieltag {current}/{total} ({pct}% abgeschlossen)",
-
   "groupTable.team": "Team",
   "groupTable.played": "Sp",
   "groupTable.won": "S",
@@ -71,7 +68,6 @@
   "groupTable.lost": "N",
   "groupTable.gd": "TD",
   "groupTable.pts": "Pkt",
-
   "predictions.title": "Tipps",
   "predictions.predicted": "{count} getippt",
   "predictions.remaining": "{count} übrig",
@@ -97,14 +93,13 @@
   "predictions.confidence.sure": "Sichere Sache",
   "predictions.jokerTip": "Verdoppele deine Punkte für dieses Spiel (1 pro Spieltag)",
   "predictions.jokerUsed": "Vergeben",
+  "predictions.scoring": "Wird berechnet...",
   "predictions.sharePrediction": "Tipp teilen",
   "predictions.copied": "Kopiert!",
   "predictions.failed": "Fehlgeschlagen",
   "predictions.predicted_count": "{count} getippt",
   "predictions.validScores": "Gültige Ergebnisse eingeben (0–99)",
   "predictions.pts": "{count} Pkt",
-  "predictions.scoring": "Wird berechnet...",
-
   "howToPlay.title": "So funktioniert's",
   "howToPlay.desc": "Tippe das Endergebnis jedes Spiels vor dem Anpfiff. Punkte werden nach Genauigkeit vergeben.",
   "howToPlay.exactScore": "Exaktes Ergebnis",
@@ -125,7 +120,6 @@
   "howToPlay.knockoutDesc": "1,5x (32er) → 2x (16er) → 2,5x (VF) → 3x (HF/Finale)",
   "howToPlay.streakLabel": "Siegesserie",
   "howToPlay.streakDesc": "Aufeinanderfolgende richtige Tipps bauen dein Serien-Abzeichen auf",
-
   "leaderboard.title": "Rangliste",
   "leaderboard.players": "{count} Spieler im Wettbewerb",
   "leaderboard.playersPlural": "{count} Spieler im Wettbewerb",
@@ -141,10 +135,10 @@
   "leaderboard.pppDesc": "PPP = Punkte pro Tipp (fairer für Nachzügler)",
   "leaderboard.accDesc": "Genau = Tipps mit Punkten / bewertete Tipps",
   "leaderboard.allTime": "Gesamt",
+  "leaderboard.matchday": "Spieltag",
   "leaderboard.weekly": "Diese Woche",
   "leaderboard.monthly": "Dieser Monat",
   "leaderboard.allPlayers": "Alle Spieler",
-
   "watch.title": "Wo schauen",
   "watch.subtitle": "Finde offizielle Sender für die FIFA WM 2026 in deinem Land.",
   "watch.search": "Nach Land oder Sender suchen...",
@@ -154,7 +148,6 @@
   "watch.tv": "TV",
   "watch.streaming": "Streaming",
   "watch.tvStreaming": "TV + Streaming",
-
   "auth.welcomeBack": "Willkommen zurück",
   "auth.joinTitle": "YancoVerse beitreten",
   "auth.signInDesc": "Mit deinem YancoVerse-Konto anmelden",
@@ -167,7 +160,6 @@
   "auth.hasAccount": "Bereits ein Konto? Anmelden",
   "auth.handleRequired": "Benutzername ist erforderlich",
   "auth.unified": "Ein Konto für alle YancoVerse-Produkte",
-
   "activity.noPredictions": "Noch keine Tipps. Sei der Erste!",
   "activity.predicted": "getippt",
   "activity.justNow": "gerade eben",
@@ -175,12 +167,10 @@
   "activity.hoursAgo": "vor {count} Std",
   "activity.daysAgo": "vor {count} T",
   "activity.matchNum": "Spiel #{id}",
-
   "countdown.days": "Tage",
   "countdown.hours": "Stunden",
   "countdown.min": "Min",
   "countdown.sec": "Sek",
-
   "match.live": "LIVE",
   "match.ht": "HZ",
   "match.ft": "Ende",
@@ -192,9 +182,15 @@
   "match.tbd": "N.N.",
   "match.htScore": "HZ {home}-{away}",
   "match.matchId": "#{id}",
-
+  "hub.overview": "Überblick",
   "lang.title": "Sprache",
-
+  "profile.history": "Tipp-Verlauf",
+  "profile.accuracy": "Genauigkeitsaufschlüsselung",
+  "profile.compStats": "Statistiken nach Wettbewerb",
+  "profile.rivals": "Rivalen",
+  "profile.addRival": "Rivale hinzufügen",
+  "profile.searchRival": "Nach Benutzername suchen...",
+  "profile.noRivals": "Noch keine Rivalen. Füge bis zu 3 Freunde hinzu!",
   "pools.title": "Pools",
   "pools.subtitle": "Tritt gegen Freunde an",
   "pools.create": "Pool erstellen",
@@ -230,15 +226,6 @@
   "pools.rename": "Umbenennen",
   "pools.save": "Speichern",
   "pools.removeMember": "Aus Pool entfernen",
-
-  "hub.overview": "Überblick",
-  "profile.history": "Tipp-Verlauf",
-  "profile.accuracy": "Genauigkeitsaufschlüsselung",
-  "profile.compStats": "Statistiken nach Wettbewerb",
-  "profile.rivals": "Rivalen",
-  "profile.addRival": "Rivale hinzufügen",
-  "profile.searchRival": "Nach Benutzername suchen...",
-  "profile.noRivals": "Noch keine Rivalen. Füge bis zu 3 Freunde hinzu!",
   "nav.news": "Nachrichten",
   "news.title": "Nachrichten",
   "news.subtitle": "KI-kuratierte Fußballnachrichten aus den besten Quellen weltweit",
@@ -255,10 +242,8 @@
   "news.translatedFrom": "Übersetzt aus",
   "news.attribution": "Artikel aus RSS-Feeds. KI-Zusammenfassungen sind automatisch generiert. Überprüfe immer die Originalquelle.",
   "news.aiSummary": "KI-Zusammenfassung",
-
   "match.upcoming": "Anstehend",
   "match.matchday": "Spieltag {num}",
-
   "team.notFound": "Team nicht gefunden.",
   "team.backToStandings": "Zurück zur Tabelle",
   "team.position": "Position",
@@ -274,7 +259,6 @@
   "team.squad": "Kader",
   "team.players": "{count} Spieler",
   "team.est": "Gegr. {year}",
-
   "stats.notAvailable": "Statistiken für dieses Spiel nicht verfügbar",
   "stats.form": "Form",
   "stats.topScorers": "Torjäger",
@@ -283,7 +267,6 @@
   "stats.mp": "Sp",
   "stats.goals": "T",
   "stats.assists": "V",
-
   "match.events.none": "Noch keine Ereignisse",
   "match.lineup.startingXI": "Startelf",
   "match.lineup.bench": "Ersatzbank",
@@ -292,22 +275,17 @@
   "match.h2h.recentMatches": "Letzte Spiele",
   "match.h2h.notAvailable": "Direktvergleich nicht verfügbar",
   "match.h2h.previousMeetings": "{total} bisherige Begegnungen",
-
   "quickPick.home": "Heim",
   "quickPick.draw": "Unentschieden",
   "quickPick.away": "Auswärts",
-
   "yourPrediction": "Deine Vorhersage",
   "pending": "Ausstehend",
   "pts": "Pkt",
-
   "profile.matchNotifications": "Spielbenachrichtigungen",
   "profile.matchNotificationsDesc": "Erinnerungen vor Tippabgabe erhalten",
-
   "common.predict": "Tippen",
   "common.today": "Heute",
   "common.matchday": "Spieltag",
-
   "match.tabs.overview": "Überblick",
   "match.tabs.stats": "Statistiken",
   "match.tabs.lineup": "Aufstellung",
@@ -325,7 +303,6 @@
   "match.lineup.formation": "Formation:",
   "match.events.assist": "Vorlage:",
   "match.events.ownGoal": "Eigentor",
-
   "stats.ballPossession": "Ballbesitz",
   "stats.totalShots": "Torschüsse gesamt",
   "stats.shotsOnGoal": "Schüsse aufs Tor",
@@ -339,11 +316,27 @@
   "stats.totalPasses": "Pässe gesamt",
   "stats.xG": "xG",
   "stats.notAvailableShort": "Statistiken nicht verfügbar",
-
   "predictions.full": "Voll",
   "predictions.quickPickMode": "1X2",
   "predictions.noMatches": "Keine Spiele zum Tippen verfügbar.",
-
+  "predictions.freeze": "Einfrieren",
+  "predictions.freezeAvailable": "Serien-Schutz verfügbar — schützt deine Serie einmal, wenn du falsch tippst (3+ Serie)",
+  "predictions.freezeUsed": "Serien-Schutz bereits in diesem Wettbewerb verbraucht",
+  "predictions.batchView": "Stapelmodus — alle auf einmal tippen",
+  "predictions.cardView": "Kartenansicht",
+  "predictions.batchTitle": "Alle Spiele tippen",
+  "predictions.batchSave": "Alle speichern ({count})",
+  "predictions.batchSaving": "Speichere {saved}/{total}...",
+  "predictions.batchDone": "Alle gespeichert!",
+  "predictions.batchEmpty": "Mindestens einen Tipp ausfüllen",
+  "predictions.batchErrors": "{count} Tipps konnten nicht gespeichert werden",
+  "recap.titleGeneric": "Spieltag-Rückblick",
+  "recap.results": "Ergebnisse",
+  "recap.points": "Punkte",
+  "recap.accuracy": "Genauigkeit",
+  "recap.correct": "Richtig",
+  "recap.exactScores": "Exakte Tipps",
+  "recap.bestPick": "Bester Tipp",
   "bracket.playoffs": "Playoffs",
   "bracket.roundOf32": "Sechzehntelfinale",
   "bracket.roundOf16": "Achtelfinale",
@@ -355,14 +348,12 @@
   "bracket.pathToFinal": "Weg ins Finale...",
   "bracket.clear": "Löschen",
   "bracket.thirdPlace": "Spiel um Platz 3",
-
   "standings.gf": "T",
   "standings.ga": "GT",
   "standings.clZone": "Champions League",
   "standings.elZone": "Europa League",
   "standings.eclZone": "Conference League",
   "standings.relegation": "Abstieg",
-
   "profile.totalPoints": "Gesamtpunkte",
   "profile.predictions": "Tipps",
   "profile.exactScores": "Exakte Ergebnisse",
@@ -381,23 +372,18 @@
   "profile.pred": "Tipp",
   "profile.exact": "Exakt",
   "profile.player": "Spieler",
-
   "overview.recentResults": "Letzte Ergebnisse",
   "overview.fullTable": "Volle Tabelle",
   "overview.goals": "Tore",
-
   "rank.diamond": "Diamant",
   "rank.platinum": "Platin",
   "rank.gold": "Gold",
   "rank.silver": "Silber",
   "rank.bronze": "Bronze",
-
   "nav.profile": "Profil",
-
   "share.myPrediction": "Mein Tipp für",
   "share.predictYours": "Tippe mit auf YancoCup",
   "share.groupLabel": "Gruppe",
-
   "shareCard.myPrediction": "MEIN TIPP",
   "shareCard.actualResult": "ERGEBNIS",
   "shareCard.exactScore": "EXAKTES ERGEBNIS!",
@@ -420,14 +406,11 @@
   "shareCard.shared": "Geteilt!",
   "shareCard.opening": "Wird geöffnet...",
   "shareCard.generateFailed": "Karte konnte nicht erstellt werden",
-
   "recap.exact": "exakt",
   "recap.predicted": "getippt",
-
   "pools.noPredictions": "Noch keine Tipps",
   "pools.recentActivity": "Letzte Aktivität",
   "pools.predicted": "getippt",
-
   "comments.title": "Kommentare",
   "comments.empty": "Noch keine Kommentare. Sei der Erste!",
   "comments.placeholder": "Teile deine Meinung...",
@@ -462,21 +445,17 @@
   "pools.step2Desc": "Jeder tippt die Ergebnisse unabhängig vor dem Anpfiff.",
   "pools.step3Title": "Klettere in der Rangliste",
   "pools.step3Desc": "Sammle Punkte für richtige Tipps und sieh, wer die Tabelle anführt.",
-
   "state.errorMessage": "Etwas ist schiefgelaufen",
   "state.errorHint": "Überprüfe deine Verbindung und versuche es erneut.",
   "state.retry": "Erneut versuchen",
   "state.loadingFailed": "Daten konnten nicht geladen werden",
-
   "nav.help": "Hilfe",
   "nav.terms": "AGB",
   "nav.privacy": "Datenschutz",
   "footer.tagline": "Tippe. Kämpfe. Beweise es.",
-
   "legal.termsTitle": "Nutzungsbedingungen",
   "legal.privacyTitle": "Datenschutzerklärung",
   "legal.lastUpdated": "Zuletzt aktualisiert",
-
   "terms.acceptance": "Annahme der Bedingungen",
   "terms.description": "Was ist YancoCup",
   "terms.accounts": "Benutzerkonten",
@@ -488,7 +467,6 @@
   "terms.termination": "Kontokündigung",
   "terms.changes": "Änderungen der Bedingungen",
   "terms.contact": "Kontakt",
-
   "privacy.overview": "Überblick",
   "privacy.dataCollected": "Erhobene Daten",
   "privacy.accountData": "Kontodaten",
@@ -501,7 +479,6 @@
   "privacy.rights": "Deine Rechte",
   "privacy.children": "Datenschutz für Kinder",
   "privacy.changes": "Änderungen dieser Richtlinie",
-
   "help.title": "Hilfe & FAQ",
   "help.subtitle": "Alles, was du über YancoCup wissen musst.",
   "help.gettingStarted": "Erste Schritte",
@@ -513,7 +490,6 @@
   "help.stillNeedHelp": "Noch Fragen?",
   "help.stillNeedHelpDesc": "Öffne ein Issue auf GitHub und wir melden uns.",
   "help.contactUs": "Kontaktiere uns",
-
   "help.whatIsQ": "Was ist YancoCup?",
   "help.whatIsA": "YancoCup ist eine kostenlose Fußball-Tippplattform, auf der du Ergebnisse vorhersagst und mit Freunden in Ranglisten konkurrierst. Sie deckt die WM 2026, die Champions League und die Top-Ligen Europas ab. Kein echtes Geld — nur Angeberwissen.",
   "help.freeQ": "Ist YancoCup kostenlos?",
@@ -522,7 +498,6 @@
   "help.accountA": "Tippe auf 'Anmelden' und wähle 'Konto erstellen'. Du brauchst eine E-Mail, ein Passwort und einen einzigartigen Nutzernamen. Dein YancoVerse-Konto funktioniert über alle YancoVerse-Produkte.",
   "help.competitionsQ": "Welche Wettbewerbe werden abgedeckt?",
   "help.competitionsA": "WM 2026 (Haupt), Champions League, Premier League, La Liga, Bundesliga, Serie A, Ligue 1 und EM.",
-
   "help.howPredictQ": "Wie gebe ich einen Tipp ab?",
   "help.howPredictA": "Navigiere zu einem Wettbewerb, gehe zu Tipps und gib das Ergebnis ein, das du erwartest. Du kannst einzelne Spiele tippen oder den Stapelmodus nutzen.",
   "help.deadlineQ": "Wann ist die Frist?",
@@ -531,35 +506,30 @@
   "help.changeA": "Ja, du kannst deinen Tipp beliebig oft vor dem Anstoß ändern. Sobald das Spiel beginnt, ist er gesperrt.",
   "help.jokerQ": "Was ist der Joker?",
   "help.jokerA": "Der Joker verdoppelt deine Punkte für ein Spiel pro Spieltag. Wähle weise — nimm das Spiel, bei dem du dir am sichersten bist.",
-
   "help.scoringQ": "Wie funktioniert die Punktevergabe?",
   "help.scoringA": "Exaktes Ergebnis = 3 Punkte. Richtige Tordifferenz = 2 Punkte. Richtige Tendenz (Sieg/Unentschieden/Niederlage) = 1 Punkt. Falscher Tipp = 0 Punkte. Boni für Überraschungen und perfekte Gruppenphasen.",
   "help.knockoutQ": "Zählen K.O.-Runden mehr?",
   "help.knockoutA": "Ja! Punkte werden in K.O.-Runden multipliziert: 1.5x im Sechzehntelfinale, 2x im Achtelfinale, 2.5x im Viertelfinale und 3x im Halbfinale und Finale.",
   "help.streakQ": "Was sind Serien?",
   "help.streakA": "Aufeinanderfolgende richtige Tipps bauen deinen Serienzähler auf. Längere Serien bringen Abzeichen. Du kannst einmal pro Wettbewerb eine Seriensperre nutzen.",
-
   "help.poolQ": "Was ist eine Gruppe?",
   "help.poolA": "Eine Gruppe ist ein privater Bereich, in dem du und deine Freunde Ergebnisse tippen und in einer gemeinsamen Rangliste antreten. Jede Gruppe hat eigenen Chat und Spieltagszusammenfassungen.",
   "help.joinPoolQ": "Wie trete ich einer Gruppe bei?",
   "help.joinPoolA": "Hole den 6-stelligen Code vom Gruppenersteller, gehe zu Gruppen und gib ihn ein. Du kannst auch über einen Teillink beitreten.",
   "help.poolLimitQ": "Wie vielen Gruppen kann ich beitreten?",
   "help.poolLimitA": "Du kannst mehreren Gruppen beitreten und in allen gleichzeitig antreten. Es gibt kein Limit.",
-
   "help.deleteAccountQ": "Kann ich mein Konto löschen?",
   "help.deleteAccountA": "Ja. Kontaktiere uns über GitHub für die Löschung. Alle deine Tipps, Mitgliedschaften und persönlichen Daten werden dauerhaft entfernt.",
   "help.languageQ": "Wie ändere ich die Sprache?",
   "help.languageA": "Tippe auf den Sprachwechsler in der Navigationsleiste. YancoCup unterstützt Englisch, Arabisch, Spanisch, Französisch, Deutsch und Portugiesisch.",
   "help.dataQ": "Welche Daten sammelt ihr?",
   "help.dataA": "Nur das Nötigste: E-Mail, Nutzername, Tipps und grundlegende Analysen. Wir verkaufen keine Daten und nutzen keine Tracking-Cookies. Siehe unsere Datenschutzerklärung.",
-
   "help.scoresDelayQ": "Warum sind Live-Ergebnisse verzögert?",
   "help.scoresDelayA": "Live-Ergebnisse kommen von Drittanbieter-APIs und können 1-2 Minuten verzögert sein. Das ist normal und beeinflusst deine Tipppunkte nicht.",
   "help.notLoadingQ": "Die App lädt nicht richtig",
   "help.notLoadingA": "Versuche die Seite zu aktualisieren oder den Browser-Cache zu leeren. Wenn das Problem bestehen bleibt, prüfe deine Internetverbindung. YancoCup funktioniert am besten mit modernen Browsern (Chrome, Firefox, Safari, Edge).",
   "help.bugQ": "Wie melde ich einen Fehler?",
   "help.bugA": "Öffne ein Issue in unserem GitHub-Repository mit Problembeschreibung, Browser und Screenshots. Danke für deine Hilfe bei der Verbesserung von YancoCup!",
-
   "nav.contact": "Kontakt",
   "contact.title": "Kontaktiere uns",
   "contact.subtitle": "Hast du eine Frage, einen Fehler gefunden oder möchtest eine Funktion vorschlagen? Wir freuen uns auf deine Nachricht.",

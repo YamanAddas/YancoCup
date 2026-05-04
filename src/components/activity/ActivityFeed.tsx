@@ -165,7 +165,7 @@ export default function ActivityFeed() {
                     >
                       {REACTION_EMOJI[r]}
                       {c > 0 && (
-                        <span className="text-[9px] ml-0.5 text-yc-text-secondary">
+                        <span className="text-[9px] ms-0.5 text-yc-text-secondary">
                           {c}
                         </span>
                       )}

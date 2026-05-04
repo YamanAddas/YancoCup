@@ -469,7 +469,7 @@ function PoolCard({
               <button
                 onClick={handleLeave}
                 disabled={leaving}
-                className="flex items-center gap-1.5 text-xs text-yc-danger hover:underline ml-auto"
+                className="flex items-center gap-1.5 text-xs text-yc-danger hover:underline ms-auto"
               >
                 {leaving ? <Loader2 size={12} className="animate-spin" /> : <LogOut size={12} />}
                 {t("pools.leave")}
