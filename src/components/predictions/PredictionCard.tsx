@@ -457,8 +457,10 @@ export default function PredictionCard({
         <p className="mt-2 text-yc-danger text-xs">{error}</p>
       )}
 
-      {/* Score distribution heatmap — shown after match finishes */}
-      {locked && hasPrediction && prediction.points !== null && !prediction.quick_pick && (
+      {/* Score distribution heatmap — shown once the user has predicted, so
+          they can see crowd consensus pre-kickoff (tension) and post-FT
+          (post-mortem). Anti-copy preserved by hasPrediction gate. */}
+      {hasPrediction && !prediction.quick_pick && prediction.home_score != null && (
         <PredictionHeatmap
           matchId={match.id}
           competitionId={competitionId}

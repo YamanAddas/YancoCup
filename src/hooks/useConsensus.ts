@@ -10,20 +10,24 @@ export interface Consensus {
 
 /**
  * Fetch community consensus for a match — what % predict H/D/A.
- * Only fetches after the user has submitted their own prediction AND
- * the match is locked (past kickoff). This prevents users from copying
- * the crowd before submitting.
+ * Gated by the user having submitted their OWN prediction first — this
+ * preserves anti-copy (you can't peek before committing) while still
+ * surfacing pre-kickoff tension ("60% of your pool predicts Brazil").
+ *
+ * `locked` is accepted for API compatibility with existing callers but
+ * no longer gates the fetch.
  */
 export function useConsensus(
   matchId: number,
   hasPrediction: boolean,
   competitionId = "WC",
-  locked = false,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _locked = false,
 ): Consensus | null {
   const [consensus, setConsensus] = useState<Consensus | null>(null);
 
   useEffect(() => {
-    if (!hasPrediction || !locked) {
+    if (!hasPrediction) {
       setConsensus(null);
       return;
     }
@@ -88,7 +92,7 @@ export function useConsensus(
     }
 
     fetch();
-  }, [matchId, hasPrediction, competitionId, locked]);
+  }, [matchId, hasPrediction, competitionId]);
 
   return consensus;
 }
