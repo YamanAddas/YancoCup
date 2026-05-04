@@ -733,14 +733,16 @@ function PredictionsTab({
       .eq("match_id", matchId)
       .eq("competition_id", competitionId)
       .in("user_id", memberIds)
-      .then(({ data }) => {
-        setPoolPredictions((data as PoolPrediction[]) ?? []);
-        setPoolPredLoading(false);
-      })
-      .catch(() => {
-        setPoolPredError("Could not load data");
-        setPoolPredLoading(false);
-      });
+      .then(
+        ({ data }) => {
+          setPoolPredictions((data as PoolPrediction[]) ?? []);
+          setPoolPredLoading(false);
+        },
+        () => {
+          setPoolPredError("Could not load data");
+          setPoolPredLoading(false);
+        },
+      );
   }, [activePoolId, members, matchId, competitionId, isLocked]);
 
   // Build member profile map
