@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { NavLink } from "react-router-dom";
-import GlobeView from "../components/globe/GlobeView";
-import Countdown from "../components/layout/Countdown";
+import PhaseHero from "../components/hero/PhaseHero";
 import MatchCard from "../components/match/MatchCard";
 import { useSchedule } from "../hooks/useSchedule";
 import { useTeamMap } from "../hooks/useTeams";
@@ -552,38 +551,7 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* Hero: globe + countdown */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 items-center">
-        <GlobeView />
-
-        <div className="flex flex-col items-center lg:items-start gap-6">
-          <div className="flex flex-col items-center lg:items-start gap-2">
-            <img
-              src="https://crests.football-data.org/wm26.png"
-              alt="FIFA World Cup 2026"
-              className="h-24 sm:h-28 w-auto drop-shadow-[0_0_20px_rgba(0,255,136,0.25)]"
-            />
-            <p className="text-yc-text-secondary text-sm">
-              {t("home.subtitle")}
-            </p>
-          </div>
-
-          <div className="yc-card yc-animated-border p-4 rounded-xl w-full">
-            <p className="text-yc-text-tertiary text-xs uppercase tracking-widest mb-3">
-              {t("home.kickoffIn")}
-            </p>
-            <Countdown />
-          </div>
-
-          <a
-            href="#/WC/predictions"
-            className="yc-animated-border inline-flex items-center gap-2 bg-yc-green text-yc-bg-deep font-semibold px-6 py-3 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(0,255,136,0.2)]"
-          >
-            <Trophy size={18} />
-            {t("home.cta")}
-          </a>
-        </div>
-      </section>
+      <PhaseHero />
 
       <PersonalizedGreeting />
 

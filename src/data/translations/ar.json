@@ -14,6 +14,7 @@
   "home.subtitle": "الولايات المتحدة والمكسيك وكندا",
   "home.kickoffIn": "الانطلاقة بعد",
   "home.cta": "توقّع نتائج المباريات مع أصدقائك",
+  "home.buildBracket": "ابنِ جدولك",
   "home.competitions": "المسابقات",
   "home.liveNow": "مباشر الآن",
   "home.liveCount": "{count}",
@@ -187,8 +188,6 @@
   "match.htScore": "استراحة {home}-{away}",
   "match.matchId": "#{id}",
 
-  "globe.loading": "جارٍ تحميل الكرة الأرضية...",
-  "globe.seats": "{count} مقعد",
   "lang.title": "اللغة",
 
   "pools.title": "المجموعات",

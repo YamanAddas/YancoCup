@@ -15,6 +15,7 @@
   "home.subtitle": "United States, Mexico & Canada",
   "home.kickoffIn": "Kickoff in",
   "home.cta": "Predict matches with friends",
+  "home.buildBracket": "Build your bracket",
   "home.competitions": "Competitions",
   "home.liveNow": "Live Now",
   "home.liveCount": "{count}",
@@ -189,8 +190,6 @@
   "match.htScore": "HT {home}-{away}",
   "match.matchId": "#{id}",
 
-  "globe.loading": "Loading globe...",
-  "globe.seats": "{count} seats",
   "hub.overview": "Overview",
   "lang.title": "Language",
   "profile.history": "Prediction History",

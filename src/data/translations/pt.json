@@ -14,6 +14,7 @@
   "home.subtitle": "Estados Unidos, México e Canadá",
   "home.kickoffIn": "Começa em",
   "home.cta": "Dê seus palpites com os amigos",
+  "home.buildBracket": "Monte sua chave",
   "home.competitions": "Competições",
   "home.liveNow": "Ao vivo",
   "home.liveCount": "{count}",
@@ -185,8 +186,6 @@
   "match.htScore": "INT {home}-{away}",
   "match.matchId": "#{id}",
 
-  "globe.loading": "Carregando globo...",
-  "globe.seats": "{count} lugares",
   "lang.title": "Idioma",
 
   "pools.title": "Grupos",

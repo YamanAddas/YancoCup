@@ -14,6 +14,7 @@
   "home.subtitle": "États-Unis, Mexique et Canada",
   "home.kickoffIn": "Coup d'envoi dans",
   "home.cta": "Pronostiquez les matchs avec vos amis",
+  "home.buildBracket": "Crée ton tableau",
   "home.competitions": "Compétitions",
   "home.liveNow": "En direct",
   "home.liveCount": "{count}",
@@ -185,8 +186,6 @@
   "match.htScore": "MT {home}-{away}",
   "match.matchId": "#{id}",
 
-  "globe.loading": "Chargement du globe...",
-  "globe.seats": "{count} places",
   "lang.title": "Langue",
 
   "pools.title": "Groupes",

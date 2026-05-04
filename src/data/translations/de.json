@@ -14,6 +14,7 @@
   "home.subtitle": "USA, Mexiko & Kanada",
   "home.kickoffIn": "Anpfiff in",
   "home.cta": "Tippe Spiele mit Freunden",
+  "home.buildBracket": "Stelle dein Tableau auf",
   "home.competitions": "Wettbewerbe",
   "home.liveNow": "Live jetzt",
   "home.liveCount": "{count}",
@@ -185,8 +186,6 @@
   "match.htScore": "HZ {home}-{away}",
   "match.matchId": "#{id}",
 
-  "globe.loading": "Globus wird geladen...",
-  "globe.seats": "{count} Plätze",
   "lang.title": "Sprache",
 
   "pools.title": "Pools",

@@ -7,12 +7,12 @@ import {
 } from "./competitions";
 
 describe("COMPETITIONS registry", () => {
-  it("has all 8 expected competitions", () => {
+  it("has all 7 expected competitions", () => {
     const ids = Object.keys(COMPETITIONS);
     expect(ids).toEqual(
-      expect.arrayContaining(["WC", "CL", "PL", "PD", "BL1", "SA", "FL1", "EL"]),
+      expect.arrayContaining(["WC", "CL", "PL", "PD", "BL1", "SA", "FL1"]),
     );
-    expect(ids).toHaveLength(8);
+    expect(ids).toHaveLength(7);
   });
 
   it("each competition has required fields", () => {
@@ -57,7 +57,6 @@ describe("COMPETITIONS registry", () => {
   it("tournaments don't have zones", () => {
     expect(COMPETITIONS.WC.zones).toBeUndefined();
     expect(COMPETITIONS.CL.zones).toBeUndefined();
-    expect(COMPETITIONS.EL.zones).toBeUndefined();
   });
 
   it("PL has 4 CL spots", () => {
@@ -80,7 +79,7 @@ describe("COMPETITION_LIST", () => {
 
   it("contains all competition configs", () => {
     const ids = COMPETITION_LIST.map((c) => c.id);
-    expect(ids).toEqual(expect.arrayContaining(["WC", "CL", "PL", "PD", "BL1", "SA", "FL1", "EL"]));
+    expect(ids).toEqual(expect.arrayContaining(["WC", "CL", "PL", "PD", "BL1", "SA", "FL1"]));
   });
 });
 
@@ -112,7 +111,6 @@ describe("isValidCompetition", () => {
     expect(isValidCompetition("BL1")).toBe(true);
     expect(isValidCompetition("SA")).toBe(true);
     expect(isValidCompetition("FL1")).toBe(true);
-    expect(isValidCompetition("EL")).toBe(true);
   });
 
   it("is case-insensitive", () => {

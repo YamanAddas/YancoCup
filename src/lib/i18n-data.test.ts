@@ -75,8 +75,8 @@ describe("competitionName", () => {
     expect(unknown.shortName).toBe("UNKNOWN");
   });
 
-  it("has translations for all 8 competitions", () => {
-    const comps = ["WC", "CL", "PL", "PD", "BL1", "SA", "FL1", "EL"];
+  it("has translations for all 7 competitions", () => {
+    const comps = ["WC", "CL", "PL", "PD", "BL1", "SA", "FL1"];
     for (const id of comps) {
       const result = competitionName(id, "en");
       expect(result.name).toBeTruthy();

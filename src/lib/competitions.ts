@@ -137,21 +137,6 @@ export const COMPETITIONS: Record<string, CompetitionConfig> = {
     emblemBg: "#ECEFF1",
     zones: { cl: [1, 2, 3], el: [4], ecl: [5], relegation: [16, 17, 18] },
   },
-  EL: {
-    id: "EL",
-    fdCode: "EL",
-    fdId: 2146,
-    name: "UEFA Europa League",
-    shortName: "Europa League",
-    type: "tournament",
-    hasGroups: false,
-    staticSchedule: false,
-    seasonLabel: "2025/26",
-    emoji: "EL",
-    accentColor: "#f26522",
-    emblem: "https://crests.football-data.org/EL.png",
-    emblemBg: "#FFF3E0",
-  },
 };
 
 /** Ordered list of competitions for display */

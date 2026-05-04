@@ -286,14 +286,6 @@ const COMPETITION_NAMES: Record<string, Record<LangCode, { name: string; shortNa
     de: { name: "Ligue 1", shortName: "Ligue 1" },
     pt: { name: "Ligue 1", shortName: "Ligue 1" },
   },
-  EL: {
-    en: { name: "UEFA Europa League", shortName: "Europa League" },
-    ar: { name: "الدوري الأوروبي", shortName: "الدوري الأوروبي" },
-    es: { name: "Liga Europa de la UEFA", shortName: "Europa League" },
-    fr: { name: "Ligue Europa UEFA", shortName: "Ligue Europa" },
-    de: { name: "UEFA Europa League", shortName: "Europa League" },
-    pt: { name: "Liga Europa da UEFA", shortName: "Liga Europa" },
-  },
 };
 
 // ─── Venue Names ─────────────────────────────────────────────────────────────
