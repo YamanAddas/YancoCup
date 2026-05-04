@@ -12,6 +12,7 @@ export interface ActivityItem {
   homeScore: number;
   awayScore: number;
   points: number | null;
+  confidence: 1 | 2 | 3 | null;
   createdAt: string;
 }
 
@@ -24,7 +25,7 @@ export function useActivityFeed(limit = 10, competitionId?: string) {
     async function fetch() {
       let query = supabase
         .from("yc_predictions")
-        .select("id, user_id, match_id, competition_id, home_score, away_score, points, created_at")
+        .select("id, user_id, match_id, competition_id, home_score, away_score, points, confidence, created_at")
         .order("created_at", { ascending: false })
         .limit(limit);
 
@@ -69,6 +70,7 @@ export function useActivityFeed(limit = 10, competitionId?: string) {
           homeScore: d.home_score,
           awayScore: d.away_score,
           points: d.points ?? null,
+          confidence: (d.confidence ?? null) as 1 | 2 | 3 | null,
           createdAt: d.created_at,
         };
       });

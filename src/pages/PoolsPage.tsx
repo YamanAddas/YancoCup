@@ -34,6 +34,7 @@ import {
 import { NavLink } from "react-router-dom";
 import PoolChat from "../components/pool/PoolChat";
 import PoolRecap from "../components/pool/PoolRecap";
+import ConfidenceBadge from "../components/predictions/ConfidenceBadge";
 import { CornerAccent } from "../components/ui/ArabesquePatterns";
 
 function PoolExplainer({ compact = false }: { compact?: boolean }) {
@@ -288,6 +289,7 @@ interface PoolPrediction {
   match_id: number;
   home_score: number;
   away_score: number;
+  confidence: 1 | 2 | 3 | null;
   created_at: string;
 }
 
@@ -304,7 +306,7 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
         const memberIds = members.map((m) => m.user_id);
         const { data } = await supabase
           .from("yc_predictions")
-          .select("user_id, match_id, home_score, away_score, created_at")
+          .select("user_id, match_id, home_score, away_score, confidence, created_at")
           .eq("competition_id", competitionId)
           .in("user_id", memberIds)
           .order("created_at", { ascending: false })
@@ -318,6 +320,7 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
             match_id: p.match_id,
             home_score: p.home_score,
             away_score: p.away_score,
+            confidence: (p.confidence ?? null) as 1 | 2 | 3 | null,
             created_at: p.created_at,
           })));
         }
@@ -350,7 +353,8 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
             </span>
             <span className="text-yc-text-tertiary">{t("pools.predicted")}</span>
             <span className="text-yc-green font-mono font-bold">{p.home_score}-{p.away_score}</span>
-            <span className="text-yc-text-tertiary ml-auto">{timeLabel}</span>
+            <ConfidenceBadge level={p.confidence} />
+            <span className="text-yc-text-tertiary ms-auto">{timeLabel}</span>
           </div>
         );
       })}

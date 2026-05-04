@@ -7,6 +7,7 @@ import { useReactions, type ReactionType } from "../../hooks/useReactions";
 import { useAuth } from "../../lib/auth";
 import { useI18n } from "../../lib/i18n";
 import TeamCrest from "../match/TeamCrest";
+import ConfidenceBadge from "../predictions/ConfidenceBadge";
 import type { Match } from "../../types";
 
 const REACTION_EMOJI: Record<ReactionType, string> = {
@@ -132,6 +133,8 @@ export default function ActivityFeed() {
                   +{item.points}
                 </span>
               )}
+              {/* Confidence stars */}
+              <ConfidenceBadge level={item.confidence} />
               {home && (
                 <TeamCrest tla={home.fifaCode} isoCode={home.isoCode} size="xs" />
               )}

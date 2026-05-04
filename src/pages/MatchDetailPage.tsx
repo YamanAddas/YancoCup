@@ -10,6 +10,7 @@ import { useMyPools, usePoolMembers } from "../hooks/usePools";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 import TeamCrest from "../components/match/TeamCrest";
+import ConfidenceBadge from "../components/predictions/ConfidenceBadge";
 import { WORKER_URL } from "../lib/api";
 
 // ---------------------------------------------------------------------------
@@ -672,6 +673,7 @@ interface PoolPrediction {
   quick_pick: "H" | "D" | "A" | null;
   points: number | null;
   is_joker: boolean;
+  confidence: 1 | 2 | 3 | null;
 }
 
 interface PoolMemberProfile {
@@ -729,7 +731,7 @@ function PredictionsTab({
 
     supabase
       .from("yc_predictions")
-      .select("user_id, home_score, away_score, quick_pick, points, is_joker")
+      .select("user_id, home_score, away_score, quick_pick, points, is_joker, confidence")
       .eq("match_id", matchId)
       .eq("competition_id", competitionId)
       .in("user_id", memberIds)
@@ -895,6 +897,9 @@ function PredictionsTab({
                           ? { H: homeTeam.tla, D: "X", A: awayTeam.tla }[pred.quick_pick]
                           : `${pred.home_score}-${pred.away_score}`}
                       </span>
+
+                      {/* Confidence stars */}
+                      <ConfidenceBadge level={pred.confidence} />
 
                       {/* Joker badge */}
                       {pred.is_joker && (
