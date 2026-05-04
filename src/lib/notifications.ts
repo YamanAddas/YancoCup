@@ -15,6 +15,61 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return result === "granted";
 }
 
+/** Decode base64url to ArrayBuffer — required by pushManager.subscribe's
+ *  applicationServerKey, which expects a raw byte buffer of the VAPID
+ *  public key, not its base64url string form. */
+function urlBase64ToBuffer(b64: string): ArrayBuffer {
+  const padding = "=".repeat((4 - (b64.length % 4)) % 4);
+  const base64 = (b64 + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const buffer = new ArrayBuffer(raw.length);
+  const view = new Uint8Array(buffer);
+  for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i);
+  return buffer;
+}
+
+/** Subscribe to web push notifications via the registered service worker.
+ *  Posts the resulting subscription to the Worker so it can send pushes
+ *  later. No-op when VITE_VAPID_PUBLIC_KEY isn't set. */
+export async function subscribeToPush(
+  workerUrl: string,
+  authToken: string,
+): Promise<boolean> {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return false;
+  if (!("PushManager" in window)) return false;
+  const vapidPublic = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  if (!vapidPublic) {
+    console.warn("VITE_VAPID_PUBLIC_KEY not set — push subscription skipped");
+    return false;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToBuffer(vapidPublic),
+      });
+    }
+    const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
+    const res = await fetch(`${workerUrl}/api/push/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({
+        endpoint: json.endpoint,
+        p256dh: json.keys.p256dh,
+        auth: json.keys.auth,
+        userAgent: navigator.userAgent,
+      }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.error("Push subscribe failed:", err);
+    return false;
+  }
+}
+
 /** Check if notifications are enabled */
 export function notificationsEnabled(): boolean {
   return "Notification" in window && Notification.permission === "granted";

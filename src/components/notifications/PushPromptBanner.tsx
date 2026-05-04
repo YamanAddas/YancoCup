@@ -3,7 +3,8 @@ import { Bell, X } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 import { useMyPredictions } from "../../hooks/usePredictions";
 import { useI18n } from "../../lib/i18n";
-import { requestNotificationPermission } from "../../lib/notifications";
+import { requestNotificationPermission, subscribeToPush } from "../../lib/notifications";
+import { WORKER_URL } from "../../lib/api";
 
 const ASKED_KEY = "yc_push_asked";
 
@@ -14,7 +15,7 @@ const ASKED_KEY = "yc_push_asked";
  * persist via localStorage so we don't nag.
  */
 export default function PushPromptBanner() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { predictions } = useMyPredictions("WC");
   const { t } = useI18n();
   const [eligible, setEligible] = useState(false);
@@ -34,6 +35,9 @@ export default function PushPromptBanner() {
 
   async function enable() {
     const granted = await requestNotificationPermission();
+    if (granted && session?.access_token) {
+      await subscribeToPush(WORKER_URL, session.access_token);
+    }
     window.localStorage.setItem(ASKED_KEY, granted ? "granted" : "denied");
     setDismissed(true);
   }

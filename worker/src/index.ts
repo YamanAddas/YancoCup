@@ -3313,6 +3313,64 @@ app.post("/api/contact", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /api/push/subscribe — store a Web Push subscription for the user.
+// Push send (with VAPID JWT + payload encryption) ships in a follow-up.
+// ---------------------------------------------------------------------------
+
+app.post("/api/push/subscribe", async (c) => {
+  const authHeader = c.req.header("Authorization") ?? "";
+  const accessToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!accessToken) return c.json({ error: "Missing Authorization" }, 401);
+
+  // Verify the JWT against Supabase by exchanging for the user record.
+  const userRes = await fetch(`${c.env.SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      apikey: c.env.SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  if (!userRes.ok) return c.json({ error: "Invalid session" }, 401);
+  const userData = (await userRes.json()) as { id?: string };
+  if (!userData.id) return c.json({ error: "Invalid session" }, 401);
+
+  const body = await c.req
+    .json<{ endpoint?: string; p256dh?: string; auth?: string; userAgent?: string }>()
+    .catch(() => null);
+  if (!body || !body.endpoint || !body.p256dh || !body.auth) {
+    return c.json({ error: "Missing subscription fields" }, 400);
+  }
+
+  const row = {
+    user_id: userData.id,
+    endpoint: body.endpoint,
+    p256dh: body.p256dh,
+    auth_secret: body.auth,
+    user_agent: body.userAgent ?? null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const upsert = await fetch(
+    `${c.env.SUPABASE_URL}/rest/v1/yc_push_subscriptions?on_conflict=user_id,endpoint`,
+    {
+      method: "POST",
+      headers: {
+        apikey: c.env.SUPABASE_SERVICE_KEY,
+        Authorization: `Bearer ${c.env.SUPABASE_SERVICE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=minimal",
+      },
+      body: JSON.stringify(row),
+    },
+  );
+  if (!upsert.ok) {
+    const txt = await upsert.text();
+    console.error("Push subscribe upsert failed:", upsert.status, txt);
+    return c.json({ error: "Could not store subscription" }, 500);
+  }
+  return c.json({ ok: true });
+});
+
+// ---------------------------------------------------------------------------
 // 404 fallback
 // ---------------------------------------------------------------------------
 
@@ -3339,6 +3397,7 @@ app.notFound((c) => {
         "GET /api/match/:id (alias)",
         "GET /api/health",
         "POST /api/contact",
+        "POST /api/push/subscribe",
       ],
     },
     404,
