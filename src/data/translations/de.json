@@ -593,5 +593,11 @@
   "home.postFinal.runnerUp": "Finalist",
   "home.postFinal.thirdPlace": "3. Platz",
   "home.postFinal.finalLeaderboard": "Abschlusstabelle",
-  "home.postFinal.placeholderNote": "Das Endergebnis erscheint hier nach Turnierende."
+  "home.postFinal.placeholderNote": "Das Endergebnis erscheint hier nach Turnierende.",
+  "pools.pulseEvent.locked": "hat seinen Tipp fixiert",
+  "pools.pulseEvent.raised": "hat die Sicherheit erhöht",
+  "pools.pulseEvent.lowered": "hat die Sicherheit gesenkt",
+  "pools.pulseEvent.joker_on": "hat einen Joker eingesetzt",
+  "pools.pulseEvent.joker_off": "hat den Joker entfernt",
+  "pools.pulseEvent.changed": "hat den Tipp geändert"
 }

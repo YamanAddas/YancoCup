@@ -593,5 +593,11 @@
   "home.postFinal.runnerUp": "Runner-up",
   "home.postFinal.thirdPlace": "3rd Place",
   "home.postFinal.finalLeaderboard": "Final leaderboard",
-  "home.postFinal.placeholderNote": "Final result will appear here once the tournament concludes."
+  "home.postFinal.placeholderNote": "Final result will appear here once the tournament concludes.",
+  "pools.pulseEvent.locked": "locked their pick",
+  "pools.pulseEvent.raised": "raised their confidence",
+  "pools.pulseEvent.lowered": "lowered their confidence",
+  "pools.pulseEvent.joker_on": "added a Joker",
+  "pools.pulseEvent.joker_off": "removed their Joker",
+  "pools.pulseEvent.changed": "changed their pick"
 }

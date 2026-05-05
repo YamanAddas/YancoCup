@@ -593,5 +593,11 @@
   "home.postFinal.runnerUp": "Subcampeón",
   "home.postFinal.thirdPlace": "3er Lugar",
   "home.postFinal.finalLeaderboard": "Tabla final",
-  "home.postFinal.placeholderNote": "El resultado final aparecerá aquí cuando termine el torneo."
+  "home.postFinal.placeholderNote": "El resultado final aparecerá aquí cuando termine el torneo.",
+  "pools.pulseEvent.locked": "fijó su pronóstico",
+  "pools.pulseEvent.raised": "aumentó su confianza",
+  "pools.pulseEvent.lowered": "redujo su confianza",
+  "pools.pulseEvent.joker_on": "añadió un Comodín",
+  "pools.pulseEvent.joker_off": "quitó su Comodín",
+  "pools.pulseEvent.changed": "cambió su pronóstico"
 }

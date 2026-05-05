@@ -593,5 +593,11 @@
   "home.postFinal.runnerUp": "Finaliste",
   "home.postFinal.thirdPlace": "3e Place",
   "home.postFinal.finalLeaderboard": "Classement final",
-  "home.postFinal.placeholderNote": "Le résultat final apparaîtra ici à la fin du tournoi."
+  "home.postFinal.placeholderNote": "Le résultat final apparaîtra ici à la fin du tournoi.",
+  "pools.pulseEvent.locked": "a verrouillé son pronostic",
+  "pools.pulseEvent.raised": "a renforcé sa confiance",
+  "pools.pulseEvent.lowered": "a baissé sa confiance",
+  "pools.pulseEvent.joker_on": "a ajouté un Joker",
+  "pools.pulseEvent.joker_off": "a retiré son Joker",
+  "pools.pulseEvent.changed": "a changé son pronostic"
 }

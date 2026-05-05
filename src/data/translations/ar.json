@@ -593,5 +593,11 @@
   "home.postFinal.runnerUp": "الوصيف",
   "home.postFinal.thirdPlace": "المركز الثالث",
   "home.postFinal.finalLeaderboard": "الترتيب النهائي",
-  "home.postFinal.placeholderNote": "ستظهر النتيجة النهائية هنا فور انتهاء البطولة."
+  "home.postFinal.placeholderNote": "ستظهر النتيجة النهائية هنا فور انتهاء البطولة.",
+  "pools.pulseEvent.locked": "ثبّت توقعه",
+  "pools.pulseEvent.raised": "رفع ثقته",
+  "pools.pulseEvent.lowered": "خفّض ثقته",
+  "pools.pulseEvent.joker_on": "أضاف الجوكر",
+  "pools.pulseEvent.joker_off": "أزال الجوكر",
+  "pools.pulseEvent.changed": "غيّر توقعه"
 }

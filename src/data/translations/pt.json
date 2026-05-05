@@ -593,5 +593,11 @@
   "home.postFinal.runnerUp": "Vice-campeão",
   "home.postFinal.thirdPlace": "3º Lugar",
   "home.postFinal.finalLeaderboard": "Classificação final",
-  "home.postFinal.placeholderNote": "O resultado final aparecerá aqui ao fim do torneio."
+  "home.postFinal.placeholderNote": "O resultado final aparecerá aqui ao fim do torneio.",
+  "pools.pulseEvent.locked": "fixou seu palpite",
+  "pools.pulseEvent.raised": "aumentou a confiança",
+  "pools.pulseEvent.lowered": "diminuiu a confiança",
+  "pools.pulseEvent.joker_on": "ativou o Coringa",
+  "pools.pulseEvent.joker_off": "removeu o Coringa",
+  "pools.pulseEvent.changed": "alterou o palpite"
 }

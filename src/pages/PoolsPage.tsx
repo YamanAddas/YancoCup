@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useAuth } from "../lib/auth";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useI18n } from "../lib/i18n";
@@ -293,7 +293,25 @@ interface PoolPrediction {
   home_score: number;
   away_score: number;
   confidence: 1 | 2 | 3 | null;
+  is_joker: boolean;
   created_at: string;
+}
+
+/** Specific Pool Pulse event derived from postgres_changes payloads.
+ *  Lives ~5s as a toast strip above the activity list, then clears. */
+type PulseEventKind =
+  | "locked"
+  | "raised"
+  | "lowered"
+  | "joker_on"
+  | "joker_off"
+  | "changed";
+
+interface PulseEvent {
+  id: number;
+  user: string;
+  kind: PulseEventKind;
+  matchId: number;
 }
 
 function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; competitionId: string }) {
@@ -309,6 +327,12 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
   /** Keys of recently-arrived predictions ("user_id:match_id"). Lets us
    *  briefly tint a row green when it shows up via Realtime. */
   const [pulses, setPulses] = useState<Set<string>>(new Set());
+  /** Last specific Pool Pulse event — auto-clears after ~5s. */
+  const [lastEvent, setLastEvent] = useState<PulseEvent | null>(null);
+  /** Snapshot of (user_id+match_id → prediction) for diffing realtime updates
+   *  against the previous state. postgres_changes UPDATE payloads carry the
+   *  full new row but only PK columns in `old`, so we diff against this map. */
+  const lastByKeyRef = useRef<Map<string, { confidence: 1 | 2 | 3 | null; is_joker: boolean; home_score: number | null; away_score: number | null }>>(new Map());
 
   const memberIds = useMemo(() => members.map((m) => m.user_id), [members]);
   const memberMap = useMemo(
@@ -321,22 +345,35 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
     try {
       const { data } = await supabase
         .from("yc_predictions")
-        .select("user_id, match_id, home_score, away_score, confidence, created_at")
+        .select("user_id, match_id, home_score, away_score, confidence, is_joker, created_at")
         .eq("competition_id", competitionId)
         .in("user_id", memberIds)
         .order("created_at", { ascending: false })
         .limit(8);
 
       if (data) {
-        setPredictions(data.map((p) => ({
+        const rows = data.map((p) => ({
           handle: memberMap.get(p.user_id)?.handle ?? "?",
           display_name: memberMap.get(p.user_id)?.display_name ?? null,
           match_id: p.match_id,
           home_score: p.home_score,
           away_score: p.away_score,
           confidence: (p.confidence ?? null) as 1 | 2 | 3 | null,
+          is_joker: Boolean(p.is_joker),
           created_at: p.created_at,
-        })));
+        }));
+        setPredictions(rows);
+        // Keep a richer snapshot keyed by user_id:match_id for realtime diffs
+        const map = new Map<string, { confidence: 1 | 2 | 3 | null; is_joker: boolean; home_score: number | null; away_score: number | null }>();
+        for (const p of data) {
+          map.set(`${p.user_id}:${p.match_id}`, {
+            confidence: (p.confidence ?? null) as 1 | 2 | 3 | null,
+            is_joker: Boolean(p.is_joker),
+            home_score: p.home_score,
+            away_score: p.away_score,
+          });
+        }
+        lastByKeyRef.current = map;
       }
     } catch {
       setError("Could not load activity");
@@ -349,9 +386,9 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
     load();
   }, [load]);
 
-  // Pool Pulse: real-time INSERT/UPDATE subscription. When a pool member
-  // commits or changes a pick, the feed refreshes and the new row pulses
-  // green for ~2.5s.
+  // Pool Pulse: real-time subscription. Derives a specific event kind from
+  // the postgres_changes payload (locked / raised / joker_on / changed / …)
+  // and emits a transient toast in addition to the green-pulse list refresh.
   useEffect(() => {
     if (memberIds.length === 0) return;
     const memberSet = new Set(memberIds);
@@ -366,13 +403,41 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
           filter: `competition_id=eq.${competitionId}`,
         },
         (payload) => {
-          const row = (payload.new ?? payload.old) as
-            | { user_id?: string; match_id?: number }
+          const newRow = payload.new as
+            | { user_id?: string; match_id?: number; confidence?: number | null; is_joker?: boolean; home_score?: number | null; away_score?: number | null }
             | null;
-          if (!row?.user_id || !memberSet.has(row.user_id)) return;
+          const oldRow = payload.old as { user_id?: string; match_id?: number } | null;
+          const userId = newRow?.user_id ?? oldRow?.user_id;
+          const matchId = newRow?.match_id ?? oldRow?.match_id;
+          if (!userId || !memberSet.has(userId)) return;
+
+          // Derive event kind by diffing against our local snapshot
+          let kind: PulseEventKind | null = null;
+          if (newRow && matchId != null) {
+            const key = `${userId}:${matchId}`;
+            const prev = lastByKeyRef.current.get(key);
+            if (payload.eventType === "INSERT" || !prev) {
+              kind = "locked";
+            } else {
+              const oldConf = prev.confidence;
+              const newConf = (newRow.confidence ?? null) as 1 | 2 | 3 | null;
+              if (oldConf !== newConf) {
+                kind = (newConf ?? 0) > (oldConf ?? 0) ? "raised" : "lowered";
+              } else if (prev.is_joker !== Boolean(newRow.is_joker)) {
+                kind = newRow.is_joker ? "joker_on" : "joker_off";
+              } else if (
+                prev.home_score !== (newRow.home_score ?? null) ||
+                prev.away_score !== (newRow.away_score ?? null)
+              ) {
+                kind = "changed";
+              }
+            }
+          }
+
           load();
-          if (row.match_id != null) {
-            const key = `${row.user_id}:${row.match_id}`;
+
+          if (matchId != null) {
+            const key = `${userId}:${matchId}`;
             setPulses((prev) => new Set(prev).add(key));
             setTimeout(() => {
               setPulses((prev) => {
@@ -382,13 +447,23 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
               });
             }, 2500);
           }
+
+          if (kind && matchId != null) {
+            const member = memberMap.get(userId);
+            const handle = member?.display_name ?? member?.handle ?? "?";
+            const eventId = Date.now();
+            setLastEvent({ id: eventId, user: handle, kind, matchId });
+            setTimeout(() => {
+              setLastEvent((curr) => (curr?.id === eventId ? null : curr));
+            }, 5000);
+          }
         },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [memberIds, competitionId, load]);
+  }, [memberIds, memberMap, competitionId, load]);
 
   if (loading) return <div className="h-12 bg-yc-bg-elevated rounded animate-pulse" />;
   if (error) return <p className="text-center text-sm text-yc-danger py-4">{error}</p>;
@@ -400,6 +475,32 @@ function PoolActivityFeed({ members, competitionId }: { members: PoolMember[]; c
         <Activity size={10} />
         {t("pools.recentActivity")}
       </div>
+      {lastEvent && (
+        <div
+          key={lastEvent.id}
+          className="flex items-center gap-2 px-2 py-1.5 -mx-2 rounded bg-yc-green/10 border border-yc-green-muted/20 animate-[yc-fade-in_200ms_ease-out]"
+        >
+          <span className="text-base leading-none shrink-0" aria-hidden>
+            {lastEvent.kind === "locked"
+              ? "🔒"
+              : lastEvent.kind === "raised"
+                ? "🔥"
+                : lastEvent.kind === "lowered"
+                  ? "🎲"
+                  : lastEvent.kind === "joker_on"
+                    ? "✨"
+                    : lastEvent.kind === "joker_off"
+                      ? "↩️"
+                      : "🔁"}
+          </span>
+          <span className="text-xs text-yc-text-primary truncate">
+            <span className="font-semibold">{lastEvent.user}</span>{" "}
+            <span className="text-yc-text-secondary">
+              {t(`pools.pulseEvent.${lastEvent.kind}`)}
+            </span>
+          </span>
+        </div>
+      )}
       {predictions.map((p) => {
         const ago = Math.floor((Date.now() - new Date(p.created_at).getTime()) / 60000);
         const timeLabel = ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.floor(ago / 60)}h` : `${Math.floor(ago / 1440)}d`;
