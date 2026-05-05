@@ -113,7 +113,6 @@ const COMPETITIONS: Record<string, CompetitionDef> = {
   BL1: { name: "Bundesliga", type: "league", fdId: 2002 },
   SA: { name: "Serie A", type: "league", fdId: 2019 },
   FL1: { name: "Ligue 1", type: "league", fdId: 2015 },
-  EC: { name: "European Championship", type: "tournament", fdId: 2018 },
 };
 
 // Reverse map: fd competition ID → our code
@@ -122,7 +121,7 @@ const FD_ID_TO_CODE = new Map(
 );
 
 // Competitions with active standings to rotate through
-const STANDINGS_COMPS = ["WC", "PL", "PD", "BL1", "SA", "FL1", "CL", "EC"];
+const STANDINGS_COMPS = ["WC", "PL", "PD", "BL1", "SA", "FL1", "CL"];
 
 // ---------------------------------------------------------------------------
 // Safe JSON parse — returns null on corrupt KV data instead of crashing
@@ -211,7 +210,6 @@ const AF_LEAGUE_IDS: Record<string, number> = {
   FL1: 61,
   CL: 2,
   WC: 1,
-  EC: 4,
 };
 
 /**
@@ -392,7 +390,7 @@ async function findApiFootballFixture(
     // Fetch all fixtures for this league on this date (1 API call for ~10 matches)
     const season = parseInt(matchDate.slice(0, 4), 10);
     // API-Football season year: use the start year of the season
-    const seasonYear = compCode === "WC" || compCode === "EC" ? season : (new Date(matchDate) >= new Date(`${season}-07-01`) ? season : season - 1);
+    const seasonYear = compCode === "WC" ? season : (new Date(matchDate) >= new Date(`${season}-07-01`) ? season : season - 1);
 
     const res = await fetchFromApiFootball(
       `/fixtures?league=${leagueId}&season=${seasonYear}&date=${matchDate}`,

@@ -40,7 +40,6 @@ const FD_ID_TO_CODE = new Map<number, string>([
   [2015, "FL1"],
   [2019, "SA"],
   [2021, "PL"],
-  [2152, "EC"],
 ]);
 
 function transformMatch(m: FDMatch) {
