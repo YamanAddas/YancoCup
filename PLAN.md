@@ -2,7 +2,7 @@
 
 The audit-driven plan for making YancoCup feel finished, owned, and unique before the World Cup. Three lanes: Foundation (must not feel broken), Innovation (the differentiators), Decisions (calls to make before coding).
 
-> **Status (2026-05-04, post-audit):** 11/20 items fully shipped, 2 mostly shipped, 7 partial. **Done:** A3, A4, A5, A6, A7, A9, A10, B5, C2, C3, C4. **Mostly done:** B1 (group-stage shipped, knockouts/post-final still scaffold), B6 (shareable image shipped, worker schedule still missing). **Partial:** A1, A2, A8, B2, B3, B4, C1.
+> **Status (2026-05-04, post-audit):** 13/20 items fully shipped, 2 mostly shipped, 5 partial. **Done:** A1, A3, A4, A5, A6, A7, A9, A10, B5, C1, C2, C3, C4. **Mostly done:** B1 (group-stage shipped, knockouts/post-final still scaffold), B6 (shareable image shipped, worker schedule still missing). **Partial:** A2, A8, B2, B3, B4.
 
 ---
 
@@ -10,10 +10,10 @@ The audit-driven plan for making YancoCup feel finished, owned, and unique befor
 
 Things that must work, must feel finished, must stop being silently broken.
 
-**A1. Cut EL, ship 7 competitions.** ⚠️ PARTIAL `1de9436`
+**A1. Cut EL, ship 7 competitions.** ✅ `1de9436` + `af54e08`
 Frontend registers `EL`, Worker registers `EC` — every `/api/EL/*` 404s. Drop the 8th competition entirely; don't ship a broken hub.
-**Reality:** Frontend ships 7 competitions (`competitions.ts` has WC, CL, PL, PD, BL1, SA, FL1 — no EL). **Worker still registers EC** ([worker/src/index.ts:116](worker/src/index.ts:116)) and includes it in `STANDINGS_COMPS`. So the count is now 7 frontend / 8 worker — different from the original mismatch but still not "ship 7 that work."
-Files: `src/lib/competitions.ts`, `worker/src/index.ts:113`.
+**Reality:** Both frontend and worker now register exactly 7 competitions: WC, CL, PL, PD, BL1, SA, FL1. EC removed from worker `COMPETITIONS`, `STANDINGS_COMPS`, `AF_LEAGUE_IDS`, season-year calc, and the transformMatch test. Worker redeploy pending for production effect.
+Files: `src/lib/competitions.ts`, `worker/src/index.ts`, `worker/src/transformMatch.test.ts`.
 
 **A2. Worker cron at 60s + visible freshness timestamps.** ⚠️ PARTIAL `3d4103e`
 Currently `*/5 * * * *`. Switch to `*/1 * * * *` during WC. Add "Updated Xs ago" to live cards. Stop pretending to be live; own the freshness honestly.
@@ -97,7 +97,7 @@ Files: `src/components/pool/WallOfFame.tsx`, `src/lib/wallOfFameCard.ts`, `src/l
 
 ## Lane C — Decisions
 
-**C1. EL or EC for the 8th slot?** ⚠️ PARTIAL — Frontend dropped EL ✓, but Worker still has EC ([worker/src/index.ts:116](worker/src/index.ts:116)). The decision was "drop entirely, ship 7 that work" — frontend matches, worker doesn't.
+**C1. EL or EC for the 8th slot?** ✅ Dropped entirely. Both frontend and worker register 7 competitions. Worker redeploy pending for production.
 **C2. WC national-squad data — source or skip?** ✅ Skipped. No squad pages implemented.
 **C3. Auth: anonymous-first or sign-up-first?** ✅ Anonymous-first. See A7.
 **C4. Globe — kill immediately or stage replacement?** ✅ Killed. `src/components/globe/` directory deleted.
@@ -109,8 +109,8 @@ Files: `src/components/pool/WallOfFame.tsx`, `src/lib/wallOfFameCard.ts`, `src/l
 Ranked by criticality:
 
 1. ~~**B1 group-stage phase**~~ ✅ shipped `cb97dd4`
-2. **A2 cron switch** — Has to flip to `*/1 * * * *` on/around June 10 alongside the threshold edits documented in `wrangler.toml`. Not code work, but checklist work.
-3. **A1 / C1 worker EC cleanup** — Either remove EC from worker to match frontend, or formally accept 7 frontend / 8 worker as intentional. Not a launch-blocker but a coherence issue.
+2. **A2 cron switch** — Has to flip to `*/1 * * * *` on/around June 10 alongside the threshold edits documented in `wrangler.toml`. Not code work, but checklist work. **Worker redeploy needed (also covers A1/C1 EC removal landed in `af54e08`).**
+3. ~~**A1 / C1 worker EC cleanup**~~ ✅ shipped `af54e08`
 4. ~~**B6 shareable image**~~ ✅ shipped `18bd537`
 5. **B1 knockouts phase** — Activates June 28. Currently falls through to pre-kickoff hero. Bracket Cathedral with picks overlay. Less urgent than group-stage (17 days of runway after launch) but still launch-window work.
 6. **B4 streak system** — Affects scoring + reveal + gamification. Needs a design call: how does a streak break/extend? What's the bonus? Adds depth but not a launch-blocker.
