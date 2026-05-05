@@ -584,5 +584,7 @@
   "home.knockouts.eyebrow": "Knockouts",
   "home.knockouts.matches": "matches",
   "home.knockouts.fullBracket": "Full bracket",
-  "home.dayOf": "Day {day} of {total}"
+  "home.dayOf": "Day {day} of {total}",
+  "pools.wallMvp": "MVP",
+  "pools.wallMvpDesc": "{count} bold picks scored"
 }

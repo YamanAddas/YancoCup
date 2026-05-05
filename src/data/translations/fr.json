@@ -584,5 +584,7 @@
   "home.knockouts.eyebrow": "Phase à élimination",
   "home.knockouts.matches": "matchs",
   "home.knockouts.fullBracket": "Tableau complet",
-  "home.dayOf": "Jour {day} sur {total}"
+  "home.dayOf": "Jour {day} sur {total}",
+  "pools.wallMvp": "MVP",
+  "pools.wallMvpDesc": "{count} pronostics audacieux réussis"
 }

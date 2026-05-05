@@ -584,5 +584,7 @@
   "home.knockouts.eyebrow": "K.-o.-Runde",
   "home.knockouts.matches": "Spiele",
   "home.knockouts.fullBracket": "Vollständiger Spielplan",
-  "home.dayOf": "Tag {day} von {total}"
+  "home.dayOf": "Tag {day} von {total}",
+  "pools.wallMvp": "MVP",
+  "pools.wallMvpDesc": "{count} mutige Tipps getroffen"
 }

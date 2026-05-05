@@ -584,5 +584,7 @@
   "home.knockouts.eyebrow": "الأدوار الإقصائية",
   "home.knockouts.matches": "مباريات",
   "home.knockouts.fullBracket": "الجدول الكامل",
-  "home.dayOf": "اليوم {day} من {total}"
+  "home.dayOf": "اليوم {day} من {total}",
+  "pools.wallMvp": "نجم الأسبوع",
+  "pools.wallMvpDesc": "{count} توقّع جريء ناجح"
 }

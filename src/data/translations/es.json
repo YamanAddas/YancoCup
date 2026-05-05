@@ -584,5 +584,7 @@
   "home.knockouts.eyebrow": "Eliminatorias",
   "home.knockouts.matches": "partidos",
   "home.knockouts.fullBracket": "Cuadro completo",
-  "home.dayOf": "Día {day} de {total}"
+  "home.dayOf": "Día {day} de {total}",
+  "pools.wallMvp": "MVP",
+  "pools.wallMvpDesc": "{count} pronósticos audaces acertados"
 }

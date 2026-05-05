@@ -5,7 +5,7 @@ import { useCompetitionSchedule } from "../../hooks/useCompetitionSchedule";
 import { useTeamMap } from "../../hooks/useTeams";
 import type { PoolMember } from "../../hooks/usePools";
 import type { Match, Team } from "../../types";
-import { Trophy, Frown, Loader2, Share2, Check } from "lucide-react";
+import { Trophy, Frown, Loader2, Share2, Check, Flame } from "lucide-react";
 import ConfidenceBadge from "../predictions/ConfidenceBadge";
 import TeamCrest from "../match/TeamCrest";
 import {
@@ -52,6 +52,8 @@ export default function WallOfFame({
   const teamMap = useTeamMap();
   const [best, setBest] = useState<WallEntry | null>(null);
   const [worst, setWorst] = useState<WallEntry | null>(null);
+  /** Most "🔥 Sure Thing AND right" picks this week — confidence-as-currency MVP. */
+  const [mvp, setMvp] = useState<{ member: PoolMember; count: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [sharing, setSharing] = useState(false);
   const [shareToast, setShareToast] = useState<string | null>(null);
@@ -116,6 +118,24 @@ export default function WallOfFame({
         worstPred = null;
       }
 
+      // MVP — confidence-as-currency:
+      // count picks where the user said 🔥 Sure Thing (confidence === 3) AND
+      // the pick scored ≥ 3 pts (correct result or better). Leader takes it.
+      const confidentRightCounts = new Map<string, number>();
+      for (const p of rows) {
+        if (p.confidence === 3 && (p.points ?? 0) >= 3) {
+          confidentRightCounts.set(p.user_id, (confidentRightCounts.get(p.user_id) ?? 0) + 1);
+        }
+      }
+      let mvpEntry: { member: PoolMember; count: number } | null = null;
+      for (const [userId, count] of confidentRightCounts) {
+        const member = memberMap.get(userId);
+        if (!member) continue;
+        if (!mvpEntry || count > mvpEntry.count) {
+          mvpEntry = { member, count };
+        }
+      }
+
       function toEntry(p: ScoredPrediction | null): WallEntry | null {
         if (!p) return null;
         const member = memberMap.get(p.user_id);
@@ -125,6 +145,7 @@ export default function WallOfFame({
 
       setBest(toEntry(bestPred));
       setWorst(toEntry(worstPred));
+      setMvp(mvpEntry);
       setLoading(false);
     }
 
@@ -186,6 +207,22 @@ export default function WallOfFame({
           {shareToast ?? t("shareCard.shareWall")}
         </button>
       </div>
+      {mvp && (
+        <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-yc-warning/[0.06] border border-yc-warning/20">
+          <Flame size={14} className="text-yc-warning shrink-0" />
+          <p className="text-xs text-yc-text-secondary flex-1 min-w-0 truncate">
+            <span className="text-yc-text-tertiary uppercase tracking-wider me-1.5 text-[10px] font-semibold">
+              {t("pools.wallMvp")}
+            </span>
+            <span className="font-semibold text-yc-text-primary">
+              {mvp.member.display_name ?? mvp.member.handle ?? "?"}
+            </span>
+            <span className="text-yc-text-tertiary ms-1">
+              {t("pools.wallMvpDesc", { count: mvp.count })}
+            </span>
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {best && <WallCard kind="fame" entry={best} teamMap={teamMap} />}
         {worst && <WallCard kind="shame" entry={worst} teamMap={teamMap} />}

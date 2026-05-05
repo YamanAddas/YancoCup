@@ -584,5 +584,7 @@
   "home.knockouts.eyebrow": "Mata-mata",
   "home.knockouts.matches": "jogos",
   "home.knockouts.fullBracket": "Chaveamento completo",
-  "home.dayOf": "Dia {day} de {total}"
+  "home.dayOf": "Dia {day} de {total}",
+  "pools.wallMvp": "MVP",
+  "pools.wallMvpDesc": "{count} palpites ousados certos"
 }
