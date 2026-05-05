@@ -572,5 +572,13 @@
   "home.groupStage.checkSchedule": "Mañana se reanuda — ten tus pronósticos listos.",
   "home.groupStage.fullTables": "Tablas completas",
   "home.groupStage.legendQualify": "Top 2 avanza",
-  "home.groupStage.legendThird": "Candidato a 3er puesto"
+  "home.groupStage.legendThird": "Candidato a 3er puesto",
+  "shareCard.shareWall": "Compartir",
+  "shareCard.wallTitle": "Muro de la Fama y la Vergüenza",
+  "shareCard.wallShareText": "{pool} — Muro de la Fama y la Vergüenza esta semana | YancoCup",
+  "shareCard.wallConfSure": "🔥 Seguro",
+  "shareCard.wallConfRisky": "🤔 Arriesgado",
+  "shareCard.wallConfWild": "🎲 A ciegas",
+  "shareCard.wallFameEmpty": "Ningún acierto destacado esta semana",
+  "shareCard.wallShameEmpty": "Todos jugaron seguro"
 }

@@ -572,5 +572,13 @@
   "home.groupStage.checkSchedule": "Les matchs reprennent demain — préparez vos pronostics.",
   "home.groupStage.fullTables": "Classements complets",
   "home.groupStage.legendQualify": "Top 2 qualifié",
-  "home.groupStage.legendThird": "Candidat 3e place"
+  "home.groupStage.legendThird": "Candidat 3e place",
+  "shareCard.shareWall": "Partager",
+  "shareCard.wallTitle": "Mur de la Gloire et de la Honte",
+  "shareCard.wallShareText": "{pool} — Mur de la Gloire et de la Honte cette semaine | YancoCup",
+  "shareCard.wallConfSure": "🔥 Certain",
+  "shareCard.wallConfRisky": "🤔 Risqué",
+  "shareCard.wallConfWild": "🎲 À l'aveugle",
+  "shareCard.wallFameEmpty": "Aucun pronostic marquant cette semaine",
+  "shareCard.wallShameEmpty": "Tout le monde a joué la sécurité"
 }

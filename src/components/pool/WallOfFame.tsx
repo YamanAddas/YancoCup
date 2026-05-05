@@ -4,10 +4,15 @@ import { useI18n } from "../../lib/i18n";
 import { useCompetitionSchedule } from "../../hooks/useCompetitionSchedule";
 import { useTeamMap } from "../../hooks/useTeams";
 import type { PoolMember } from "../../hooks/usePools";
-import type { Match } from "../../types";
-import { Trophy, Frown, Loader2 } from "lucide-react";
+import type { Match, Team } from "../../types";
+import { Trophy, Frown, Loader2, Share2, Check } from "lucide-react";
 import ConfidenceBadge from "../predictions/ConfidenceBadge";
 import TeamCrest from "../match/TeamCrest";
+import {
+  shareWallOfFameCard,
+  type WallOfFameCardData,
+  type WallOfFameEntry,
+} from "../../lib/wallOfFameCard";
 
 interface ScoredPrediction {
   user_id: string;
@@ -36,16 +41,20 @@ interface WallEntry {
 export default function WallOfFame({
   competitionId,
   members,
+  poolName,
 }: {
   competitionId: string;
   members: PoolMember[];
+  poolName?: string;
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { matches } = useCompetitionSchedule();
   const teamMap = useTeamMap();
   const [best, setBest] = useState<WallEntry | null>(null);
   const [worst, setWorst] = useState<WallEntry | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sharing, setSharing] = useState(false);
+  const [shareToast, setShareToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (members.length === 0) {
@@ -125,6 +134,26 @@ export default function WallOfFame({
     };
   }, [members, competitionId, matches]);
 
+  async function handleShare() {
+    if (!best && !worst) return;
+    setSharing(true);
+    const data: WallOfFameCardData = {
+      poolName: poolName ?? "YancoCup Pool",
+      weekLabel: new Date().toLocaleDateString(
+        lang === "en" ? "en-US" : lang,
+        { month: "short", day: "numeric" },
+      ),
+      best: best ? toCardEntry(best, teamMap) : null,
+      worst: worst ? toCardEntry(worst, teamMap) : null,
+    };
+    const result = await shareWallOfFameCard(data, t);
+    setSharing(false);
+    if (result === "shared") setShareToast(t("shareCard.shared"));
+    else if (result === "downloaded") setShareToast(t("shareCard.saved"));
+    else setShareToast(t("shareCard.generateFailed"));
+    setTimeout(() => setShareToast(null), 2500);
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center py-3">
@@ -137,15 +166,62 @@ export default function WallOfFame({
 
   return (
     <div>
-      <p className="text-xs text-yc-text-tertiary uppercase tracking-wider mb-3 font-medium">
-        {t("pools.wallTitle")}
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs text-yc-text-tertiary uppercase tracking-wider font-medium">
+          {t("pools.wallTitle")}
+        </p>
+        <button
+          onClick={handleShare}
+          disabled={sharing}
+          className="flex items-center gap-1 text-[11px] text-yc-text-tertiary hover:text-yc-green transition-colors disabled:opacity-50 disabled:cursor-wait"
+          aria-label={t("shareCard.shareWall")}
+        >
+          {sharing ? (
+            <Loader2 size={11} className="animate-spin" />
+          ) : shareToast ? (
+            <Check size={11} className="text-yc-green" />
+          ) : (
+            <Share2 size={11} />
+          )}
+          {shareToast ?? t("shareCard.shareWall")}
+        </button>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {best && <WallCard kind="fame" entry={best} teamMap={teamMap} />}
         {worst && <WallCard kind="shame" entry={worst} teamMap={teamMap} />}
       </div>
     </div>
   );
+}
+
+/** Map a WallEntry (DB shape) into the share-card data shape. */
+function toCardEntry(
+  entry: WallEntry,
+  teamMap: Map<string, Team>,
+): WallOfFameEntry {
+  const { prediction: p, member, match } = entry;
+  const home = match?.homeTeam ? teamMap.get(match.homeTeam) : undefined;
+  const away = match?.awayTeam ? teamMap.get(match.awayTeam) : undefined;
+  return {
+    handle: member.handle ?? "?",
+    displayName: member.display_name ?? null,
+    homeTeam: home?.name ?? match?.homeTeam ?? "?",
+    homeCode: home?.fifaCode ?? (match?.homeTeam ?? "?").toUpperCase(),
+    homeIso: home?.isoCode,
+    homeCrest: match?.homeCrest ?? undefined,
+    awayTeam: away?.name ?? match?.awayTeam ?? "?",
+    awayCode: away?.fifaCode ?? (match?.awayTeam ?? "?").toUpperCase(),
+    awayIso: away?.isoCode,
+    awayCrest: match?.awayCrest ?? undefined,
+    predictedHome: p.home_score,
+    predictedAway: p.away_score,
+    quickPick: p.quick_pick,
+    actualHome: match?.homeScore ?? null,
+    actualAway: match?.awayScore ?? null,
+    points: p.points,
+    confidence: p.confidence,
+    isJoker: p.is_joker,
+  };
 }
 
 function WallCard({

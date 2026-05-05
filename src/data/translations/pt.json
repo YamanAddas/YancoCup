@@ -572,5 +572,13 @@
   "home.groupStage.checkSchedule": "Os jogos voltam amanhã — prepare seus palpites.",
   "home.groupStage.fullTables": "Tabelas completas",
   "home.groupStage.legendQualify": "Top 2 avança",
-  "home.groupStage.legendThird": "Candidato a 3º lugar"
+  "home.groupStage.legendThird": "Candidato a 3º lugar",
+  "shareCard.shareWall": "Compartilhar",
+  "shareCard.wallTitle": "Mural da Fama e da Vergonha",
+  "shareCard.wallShareText": "{pool} — Mural da Fama e da Vergonha desta semana | YancoCup",
+  "shareCard.wallConfSure": "🔥 Certeza",
+  "shareCard.wallConfRisky": "🤔 Arriscado",
+  "shareCard.wallConfWild": "🎲 No escuro",
+  "shareCard.wallFameEmpty": "Nenhum palpite de destaque esta semana",
+  "shareCard.wallShameEmpty": "Todos jogaram seguro"
 }

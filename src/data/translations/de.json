@@ -572,5 +572,13 @@
   "home.groupStage.checkSchedule": "Morgen geht es weiter — halte deine Tipps bereit.",
   "home.groupStage.fullTables": "Vollständige Tabellen",
   "home.groupStage.legendQualify": "Top 2 weiter",
-  "home.groupStage.legendThird": "Drittplatzierten-Kandidat"
+  "home.groupStage.legendThird": "Drittplatzierten-Kandidat",
+  "shareCard.shareWall": "Teilen",
+  "shareCard.wallTitle": "Hall of Fame & Shame",
+  "shareCard.wallShareText": "{pool} — Hall of Fame & Shame diese Woche | YancoCup",
+  "shareCard.wallConfSure": "🔥 Sicher",
+  "shareCard.wallConfRisky": "🤔 Riskant",
+  "shareCard.wallConfWild": "🎲 Ins Blaue",
+  "shareCard.wallFameEmpty": "Kein herausragender Tipp diese Woche",
+  "shareCard.wallShameEmpty": "Alle spielten auf Nummer sicher"
 }

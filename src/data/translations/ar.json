@@ -572,5 +572,13 @@
   "home.groupStage.checkSchedule": "تستأنف المباريات غداً — جهّز توقعاتك.",
   "home.groupStage.fullTables": "الجداول الكاملة",
   "home.groupStage.legendQualify": "الأول والثاني يتأهلان",
-  "home.groupStage.legendThird": "مرشّح المركز الثالث"
+  "home.groupStage.legendThird": "مرشّح المركز الثالث",
+  "shareCard.shareWall": "مشاركة",
+  "shareCard.wallTitle": "جدار المجد والعار",
+  "shareCard.wallShareText": "{pool} — جدار المجد والعار هذا الأسبوع | YancoCup",
+  "shareCard.wallConfSure": "🔥 متأكد",
+  "shareCard.wallConfRisky": "🤔 مخاطرة",
+  "shareCard.wallConfWild": "🎲 تخمين",
+  "shareCard.wallFameEmpty": "لا توقع بارز هذا الأسبوع",
+  "shareCard.wallShameEmpty": "الجميع لعب بحذر"
 }

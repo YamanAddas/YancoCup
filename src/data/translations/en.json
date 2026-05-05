@@ -572,5 +572,13 @@
   "home.groupStage.checkSchedule": "Tomorrow's fixtures kick off again — keep your picks ready.",
   "home.groupStage.fullTables": "Full tables",
   "home.groupStage.legendQualify": "Top 2 advance",
-  "home.groupStage.legendThird": "3rd-place candidate"
+  "home.groupStage.legendThird": "3rd-place candidate",
+  "shareCard.shareWall": "Share",
+  "shareCard.wallTitle": "Wall of Fame & Shame",
+  "shareCard.wallShareText": "{pool} — Wall of Fame & Shame this week | YancoCup",
+  "shareCard.wallConfSure": "🔥 Sure Thing",
+  "shareCard.wallConfRisky": "🤔 Risky Call",
+  "shareCard.wallConfWild": "🎲 Wild Guess",
+  "shareCard.wallFameEmpty": "No standout pick this week",
+  "shareCard.wallShameEmpty": "Everyone played it safe"
 }

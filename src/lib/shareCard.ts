@@ -51,7 +51,7 @@ type TFn = (key: string, params?: Record<string, string | number>) => string;
 
 // ── Color palette ───────────────────────────────────────────────
 
-const C = {
+export const C = {
   bgDeep: "#040810",
   bgMid: "#070d18",
   bgSurface: "#0c1620",
@@ -135,7 +135,7 @@ function drawTlaCircle(
 }
 
 /** Attempt to load and draw a flag/crest; fall back to TLA circle. */
-async function drawTeamBadge(
+export async function drawTeamBadge(
   ctx: CanvasRenderingContext2D,
   isoCode: string | undefined,
   crest: string | null | undefined,
@@ -170,7 +170,7 @@ async function drawTeamBadge(
 }
 
 /** Draw an 8-pointed Islamic star outline (Rub el Hizb). */
-function drawStar8(
+export function drawStar8(
   ctx: CanvasRenderingContext2D,
   cx: number,
   cy: number,
@@ -190,7 +190,7 @@ function drawStar8(
 }
 
 /** Draw decorative corner brackets with arabesque star accents. */
-function drawCornerDecor(
+export function drawCornerDecor(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
@@ -226,7 +226,7 @@ function drawCornerDecor(
 }
 
 /** Draw the multi-layer gradient background. */
-function drawBackground(
+export function drawBackground(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
@@ -262,7 +262,7 @@ function drawBackground(
 }
 
 /** Draw green accent bars at top and bottom. */
-function drawAccentBars(ctx: CanvasRenderingContext2D, w: number, h: number, thickness: number) {
+export function drawAccentBars(ctx: CanvasRenderingContext2D, w: number, h: number, thickness: number) {
   // Top bar with glow
   const topGlow = ctx.createLinearGradient(0, 0, w, 0);
   topGlow.addColorStop(0, "rgba(0,255,136,0.3)");
@@ -285,7 +285,7 @@ function drawAccentBars(ctx: CanvasRenderingContext2D, w: number, h: number, thi
 }
 
 /** Draw divider line with optional center diamond. */
-function drawDivider(
+export function drawDivider(
   ctx: CanvasRenderingContext2D,
   y: number,
   xStart: number,
@@ -973,7 +973,7 @@ function buildShareText(data: ShareCardData, t?: TFn): string {
   return `${myPred} ${data.homeTeam} ${score} ${data.awayTeam} | YancoCup`;
 }
 
-async function shareOrDownload(
+export async function shareOrDownload(
   blob: Blob,
   filename: string,
   text: string,

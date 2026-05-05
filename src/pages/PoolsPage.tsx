@@ -630,7 +630,11 @@ function PoolCard({
 
               {/* Wall of Fame & Shame — last 7 days */}
               <div className="pt-2 border-t border-yc-border/50">
-                <WallOfFame competitionId={pool.competition_id} members={members} />
+                <WallOfFame
+                  competitionId={pool.competition_id}
+                  members={members}
+                  poolName={pool.name}
+                />
               </div>
             </>
           )}
