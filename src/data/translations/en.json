@@ -580,5 +580,9 @@
   "shareCard.wallConfRisky": "🤔 Risky Call",
   "shareCard.wallConfWild": "🎲 Wild Guess",
   "shareCard.wallFameEmpty": "No standout pick this week",
-  "shareCard.wallShameEmpty": "Everyone played it safe"
+  "shareCard.wallShameEmpty": "Everyone played it safe",
+  "home.knockouts.eyebrow": "Knockouts",
+  "home.knockouts.matches": "matches",
+  "home.knockouts.fullBracket": "Full bracket",
+  "home.dayOf": "Day {day} of {total}"
 }

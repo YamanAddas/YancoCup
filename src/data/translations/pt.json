@@ -580,5 +580,9 @@
   "shareCard.wallConfRisky": "🤔 Arriscado",
   "shareCard.wallConfWild": "🎲 No escuro",
   "shareCard.wallFameEmpty": "Nenhum palpite de destaque esta semana",
-  "shareCard.wallShameEmpty": "Todos jogaram seguro"
+  "shareCard.wallShameEmpty": "Todos jogaram seguro",
+  "home.knockouts.eyebrow": "Mata-mata",
+  "home.knockouts.matches": "jogos",
+  "home.knockouts.fullBracket": "Chaveamento completo",
+  "home.dayOf": "Dia {day} de {total}"
 }

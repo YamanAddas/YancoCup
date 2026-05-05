@@ -580,5 +580,9 @@
   "shareCard.wallConfRisky": "🤔 مخاطرة",
   "shareCard.wallConfWild": "🎲 تخمين",
   "shareCard.wallFameEmpty": "لا توقع بارز هذا الأسبوع",
-  "shareCard.wallShameEmpty": "الجميع لعب بحذر"
+  "shareCard.wallShameEmpty": "الجميع لعب بحذر",
+  "home.knockouts.eyebrow": "الأدوار الإقصائية",
+  "home.knockouts.matches": "مباريات",
+  "home.knockouts.fullBracket": "الجدول الكامل",
+  "home.dayOf": "اليوم {day} من {total}"
 }

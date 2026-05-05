@@ -2,6 +2,7 @@ import { Trophy } from "lucide-react";
 import Countdown from "../layout/Countdown";
 import { useI18n } from "../../lib/i18n";
 import GroupStagePhase from "./GroupStagePhase";
+import KnockoutsPhase from "./KnockoutsPhase";
 
 const WC_KICKOFF = new Date("2026-06-11T16:00:00Z");
 const WC_GROUP_STAGE_END = new Date("2026-06-28T00:00:00Z");
@@ -71,8 +72,9 @@ export default function PhaseHero() {
     case "group-stage":
       return <GroupStagePhase />;
     case "knockouts":
+      return <KnockoutsPhase />;
     case "post-final":
-      // Late phases still scaffold — fall through to pre-kickoff for now.
+      // Post-final still scaffolds to pre-kickoff. Recap mode in a later session.
       return <PreKickoffPhase />;
     case "pre-kickoff":
     default:

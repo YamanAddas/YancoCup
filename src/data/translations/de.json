@@ -580,5 +580,9 @@
   "shareCard.wallConfRisky": "🤔 Riskant",
   "shareCard.wallConfWild": "🎲 Ins Blaue",
   "shareCard.wallFameEmpty": "Kein herausragender Tipp diese Woche",
-  "shareCard.wallShameEmpty": "Alle spielten auf Nummer sicher"
+  "shareCard.wallShameEmpty": "Alle spielten auf Nummer sicher",
+  "home.knockouts.eyebrow": "K.-o.-Runde",
+  "home.knockouts.matches": "Spiele",
+  "home.knockouts.fullBracket": "Vollständiger Spielplan",
+  "home.dayOf": "Tag {day} von {total}"
 }

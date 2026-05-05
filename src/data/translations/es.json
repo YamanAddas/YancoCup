@@ -580,5 +580,9 @@
   "shareCard.wallConfRisky": "🤔 Arriesgado",
   "shareCard.wallConfWild": "🎲 A ciegas",
   "shareCard.wallFameEmpty": "Ningún acierto destacado esta semana",
-  "shareCard.wallShameEmpty": "Todos jugaron seguro"
+  "shareCard.wallShameEmpty": "Todos jugaron seguro",
+  "home.knockouts.eyebrow": "Eliminatorias",
+  "home.knockouts.matches": "partidos",
+  "home.knockouts.fullBracket": "Cuadro completo",
+  "home.dayOf": "Día {day} de {total}"
 }

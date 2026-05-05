@@ -580,5 +580,9 @@
   "shareCard.wallConfRisky": "🤔 Risqué",
   "shareCard.wallConfWild": "🎲 À l'aveugle",
   "shareCard.wallFameEmpty": "Aucun pronostic marquant cette semaine",
-  "shareCard.wallShameEmpty": "Tout le monde a joué la sécurité"
+  "shareCard.wallShameEmpty": "Tout le monde a joué la sécurité",
+  "home.knockouts.eyebrow": "Phase à élimination",
+  "home.knockouts.matches": "matchs",
+  "home.knockouts.fullBracket": "Tableau complet",
+  "home.dayOf": "Jour {day} sur {total}"
 }
