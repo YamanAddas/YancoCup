@@ -462,6 +462,11 @@ export default function PredictionCard({
                     2x
                   </span>
                 )}
+                {(prediction.streak_bonus ?? 0) > 0 && justScored && (
+                  <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-yc-danger/15 text-yc-danger border border-yc-danger/30 animate-points-reveal flex items-center gap-0.5">
+                    🔥 +{prediction.streak_bonus}
+                  </span>
+                )}
                 <div className="yc-flip-container">
                   <span
                     className={`yc-flip-inner inline-block font-mono text-xs font-bold px-1.5 py-0.5 rounded transition-all duration-500 ${

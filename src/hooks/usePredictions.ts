@@ -21,6 +21,9 @@ export interface Prediction {
   is_joker: boolean;
   /** 1 = Wild Guess, 2 = Risky Call, 3 = Sure Thing. Null = unset. */
   confidence: 1 | 2 | 3 | null;
+  /** Streak bonus included in `points`. Set when this prediction extended a
+   *  3+ consecutive-correct streak in the competition. Capped at +5. */
+  streak_bonus?: number;
   created_at: string;
   updated_at: string;
 }

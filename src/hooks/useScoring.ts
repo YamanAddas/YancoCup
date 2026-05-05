@@ -1,6 +1,10 @@
 import { useCallback } from "react";
 import { supabase } from "../lib/supabase";
-import { calculatePoints, calculateQuickPoints } from "../lib/scoring";
+import {
+  calculatePoints,
+  calculateQuickPoints,
+  calculateStreakBonus,
+} from "../lib/scoring";
 import { COMPETITIONS } from "../lib/competitions";
 import { updateStreak, checkSkillBadges } from "../lib/badges";
 import { useAuth } from "../lib/auth";
@@ -49,7 +53,15 @@ export function useScoring(competitionId = "WC") {
       let scored = 0;
       let exactScores = 0;
 
-      for (const pred of toScore) {
+      // Score predictions in chronological order so streak math is monotonic
+      // (an earlier match scored later shouldn't retro-extend a later streak).
+      const ordered = [...toScore].sort((a, b) => {
+        const aRes = resultMap.get(a.match_id);
+        const bRes = resultMap.get(b.match_id);
+        return (aRes?.matchId ?? 0) - (bRes?.matchId ?? 0);
+      });
+
+      for (const pred of ordered) {
         const result = resultMap.get(pred.match_id)!;
         const scoreResult = pred.quick_pick
           ? calculateQuickPoints(
@@ -70,10 +82,34 @@ export function useScoring(competitionId = "WC") {
               isTournament,
             );
 
+        // Streak bonus — must update streak FIRST so we know the new length,
+        // then apply the bonus if it's a 3+ run. Anonymous users (no user.id)
+        // don't get streak rows; they fall back to base points.
+        let streakBonus = 0;
+        if (user) {
+          try {
+            const streakResult = await updateStreak(
+              user.id,
+              competitionId,
+              pred.match_id,
+              scoreResult.points > 0,
+            );
+            streakBonus = calculateStreakBonus(
+              streakResult.current_streak,
+              scoreResult.points,
+            );
+          } catch (e) {
+            console.error("Streak update failed:", e);
+          }
+        }
+
+        const totalPoints = scoreResult.points + streakBonus;
+
         const { error } = await supabase
           .from("yc_predictions")
           .update({
-            points: scoreResult.points,
+            points: totalPoints,
+            streak_bonus: streakBonus,
             scored_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
@@ -85,16 +121,6 @@ export function useScoring(competitionId = "WC") {
         } else {
           scored++;
           if (scoreResult.tier === "exact") exactScores++;
-
-          // Update streak (correct = points > 0)
-          if (user) {
-            updateStreak(
-              user.id,
-              competitionId,
-              pred.match_id,
-              scoreResult.points > 0,
-            ).catch((e) => console.error("Streak update failed:", e));
-          }
         }
       }
 

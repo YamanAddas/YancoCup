@@ -29,6 +29,8 @@ export interface ScoreResult {
   basePoints: number;
   multiplier: number;
   isJoker: boolean;
+  /** Streak bonus added on top of (basePoints * multiplier). 0 if no streak. */
+  streakBonus?: number;
 }
 
 /** Knockout round multipliers for tournaments */
@@ -169,4 +171,30 @@ export function checkPerfectGroup(
   if (groupMatchResults.length !== 3) return 0;
   if (groupMatchResults.every((r) => r.tier === "exact")) return 15;
   return 0;
+}
+
+/**
+ * Streak bonus: rewards consecutive correct predictions in a competition.
+ *
+ *   streak length (post-prediction) | bonus
+ *   -------------------------------- | -----
+ *   1                                | 0
+ *   2                                | 0
+ *   3                                | +3
+ *   4                                | +4
+ *   5+                               | +5  (cap)
+ *
+ * The streak only increments on non-zero predictions; a 0-pt pick resets it
+ * (one streak-freeze per competition shields a single break, see updateStreak
+ * in lib/badges.ts). This bonus is only awarded when the prediction itself
+ * scored ≥ 1 pt — you can't extend a streak with a wrong pick, even if the
+ * freeze preserved the count.
+ */
+export function calculateStreakBonus(
+  newStreakLength: number,
+  predictionPoints: number,
+): number {
+  if (predictionPoints <= 0) return 0;
+  if (newStreakLength < 3) return 0;
+  return Math.min(newStreakLength, 5);
 }

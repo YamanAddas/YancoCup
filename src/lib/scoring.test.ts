@@ -3,6 +3,7 @@ import {
   calculatePoints,
   calculateQuickPoints,
   calculateUpsetBonus,
+  calculateStreakBonus,
   checkPerfectGroup,
   getKnockoutMultiplier,
 } from "./scoring";
@@ -261,5 +262,28 @@ describe("checkPerfectGroup", () => {
     expect(checkPerfectGroup([])).toBe(0);
     const one = [{ tier: "exact" as const, points: 10, basePoints: 10, multiplier: 1, isJoker: false }];
     expect(checkPerfectGroup(one)).toBe(0);
+  });
+});
+
+describe("calculateStreakBonus", () => {
+  it("0-pt prediction never gets a bonus, even on long streak", () => {
+    expect(calculateStreakBonus(0, 0)).toBe(0);
+    expect(calculateStreakBonus(5, 0)).toBe(0);
+  });
+
+  it("streak <3 → no bonus (still building)", () => {
+    expect(calculateStreakBonus(1, 3)).toBe(0);
+    expect(calculateStreakBonus(2, 10)).toBe(0);
+  });
+
+  it("streak 3-5 → bonus equals streak length", () => {
+    expect(calculateStreakBonus(3, 3)).toBe(3);
+    expect(calculateStreakBonus(4, 5)).toBe(4);
+    expect(calculateStreakBonus(5, 10)).toBe(5);
+  });
+
+  it("streak 6+ → bonus capped at +5", () => {
+    expect(calculateStreakBonus(6, 3)).toBe(5);
+    expect(calculateStreakBonus(20, 10)).toBe(5);
   });
 });
