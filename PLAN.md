@@ -2,7 +2,7 @@
 
 The audit-driven plan for making YancoCup feel finished, owned, and unique before the World Cup. Three lanes: Foundation (must not feel broken), Innovation (the differentiators), Decisions (calls to make before coding).
 
-> **Status (2026-05-04, post-audit):** 13/20 items fully shipped, 2 mostly shipped, 5 partial. **Done:** A1, A3, A4, A5, A6, A7, A9, A10, B5, C1, C2, C3, C4. **Mostly done:** B1 (group-stage shipped, knockouts/post-final still scaffold), B6 (shareable image shipped, worker schedule still missing). **Partial:** A2, A8, B2, B3, B4.
+> **Status (2026-05-04, post-audit):** 15/20 items fully shipped, 1 mostly shipped, 4 partial. **Done:** A1, A3, A4, A5, A6, A7, A9, A10, B1, B3, B5, C1, C2, C3, C4. **Mostly done:** B6 (shareable image shipped, worker schedule still missing). **Partial:** A2, A8, B2, B4.
 
 ---
 
@@ -64,20 +64,20 @@ Files: `public/sw.js`, `src/lib/notifications.ts`, `src/components/notifications
 
 Differentiators that survived red-teaming. The reasons users choose YancoCup over FotMob.
 
-**B1. Phase-aware home page (replaces globe).** ⚠️ MOSTLY DONE `1de9436` + `cb97dd4`
+**B1. Phase-aware home page (replaces globe).** ✅ `1de9436` + `cb97dd4` + `61d3c98` + `1fc38e3`
 Hero auto-shifts based on tournament phase: pre-kickoff bracket, group-stage live grid, knockouts cathedral, post-final recap.
-**Reality:** Globe deleted ✓. Pre-kickoff phase ✓. **Group-stage phase shipped** — live ticker (only when matches IN_PLAY/PAUSED), today's matches as MatchCards, all 12 groups in a responsive grid ranked by `computeGroupStandings`. Knockouts and post-final still scaffold to pre-kickoff. `?phase=group-stage|knockouts|post-final|pre-kickoff` query override added for visual testing pre-launch.
-Files: `src/pages/HomePage.tsx`, `src/components/hero/PhaseHero.tsx`, `src/components/hero/GroupStagePhase.tsx`, `src/components/hero/CompactGroupCard.tsx`.
+**Reality:** All four phases ship real UI: pre-kickoff (countdown + bracket CTA), group-stage (live ticker + today's matches + 12-group standings), knockouts (round breadcrumbs + current-round panel + placeholder resolver overlay), post-final (champion + runner-up + 3rd place). `?phase=…` query override for previewing future phases. Globe deleted.
+Files: `src/components/hero/PhaseHero.tsx`, `GroupStagePhase.tsx`, `KnockoutsPhase.tsx`, `PostFinalPhase.tsx`, `CompactGroupCard.tsx`.
 
 **B2. Pool Pulse — real-time pool activity stream.** ⚠️ PARTIAL `9ad737b`
 Broadcast pool events: "Ahmad just locked his pick", "Sarah upgraded to 🔥", "Mohammed reacted 🤡".
 **Reality:** Realtime subscription to `yc_predictions` via `pool_pulse_${competitionId}` channel ✓. New picks pulse green for 2.5s ✓. **Missing:** rich event-type messages (no "upgraded to 🔥" / "reacted 🤡" texture), reactions are not broadcast, logic is inlined into PoolsPage instead of a `usePoolPulse.ts` hook. The "always-on social texture" the plan promised is much thinner than spec.
 Files: `src/pages/PoolsPage.tsx:355-391` (inlined).
 
-**B3. Confidence-as-currency.** ⚠️ PARTIAL `33d83cf`
+**B3. Confidence-as-currency.** ✅ `33d83cf` + `d65cd18`
 Surface confidence to pool members, factor into a weekly "Most-confident-and-correct" award.
-**Reality:** Confidence visible to pool members in activity feed and WallOfFame ✓. **NOT factored into scoring** — `scoring.ts` has zero confidence references. **The "Most-confident-and-correct weekly award" doesn't exist.** WallOfFame uses confidence only as a tiebreaker for best pick, which is one form of "factoring in" but not the dedicated award.
-Files: `src/components/predictions/PredictionCard.tsx`, `src/pages/PoolsPage.tsx`, `src/lib/scoring.ts` (untouched — gap).
+**Reality:** Confidence visible to pool members in activity feed and WallOfFame ✓. **MVP banner shipped** — counts picks where `confidence === 3 && points >= 3` per user over the last 7 days; the leader gets a 🔥 banner above fame/shame. Derived stat — no scoring-engine change, so historical predictions don't get re-scored. Note: `scoring.ts` still doesn't multiply by confidence; this is the lighter-touch interpretation of the spec.
+Files: `src/components/pool/WallOfFame.tsx`, `src/lib/wallOfFameCard.ts`.
 
 **B4. Cinematic points reveal.** ⚠️ PARTIAL `a9800c1`
 0→N counter, joker 2x stamp, streak bonus flash, exact-score gold rain.
@@ -112,11 +112,11 @@ Ranked by criticality:
 2. **A2 cron switch** — Has to flip to `*/1 * * * *` on/around June 10 alongside the threshold edits documented in `wrangler.toml`. Not code work, but checklist work. **Worker redeploy needed (also covers A1/C1 EC removal landed in `af54e08`).**
 3. ~~**A1 / C1 worker EC cleanup**~~ ✅ shipped `af54e08`
 4. ~~**B6 shareable image**~~ ✅ shipped `18bd537`
-5. **B1 knockouts phase** — Activates June 28. Currently falls through to pre-kickoff hero. Bracket Cathedral with picks overlay. Less urgent than group-stage (17 days of runway after launch) but still launch-window work.
-6. **B4 streak system** — Affects scoring + reveal + gamification. Needs a design call: how does a streak break/extend? What's the bonus? Adds depth but not a launch-blocker.
-7. **B3 confidence-in-scoring** — "Most-confident-and-correct" weekly award is a meaningful innovation but optional for launch.
+5. ~~**B1 knockouts phase**~~ ✅ shipped `61d3c98`
+6. **B4 streak system** — Affects scoring + reveal + gamification. **Needs a design call before code:** how does a streak break/extend? What's the bonus? Adds depth but not a launch-blocker.
+7. ~~**B3 confidence-in-scoring**~~ ✅ shipped `d65cd18` (as MVP banner; not as a scoring-engine multiplier)
 8. **B2 rich event broadcasts** — "Sarah upgraded to 🔥" texture. Polish.
-9. **B1 post-final phase** — Activates July 19. Recap mode. Lowest urgency in B1.
+9. ~~**B1 post-final phase**~~ ✅ shipped `1fc38e3`
 10. **A8 Cards / Clean Sheets tabs** — would need new data sources. Lowest priority.
 11. **B6 worker schedule** — Sunday auto-fire to push the wall card. Pure polish; the share loop already works on demand.
 
