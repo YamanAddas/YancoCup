@@ -2,7 +2,7 @@
 
 The audit-driven plan for making YancoCup feel finished, owned, and unique before the World Cup. Three lanes: Foundation (must not feel broken), Innovation (the differentiators), Decisions (calls to make before coding).
 
-> **Status (2026-05-04, post-audit):** 11/20 items fully shipped, 1 mostly shipped, 8 partial. **Done:** A3, A4, A5, A6, A7, A9, A10, B5, C2, C3, C4. **Mostly done:** B1 (group-stage shipped, knockouts/post-final still scaffold). **Partial:** A1, A2, A8, B2, B3, B4, B6, C1.
+> **Status (2026-05-04, post-audit):** 11/20 items fully shipped, 2 mostly shipped, 7 partial. **Done:** A3, A4, A5, A6, A7, A9, A10, B5, C2, C3, C4. **Mostly done:** B1 (group-stage shipped, knockouts/post-final still scaffold), B6 (shareable image shipped, worker schedule still missing). **Partial:** A1, A2, A8, B2, B3, B4, C1.
 
 ---
 
@@ -88,10 +88,10 @@ Files: `src/components/predictions/PredictionCard.tsx:423-437`, `src/lib/scoring
 **Reality:** `useConsensus` no longer gates on `locked` — only `hasPrediction` ([useConsensus.ts:30](src/hooks/useConsensus.ts:30)). `PredictionHeatmap` rendered pre-kickoff at [PredictionCard.tsx:500-509](src/components/predictions/PredictionCard.tsx:500). Anti-copy preserved (must predict first to see). Quick-pick predictions don't get the heatmap (only score-based) — small spec deviation.
 Files: `src/components/predictions/PredictionHeatmap.tsx`, `src/hooks/useConsensus.ts`.
 
-**B6. Wall of Fame / Shame weekly auto-card.** ⚠️ PARTIAL `477a929`
+**B6. Wall of Fame / Shame weekly auto-card.** ⚠️ MOSTLY DONE `477a929` + `18bd537`
 Every Sunday: auto-generated pool card with best/worst pick. Shareable image. Drives weekly return + WhatsApp shares.
-**Reality:** [WallOfFame.tsx](src/components/pool/WallOfFame.tsx) component renders best/worst from last 7 days when pool is expanded ✓. **Missing:** (1) NOT scheduled in worker — it's a client-side query that runs every render, not a Sunday auto-fire. (2) NO shareable image generation — it's a UI block, not an image. (3) NO `src/lib/wallOfFame.ts` lib file. The "drives WhatsApp shares" mechanic depends on the image being generatable; that loop doesn't exist yet.
-Files: `src/components/pool/WallOfFame.tsx`, `worker/src/index.ts` (no schedule), `src/lib/wallOfFame.ts` (missing), `src/lib/shareCard.ts` (exists for prediction cards, not wall).
+**Reality:** [WallOfFame.tsx](src/components/pool/WallOfFame.tsx) renders best/worst ✓. **Shareable image shipped** — `src/lib/wallOfFameCard.ts::generateWallOfFameCard` produces a 1200×630 PNG with side-by-side fame/shame panels reusing the share-card primitives exported from `shareCard.ts`. Share button on the wall calls `navigator.share` or falls back to PNG download. **Still missing:** worker-side Sunday auto-fire — currently the wall renders on demand; no automatic post/notification on Sundays. Not a launch-blocker; the share loop now works manually.
+Files: `src/components/pool/WallOfFame.tsx`, `src/lib/wallOfFameCard.ts`, `src/lib/shareCard.ts` (helpers exported), `worker/src/index.ts` (no schedule).
 
 ---
 
@@ -111,13 +111,14 @@ Ranked by criticality:
 1. ~~**B1 group-stage phase**~~ ✅ shipped `cb97dd4`
 2. **A2 cron switch** — Has to flip to `*/1 * * * *` on/around June 10 alongside the threshold edits documented in `wrangler.toml`. Not code work, but checklist work.
 3. **A1 / C1 worker EC cleanup** — Either remove EC from worker to match frontend, or formally accept 7 frontend / 8 worker as intentional. Not a launch-blocker but a coherence issue.
-4. **B6 shareable image** — The whole "WhatsApp share loop" depends on this. Without it, Wall of Fame is a static UI block nobody screenshots. High product impact.
+4. ~~**B6 shareable image**~~ ✅ shipped `18bd537`
 5. **B1 knockouts phase** — Activates June 28. Currently falls through to pre-kickoff hero. Bracket Cathedral with picks overlay. Less urgent than group-stage (17 days of runway after launch) but still launch-window work.
 6. **B4 streak system** — Affects scoring + reveal + gamification. Needs a design call: how does a streak break/extend? What's the bonus? Adds depth but not a launch-blocker.
 7. **B3 confidence-in-scoring** — "Most-confident-and-correct" weekly award is a meaningful innovation but optional for launch.
 8. **B2 rich event broadcasts** — "Sarah upgraded to 🔥" texture. Polish.
 9. **B1 post-final phase** — Activates July 19. Recap mode. Lowest urgency in B1.
 10. **A8 Cards / Clean Sheets tabs** — would need new data sources. Lowest priority.
+11. **B6 worker schedule** — Sunday auto-fire to push the wall card. Pure polish; the share loop already works on demand.
 
 ---
 
