@@ -565,5 +565,12 @@
   "contact.cat_account": "Problema de Cuenta",
   "contact.cat_predictions": "Predicciones y Puntuación",
   "contact.cat_pools": "Grupos",
-  "contact.cat_other": "Otro"
+  "contact.cat_other": "Otro",
+  "home.groupStage.dayOf": "Fase de Grupos · Día {day} de {total}",
+  "home.groupStage.liveTicker": "En directo",
+  "home.groupStage.restDay": "Hoy no hay partidos",
+  "home.groupStage.checkSchedule": "Mañana se reanuda — ten tus pronósticos listos.",
+  "home.groupStage.fullTables": "Tablas completas",
+  "home.groupStage.legendQualify": "Top 2 avanza",
+  "home.groupStage.legendThird": "Candidato a 3er puesto"
 }

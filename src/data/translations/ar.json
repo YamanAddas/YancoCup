@@ -565,5 +565,12 @@
   "contact.cat_account": "مشكلة في الحساب",
   "contact.cat_predictions": "التوقعات والنقاط",
   "contact.cat_pools": "المجموعات",
-  "contact.cat_other": "أخرى"
+  "contact.cat_other": "أخرى",
+  "home.groupStage.dayOf": "دور المجموعات · اليوم {day} من {total}",
+  "home.groupStage.liveTicker": "البث المباشر",
+  "home.groupStage.restDay": "لا توجد مباريات اليوم",
+  "home.groupStage.checkSchedule": "تستأنف المباريات غداً — جهّز توقعاتك.",
+  "home.groupStage.fullTables": "الجداول الكاملة",
+  "home.groupStage.legendQualify": "الأول والثاني يتأهلان",
+  "home.groupStage.legendThird": "مرشّح المركز الثالث"
 }

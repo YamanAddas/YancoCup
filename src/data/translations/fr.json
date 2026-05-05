@@ -565,5 +565,12 @@
   "contact.cat_account": "Problème de Compte",
   "contact.cat_predictions": "Pronostics et Scoring",
   "contact.cat_pools": "Groupes",
-  "contact.cat_other": "Autre"
+  "contact.cat_other": "Autre",
+  "home.groupStage.dayOf": "Phase de Groupes · Jour {day} sur {total}",
+  "home.groupStage.liveTicker": "En direct",
+  "home.groupStage.restDay": "Aucun match aujourd'hui",
+  "home.groupStage.checkSchedule": "Les matchs reprennent demain — préparez vos pronostics.",
+  "home.groupStage.fullTables": "Classements complets",
+  "home.groupStage.legendQualify": "Top 2 qualifié",
+  "home.groupStage.legendThird": "Candidat 3e place"
 }

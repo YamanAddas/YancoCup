@@ -1,6 +1,7 @@
 import { Trophy } from "lucide-react";
 import Countdown from "../layout/Countdown";
 import { useI18n } from "../../lib/i18n";
+import GroupStagePhase from "./GroupStagePhase";
 
 const WC_KICKOFF = new Date("2026-06-11T16:00:00Z");
 const WC_GROUP_STAGE_END = new Date("2026-06-28T00:00:00Z");
@@ -13,6 +14,24 @@ function getCurrentPhase(now: Date = new Date()): Phase {
   if (now < WC_GROUP_STAGE_END) return "group-stage";
   if (now < WC_FINAL) return "knockouts";
   return "post-final";
+}
+
+/** Allow ?phase=group-stage|knockouts|post-final|pre-kickoff to preview future
+ *  phases pre-launch. Honored only when explicitly set — no production impact. */
+function getPhaseOverride(): Phase | null {
+  if (typeof window === "undefined") return null;
+  // HashRouter: real query lives in window.location.hash like "#/?phase=group-stage"
+  // window.location.search may be empty; check both.
+  const hashQs = window.location.hash.includes("?")
+    ? window.location.hash.split("?")[1]
+    : "";
+  const searchQs = window.location.search.replace(/^\?/, "");
+  const params = new URLSearchParams(`${searchQs}&${hashQs}`);
+  const v = params.get("phase");
+  if (v === "pre-kickoff" || v === "group-stage" || v === "knockouts" || v === "post-final") {
+    return v;
+  }
+  return null;
 }
 
 function PreKickoffPhase() {
@@ -47,9 +66,14 @@ function PreKickoffPhase() {
 }
 
 export default function PhaseHero() {
-  const phase = getCurrentPhase();
-  // Phase dispatch scaffold — group-stage / knockouts / post-final ship in later sessions.
+  const phase = getPhaseOverride() ?? getCurrentPhase();
   switch (phase) {
+    case "group-stage":
+      return <GroupStagePhase />;
+    case "knockouts":
+    case "post-final":
+      // Late phases still scaffold — fall through to pre-kickoff for now.
+      return <PreKickoffPhase />;
     case "pre-kickoff":
     default:
       return <PreKickoffPhase />;

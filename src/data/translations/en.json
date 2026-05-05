@@ -565,5 +565,12 @@
   "contact.cat_account": "Account Issue",
   "contact.cat_predictions": "Predictions & Scoring",
   "contact.cat_pools": "Pools",
-  "contact.cat_other": "Other"
+  "contact.cat_other": "Other",
+  "home.groupStage.dayOf": "Group Stage · Day {day} of {total}",
+  "home.groupStage.liveTicker": "Live ticker",
+  "home.groupStage.restDay": "No matches today",
+  "home.groupStage.checkSchedule": "Tomorrow's fixtures kick off again — keep your picks ready.",
+  "home.groupStage.fullTables": "Full tables",
+  "home.groupStage.legendQualify": "Top 2 advance",
+  "home.groupStage.legendThird": "3rd-place candidate"
 }

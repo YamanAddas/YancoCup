@@ -565,5 +565,12 @@
   "contact.cat_account": "Kontoproblem",
   "contact.cat_predictions": "Tipps und Punktevergabe",
   "contact.cat_pools": "Gruppen",
-  "contact.cat_other": "Sonstiges"
+  "contact.cat_other": "Sonstiges",
+  "home.groupStage.dayOf": "Gruppenphase · Tag {day} von {total}",
+  "home.groupStage.liveTicker": "Live-Ticker",
+  "home.groupStage.restDay": "Heute keine Spiele",
+  "home.groupStage.checkSchedule": "Morgen geht es weiter — halte deine Tipps bereit.",
+  "home.groupStage.fullTables": "Vollständige Tabellen",
+  "home.groupStage.legendQualify": "Top 2 weiter",
+  "home.groupStage.legendThird": "Drittplatzierten-Kandidat"
 }

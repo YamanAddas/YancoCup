@@ -565,5 +565,12 @@
   "contact.cat_account": "Problema na Conta",
   "contact.cat_predictions": "Previsões e Pontuação",
   "contact.cat_pools": "Grupos",
-  "contact.cat_other": "Outro"
+  "contact.cat_other": "Outro",
+  "home.groupStage.dayOf": "Fase de Grupos · Dia {day} de {total}",
+  "home.groupStage.liveTicker": "Ao vivo",
+  "home.groupStage.restDay": "Sem jogos hoje",
+  "home.groupStage.checkSchedule": "Os jogos voltam amanhã — prepare seus palpites.",
+  "home.groupStage.fullTables": "Tabelas completas",
+  "home.groupStage.legendQualify": "Top 2 avança",
+  "home.groupStage.legendThird": "Candidato a 3º lugar"
 }
