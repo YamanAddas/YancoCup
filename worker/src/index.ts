@@ -162,19 +162,27 @@ const KV_MATCH_STATUSES = "config:match_statuses";
 
 const FD_BASE = "https://api.football-data.org/v4";
 
-/** Fetch with retry — 2 retries with 1s/3s backoff for transient failures */
+/** Fetch with retry — 2 retries with 1s/3s backoff for transient failures.
+ *
+ *  Returns the final Response (even if 5xx) when the upstream answered at
+ *  least once. Throws only when every attempt threw (network error / abort
+ *  / DNS). This lets callers handle non-ok responses with `if (res.ok)`
+ *  rather than having a 522 streak from one upstream cascade-fail the rest
+ *  of the cron run (news, lastPoll, stale-cleanup). */
 async function fetchWithRetry(
   url: string,
   init: RequestInit,
   retries = 2,
   backoffMs = [1000, 3000],
 ): Promise<Response> {
+  let lastResponse: Response | null = null;
   let lastError: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const res = await fetch(url, init);
-      // Retry on 5xx server errors (not 4xx — those are permanent)
+      // Return immediately on 2xx/3xx success or 4xx permanent errors
       if (res.ok || res.status < 500) return res;
+      lastResponse = res;
       lastError = new Error(`HTTP ${res.status}`);
     } catch (err) {
       lastError = err;
@@ -183,6 +191,9 @@ async function fetchWithRetry(
       await new Promise((r) => setTimeout(r, backoffMs[attempt] ?? 3000));
     }
   }
+  // Prefer returning the last 5xx response so callers can `if (!res.ok)`
+  // instead of try/catch. Only throw when every attempt was a network error.
+  if (lastResponse) return lastResponse;
   throw lastError;
 }
 
@@ -1974,18 +1985,6 @@ async function handleCron(env: Env): Promise<void> {
       }
     }
 
-    // -----------------------------------------------------------------------
-    // Every 24th tick (~2 hours): run one news phase (cycles 0-3)
-    // Full cycle = 96 ticks = ~8 hours. ~3 cycles/day saves neuron budget.
-    // -----------------------------------------------------------------------
-    if (tick % 24 === 0) {
-      const phaseStr = await env.SCORES_KV.get("news:phase");
-      const phase = phaseStr ? parseInt(phaseStr, 10) : 0;
-      console.log(`Cron: running news phase ${phase}`);
-      await handleNewsPhase(env, phase % 4);
-      await kvPut(env.SCORES_KV, "news:phase", String((phase + 1) % 4));
-    }
-
     // Record last successful poll (every 5th tick to save KV writes)
     if (tick % 5 === 0) {
       await kvPut(env.SCORES_KV, KV_LAST_POLL, new Date().toISOString());
@@ -1999,6 +1998,29 @@ async function handleCron(env: Env): Promise<void> {
     const errStr = await env.SCORES_KV.get(KV_CRON_ERRORS);
     const errCount = errStr ? parseInt(errStr, 10) + 1 : 1;
     await kvPut(env.SCORES_KV, KV_CRON_ERRORS, String(errCount));
+  }
+
+  // -------------------------------------------------------------------------
+  // News pipeline runs INDEPENDENTLY of football-data.org so a 522 streak on
+  // the score upstream doesn't take the news feed down with it. (Pre-fix this
+  // was inside the same try/catch as the score fetch — when football-data.org
+  // started 522'ing on 2026-04-11, news went 24 days without an update.)
+  //
+  // Every 24th tick (~2 hours): run one news phase (cycles 0-3)
+  // Full cycle = 96 ticks = ~8 hours. ~3 cycles/day saves neuron budget.
+  // -------------------------------------------------------------------------
+  if (tick % 24 === 0) {
+    try {
+      const phaseStr = await env.SCORES_KV.get("news:phase");
+      const phase = phaseStr ? parseInt(phaseStr, 10) : 0;
+      console.log(`Cron: running news phase ${phase}`);
+      await handleNewsPhase(env, phase % 4);
+      await kvPut(env.SCORES_KV, "news:phase", String((phase + 1) % 4));
+    } catch (err) {
+      console.error("News pipeline failed:", err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      await kvPut(env.SCORES_KV, "config:last_news_error", errMsg);
+    }
   }
 
   // -------------------------------------------------------------------------
