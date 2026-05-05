@@ -586,5 +586,12 @@
   "home.knockouts.fullBracket": "Vollständiger Spielplan",
   "home.dayOf": "Tag {day} von {total}",
   "pools.wallMvp": "MVP",
-  "pools.wallMvpDesc": "{count} mutige Tipps getroffen"
+  "pools.wallMvpDesc": "{count} mutige Tipps getroffen",
+  "home.postFinal.champion": "Champion",
+  "home.postFinal.tbd": "Champion offen",
+  "home.postFinal.beat": "Schlug {opponent} {score} im Finale",
+  "home.postFinal.runnerUp": "Finalist",
+  "home.postFinal.thirdPlace": "3. Platz",
+  "home.postFinal.finalLeaderboard": "Abschlusstabelle",
+  "home.postFinal.placeholderNote": "Das Endergebnis erscheint hier nach Turnierende."
 }

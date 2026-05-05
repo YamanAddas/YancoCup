@@ -586,5 +586,12 @@
   "home.knockouts.fullBracket": "الجدول الكامل",
   "home.dayOf": "اليوم {day} من {total}",
   "pools.wallMvp": "نجم الأسبوع",
-  "pools.wallMvpDesc": "{count} توقّع جريء ناجح"
+  "pools.wallMvpDesc": "{count} توقّع جريء ناجح",
+  "home.postFinal.champion": "البطل",
+  "home.postFinal.tbd": "البطل لم يُحدَّد بعد",
+  "home.postFinal.beat": "هَزَم {opponent} بنتيجة {score} في النهائي",
+  "home.postFinal.runnerUp": "الوصيف",
+  "home.postFinal.thirdPlace": "المركز الثالث",
+  "home.postFinal.finalLeaderboard": "الترتيب النهائي",
+  "home.postFinal.placeholderNote": "ستظهر النتيجة النهائية هنا فور انتهاء البطولة."
 }

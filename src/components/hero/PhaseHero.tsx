@@ -3,6 +3,7 @@ import Countdown from "../layout/Countdown";
 import { useI18n } from "../../lib/i18n";
 import GroupStagePhase from "./GroupStagePhase";
 import KnockoutsPhase from "./KnockoutsPhase";
+import PostFinalPhase from "./PostFinalPhase";
 
 const WC_KICKOFF = new Date("2026-06-11T16:00:00Z");
 const WC_GROUP_STAGE_END = new Date("2026-06-28T00:00:00Z");
@@ -74,8 +75,7 @@ export default function PhaseHero() {
     case "knockouts":
       return <KnockoutsPhase />;
     case "post-final":
-      // Post-final still scaffolds to pre-kickoff. Recap mode in a later session.
-      return <PreKickoffPhase />;
+      return <PostFinalPhase />;
     case "pre-kickoff":
     default:
       return <PreKickoffPhase />;

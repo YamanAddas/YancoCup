@@ -586,5 +586,12 @@
   "home.knockouts.fullBracket": "Tableau complet",
   "home.dayOf": "Jour {day} sur {total}",
   "pools.wallMvp": "MVP",
-  "pools.wallMvpDesc": "{count} pronostics audacieux réussis"
+  "pools.wallMvpDesc": "{count} pronostics audacieux réussis",
+  "home.postFinal.champion": "Champion",
+  "home.postFinal.tbd": "Champion à déterminer",
+  "home.postFinal.beat": "Bat {opponent} {score} en finale",
+  "home.postFinal.runnerUp": "Finaliste",
+  "home.postFinal.thirdPlace": "3e Place",
+  "home.postFinal.finalLeaderboard": "Classement final",
+  "home.postFinal.placeholderNote": "Le résultat final apparaîtra ici à la fin du tournoi."
 }

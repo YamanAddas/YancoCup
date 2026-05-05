@@ -586,5 +586,12 @@
   "home.knockouts.fullBracket": "Full bracket",
   "home.dayOf": "Day {day} of {total}",
   "pools.wallMvp": "MVP",
-  "pools.wallMvpDesc": "{count} bold picks scored"
+  "pools.wallMvpDesc": "{count} bold picks scored",
+  "home.postFinal.champion": "Champion",
+  "home.postFinal.tbd": "Champion TBD",
+  "home.postFinal.beat": "Defeated {opponent} {score} in the final",
+  "home.postFinal.runnerUp": "Runner-up",
+  "home.postFinal.thirdPlace": "3rd Place",
+  "home.postFinal.finalLeaderboard": "Final leaderboard",
+  "home.postFinal.placeholderNote": "Final result will appear here once the tournament concludes."
 }
