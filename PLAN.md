@@ -2,7 +2,7 @@
 
 The audit-driven plan for making YancoCup feel finished, owned, and unique before the World Cup. Three lanes: Foundation (must not feel broken), Innovation (the differentiators), Decisions (calls to make before coding).
 
-> **Status (2026-05-04, post-audit):** 16/20 items fully shipped, 1 mostly shipped, 3 partial. **Done:** A1, A3, A4, A5, A6, A7, A9, A10, B1, B2, B3, B5, C1, C2, C3, C4. **Mostly done:** B6 (shareable image shipped, worker schedule still missing). **Partial:** A2 (operational June 10), A8 (data source), B4 (needs design call).
+> **Status (2026-05-04, post-audit):** 17/20 items fully shipped, 1 mostly shipped, 2 partial. **Done:** A1, A3, A4, A5, A6, A7, A9, A10, B1, B2, B3, B4, B5, C1, C2, C3, C4. **Mostly done:** B6 (shareable image shipped, worker schedule still missing). **Partial:** A2 (operational June 10), A8 (data source).
 
 ---
 
@@ -79,10 +79,10 @@ Surface confidence to pool members, factor into a weekly "Most-confident-and-cor
 **Reality:** Confidence visible to pool members in activity feed and WallOfFame ✓. **MVP banner shipped** — counts picks where `confidence === 3 && points >= 3` per user over the last 7 days; the leader gets a 🔥 banner above fame/shame. Derived stat — no scoring-engine change, so historical predictions don't get re-scored. Note: `scoring.ts` still doesn't multiply by confidence; this is the lighter-touch interpretation of the spec.
 Files: `src/components/pool/WallOfFame.tsx`, `src/lib/wallOfFameCard.ts`.
 
-**B4. Cinematic points reveal.** ⚠️ PARTIAL `a9800c1`
+**B4. Cinematic points reveal.** ✅ `a9800c1` + `7064d3b`
 0→N counter, joker 2x stamp, streak bonus flash, exact-score gold rain.
-**Reality:** ✅ 0→N counter (800ms ease-out cubic, [PredictionCard.tsx:91-104](src/components/predictions/PredictionCard.tsx:91)). ✅ Joker 2x stamp (line 460-463). ✅ Exact-score gold rain (twin bursts in gold + green for points ≥10, line 114-118). ❌ **Streak bonus flash fully missing.** No streak system exists in `scoring.ts` at all — only base points + knockout multiplier + joker + upset bonus + perfect-group bonus. Plan promised "+5 STREAK BONUS animates in" — there's no streak system to flash from.
-Files: `src/components/predictions/PredictionCard.tsx:423-437`, `src/lib/scoring.ts` (no streak modifier).
+**Reality:** ✅ 0→N counter, ✅ joker 2x stamp, ✅ exact-score gold rain (existing). **Streak bonus flash now ships:** `calculateStreakBonus(streakLength, points)` returns 0 for streak<3 or 0pt picks; min(streakLength, 5) otherwise (+3/+4/+5 cap). `useScoring` updates streak first, then applies bonus on top of base+multiplier+joker. Migration added `streak_bonus` smallint NOT NULL DEFAULT 0 to yc_predictions. PredictionCard reveal flashes "🔥 +N" badge alongside the 2x JOKER stamp during the 0→N counter animation.
+Files: `src/lib/scoring.ts`, `src/hooks/useScoring.ts`, `src/components/predictions/PredictionCard.tsx`, `src/lib/scoring.test.ts`.
 
 **B5. Pre-kickoff heatmap unlock.** ✅ `0355f65`
 **Reality:** `useConsensus` no longer gates on `locked` — only `hasPrediction` ([useConsensus.ts:30](src/hooks/useConsensus.ts:30)). `PredictionHeatmap` rendered pre-kickoff at [PredictionCard.tsx:500-509](src/components/predictions/PredictionCard.tsx:500). Anti-copy preserved (must predict first to see). Quick-pick predictions don't get the heatmap (only score-based) — small spec deviation.
@@ -113,7 +113,7 @@ Ranked by criticality:
 3. ~~**A1 / C1 worker EC cleanup**~~ ✅ shipped `af54e08`
 4. ~~**B6 shareable image**~~ ✅ shipped `18bd537`
 5. ~~**B1 knockouts phase**~~ ✅ shipped `61d3c98`
-6. **B4 streak system** — Affects scoring + reveal + gamification. **Needs a design call before code:** how does a streak break/extend? What's the bonus? Adds depth but not a launch-blocker.
+6. ~~**B4 streak system**~~ ✅ shipped `7064d3b`
 7. ~~**B3 confidence-in-scoring**~~ ✅ shipped `d65cd18` (as MVP banner; not as a scoring-engine multiplier)
 8. ~~**B2 rich event broadcasts**~~ ✅ shipped `0715df4`
 9. ~~**B1 post-final phase**~~ ✅ shipped `1fc38e3`
