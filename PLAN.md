@@ -2,7 +2,7 @@
 
 The audit-driven plan for making YancoCup feel finished, owned, and unique before the World Cup. Three lanes: Foundation (must not feel broken), Innovation (the differentiators), Decisions (calls to make before coding).
 
-> **Status (2026-05-04, post-audit):** 11/20 items fully shipped. 9/20 partial — code landed but features deviate from spec. **Done:** A3, A4, A5, A6, A7, A9, A10, B5, C2, C3, C4. **Partial:** A1, A2, A8, B1, B2, B3, B4, B6, C1.
+> **Status (2026-05-04, post-audit):** 11/20 items fully shipped, 1 mostly shipped, 8 partial. **Done:** A3, A4, A5, A6, A7, A9, A10, B5, C2, C3, C4. **Mostly done:** B1 (group-stage shipped, knockouts/post-final still scaffold). **Partial:** A1, A2, A8, B2, B3, B4, B6, C1.
 
 ---
 
@@ -64,10 +64,10 @@ Files: `public/sw.js`, `src/lib/notifications.ts`, `src/components/notifications
 
 Differentiators that survived red-teaming. The reasons users choose YancoCup over FotMob.
 
-**B1. Phase-aware home page (replaces globe).** ⚠️ PARTIAL `1de9436`
+**B1. Phase-aware home page (replaces globe).** ⚠️ MOSTLY DONE `1de9436` + `cb97dd4`
 Hero auto-shifts based on tournament phase: pre-kickoff bracket, group-stage live grid, knockouts cathedral, post-final recap.
-**Reality:** Globe deleted ✓. **Only pre-kickoff phase implemented.** [PhaseHero.tsx:51](src/components/hero/PhaseHero.tsx:51) explicitly states *"Phase dispatch scaffold — group-stage / knockouts / post-final ship in later sessions."* All other phases fall through to pre-kickoff. Plan accepted scaffold-only as acceptable, but **group-stage MUST ship before June 11** for the tournament window to feel right.
-Files: `src/pages/HomePage.tsx`, `src/components/hero/PhaseHero.tsx`.
+**Reality:** Globe deleted ✓. Pre-kickoff phase ✓. **Group-stage phase shipped** — live ticker (only when matches IN_PLAY/PAUSED), today's matches as MatchCards, all 12 groups in a responsive grid ranked by `computeGroupStandings`. Knockouts and post-final still scaffold to pre-kickoff. `?phase=group-stage|knockouts|post-final|pre-kickoff` query override added for visual testing pre-launch.
+Files: `src/pages/HomePage.tsx`, `src/components/hero/PhaseHero.tsx`, `src/components/hero/GroupStagePhase.tsx`, `src/components/hero/CompactGroupCard.tsx`.
 
 **B2. Pool Pulse — real-time pool activity stream.** ⚠️ PARTIAL `9ad737b`
 Broadcast pool events: "Ahmad just locked his pick", "Sarah upgraded to 🔥", "Mohammed reacted 🤡".
@@ -108,14 +108,16 @@ Files: `src/components/pool/WallOfFame.tsx`, `worker/src/index.ts` (no schedule)
 
 Ranked by criticality:
 
-1. **B1 group-stage phase** — Hero will look identical from May 4 → July 19 unless this ships. Hard launch-blocker.
+1. ~~**B1 group-stage phase**~~ ✅ shipped `cb97dd4`
 2. **A2 cron switch** — Has to flip to `*/1 * * * *` on/around June 10 alongside the threshold edits documented in `wrangler.toml`. Not code work, but checklist work.
 3. **A1 / C1 worker EC cleanup** — Either remove EC from worker to match frontend, or formally accept 7 frontend / 8 worker as intentional. Not a launch-blocker but a coherence issue.
 4. **B6 shareable image** — The whole "WhatsApp share loop" depends on this. Without it, Wall of Fame is a static UI block nobody screenshots. High product impact.
-5. **B4 streak system** — Affects scoring + reveal + gamification. Needs a design call: how does a streak break/extend? What's the bonus? Adds depth but not a launch-blocker.
-6. **B3 confidence-in-scoring** — "Most-confident-and-correct" weekly award is a meaningful innovation but optional for launch.
-7. **B2 rich event broadcasts** — "Sarah upgraded to 🔥" texture. Polish.
-8. **A8 Cards / Clean Sheets tabs** — would need new data sources. Lowest priority.
+5. **B1 knockouts phase** — Activates June 28. Currently falls through to pre-kickoff hero. Bracket Cathedral with picks overlay. Less urgent than group-stage (17 days of runway after launch) but still launch-window work.
+6. **B4 streak system** — Affects scoring + reveal + gamification. Needs a design call: how does a streak break/extend? What's the bonus? Adds depth but not a launch-blocker.
+7. **B3 confidence-in-scoring** — "Most-confident-and-correct" weekly award is a meaningful innovation but optional for launch.
+8. **B2 rich event broadcasts** — "Sarah upgraded to 🔥" texture. Polish.
+9. **B1 post-final phase** — Activates July 19. Recap mode. Lowest urgency in B1.
+10. **A8 Cards / Clean Sheets tabs** — would need new data sources. Lowest priority.
 
 ---
 
