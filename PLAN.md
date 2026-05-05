@@ -2,7 +2,7 @@
 
 The audit-driven plan for making YancoCup feel finished, owned, and unique before the World Cup. Three lanes: Foundation (must not feel broken), Innovation (the differentiators), Decisions (calls to make before coding).
 
-> **Status (2026-05-04, post-audit):** 15/20 items fully shipped, 1 mostly shipped, 4 partial. **Done:** A1, A3, A4, A5, A6, A7, A9, A10, B1, B3, B5, C1, C2, C3, C4. **Mostly done:** B6 (shareable image shipped, worker schedule still missing). **Partial:** A2, A8, B2, B4.
+> **Status (2026-05-04, post-audit):** 16/20 items fully shipped, 1 mostly shipped, 3 partial. **Done:** A1, A3, A4, A5, A6, A7, A9, A10, B1, B2, B3, B5, C1, C2, C3, C4. **Mostly done:** B6 (shareable image shipped, worker schedule still missing). **Partial:** A2 (operational June 10), A8 (data source), B4 (needs design call).
 
 ---
 
@@ -69,10 +69,10 @@ Hero auto-shifts based on tournament phase: pre-kickoff bracket, group-stage liv
 **Reality:** All four phases ship real UI: pre-kickoff (countdown + bracket CTA), group-stage (live ticker + today's matches + 12-group standings), knockouts (round breadcrumbs + current-round panel + placeholder resolver overlay), post-final (champion + runner-up + 3rd place). `?phase=…` query override for previewing future phases. Globe deleted.
 Files: `src/components/hero/PhaseHero.tsx`, `GroupStagePhase.tsx`, `KnockoutsPhase.tsx`, `PostFinalPhase.tsx`, `CompactGroupCard.tsx`.
 
-**B2. Pool Pulse — real-time pool activity stream.** ⚠️ PARTIAL `9ad737b`
+**B2. Pool Pulse — real-time pool activity stream.** ✅ `9ad737b` + `0715df4`
 Broadcast pool events: "Ahmad just locked his pick", "Sarah upgraded to 🔥", "Mohammed reacted 🤡".
-**Reality:** Realtime subscription to `yc_predictions` via `pool_pulse_${competitionId}` channel ✓. New picks pulse green for 2.5s ✓. **Missing:** rich event-type messages (no "upgraded to 🔥" / "reacted 🤡" texture), reactions are not broadcast, logic is inlined into PoolsPage instead of a `usePoolPulse.ts` hook. The "always-on social texture" the plan promised is much thinner than spec.
-Files: `src/pages/PoolsPage.tsx:355-391` (inlined).
+**Reality:** Realtime subscription on `yc_predictions` ✓. Postgres-changes payloads diffed against a local snapshot to derive typed events: `locked / raised / lowered / joker_on / joker_off / changed`. A 5s toast strip surfaces the specific message ("🔥 Sarah raised her confidence") above the green-pulse list. Note: reaction events are still not broadcast — that table (`useReactions`) is not wired into Pool Pulse. Logic stays inlined in PoolsPage rather than a separate `usePoolPulse.ts` hook (kept it close to the data it diffs).
+Files: `src/pages/PoolsPage.tsx`.
 
 **B3. Confidence-as-currency.** ✅ `33d83cf` + `d65cd18`
 Surface confidence to pool members, factor into a weekly "Most-confident-and-correct" award.
@@ -115,7 +115,7 @@ Ranked by criticality:
 5. ~~**B1 knockouts phase**~~ ✅ shipped `61d3c98`
 6. **B4 streak system** — Affects scoring + reveal + gamification. **Needs a design call before code:** how does a streak break/extend? What's the bonus? Adds depth but not a launch-blocker.
 7. ~~**B3 confidence-in-scoring**~~ ✅ shipped `d65cd18` (as MVP banner; not as a scoring-engine multiplier)
-8. **B2 rich event broadcasts** — "Sarah upgraded to 🔥" texture. Polish.
+8. ~~**B2 rich event broadcasts**~~ ✅ shipped `0715df4`
 9. ~~**B1 post-final phase**~~ ✅ shipped `1fc38e3`
 10. **A8 Cards / Clean Sheets tabs** — would need new data sources. Lowest priority.
 11. **B6 worker schedule** — Sunday auto-fire to push the wall card. Pure polish; the share loop already works on demand.
