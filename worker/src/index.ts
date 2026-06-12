@@ -561,6 +561,37 @@ function inLiveWindow(scores: MatchScore[]): boolean {
   });
 }
 
+/**
+ * Overlay the freshest score/status onto a match-detail payload.
+ * The detail endpoint stacks caches (enriched ≤2min + embedded basic ≤2min
+ * + upstream lag) — up to ~5min of score staleness during a live match, and
+ * a pre-kickoff enriched cache can even serve status TIMED after kickoff,
+ * which silently stops the frontend's live polling. The live snapshot is
+ * already memoized for the score routes; reuse it here at zero extra cost.
+ */
+async function overlayLiveScore(
+  env: Env,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const status = payload.status as string | undefined;
+  if (status === "FINISHED") return;
+  const ko = new Date(String(payload.utcDate ?? "")).getTime();
+  const now = Date.now();
+  if (!Number.isFinite(ko) || ko > now || now - ko > 3.5 * 3600_000) return;
+
+  const direct = await fetchLiveDirect(env);
+  const live = direct?.find((m) => m.apiId === Number(payload.id));
+  if (!live) return;
+  payload.status = live.status;
+  const prevScore = (payload.score as Record<string, unknown> | undefined) ?? {};
+  payload.score = {
+    ...prevScore,
+    winner: live.winner,
+    fullTime: { home: live.homeScore, away: live.awayScore },
+    halfTime: { home: live.halfTimeHome, away: live.halfTimeAway },
+  };
+}
+
 async function fetchLiveDirect(env: Env): Promise<MatchScore[] | null> {
   if (liveMemo && Date.now() - liveMemo.ts < 60_000) return liveMemo.matches;
   try {
@@ -3157,18 +3188,29 @@ app.get("/api/player-photo/:playerId", async (c) => {
     return c.json({ error: "Invalid player ID" }, 400);
   }
 
+  // Edge Cache API first — image binaries were the single biggest KV write
+  // consumer (1 write per photo; a few squads = hundreds of writes/day,
+  // which helped exhaust the 1,000/day budget on 2026-06-12). The edge
+  // cache is unmetered; per-PoP misses just refetch from the CDN.
+  const edgeCache = caches.default;
+  const edgeKey = new Request(new URL(c.req.url).toString());
+  const edgeHit = await edgeCache.match(edgeKey);
+  if (edgeHit) return edgeHit;
+
   const cacheKey = `photo-img:${playerId}`;
 
-  // Check KV cache for the image binary
+  // Legacy KV entries (read-only migration path; no new KV writes)
   const cached = await c.env.SCORES_KV.get(cacheKey, "arrayBuffer");
   if (cached) {
-    return new Response(cached, {
+    const resp = new Response(cached, {
       headers: {
         "Content-Type": "image/png",
         "Cache-Control": "public, max-age=2592000", // 30 days
         "Access-Control-Allow-Origin": "*",
       },
     });
+    c.executionCtx.waitUntil(edgeCache.put(edgeKey, resp.clone()));
+    return resp;
   }
 
   // Fetch from api-sports.io media CDN
@@ -3192,18 +3234,16 @@ app.get("/api/player-photo/:playerId", async (c) => {
       return c.json({ error: "Empty image response" }, 404);
     }
 
-    // Cache in KV for 30 days (best-effort — may hit daily write limit on free tier)
-    try {
-      await c.env.SCORES_KV.put(cacheKey, imgBuffer, { expirationTtl: 2592000 });
-    } catch { /* KV write limit — serve uncached */ }
-
-    return new Response(imgBuffer, {
+    const resp = new Response(imgBuffer, {
       headers: {
         "Content-Type": "image/png",
         "Cache-Control": "public, max-age=2592000",
         "Access-Control-Allow-Origin": "*",
       },
     });
+    // Edge cache only — deliberately NOT KV (write budget)
+    c.executionCtx.waitUntil(edgeCache.put(edgeKey, resp.clone()));
+    return resp;
   } catch (err) {
     console.error(`[photo-proxy] Error for player ${playerId}:`, String(err));
     return c.json({ error: "Failed to fetch photo", detail: String(err) }, 500);
@@ -3276,7 +3316,22 @@ app.get("/api/match/:id/detail", async (c) => {
   // Check for enriched cache first
   const enrichedKey = `matchenriched:${id}`;
   const enrichedCached = await c.env.SCORES_KV.get(enrichedKey);
-  if (enrichedCached) return c.json(safeParse(enrichedCached) ?? {});
+  if (enrichedCached) {
+    const parsed = safeParse<Record<string, unknown>>(enrichedCached);
+    if (parsed) {
+      // A pre-kickoff enriched entry (TTL 1h) can outlive kickoff — bypass
+      // it so live events/lineups refetch instead of serving TIMED data
+      const cachedStatus = parsed.status as string | undefined;
+      const ko = new Date(String(parsed.utcDate ?? "")).getTime();
+      const stalePreKickoff =
+        (cachedStatus === "TIMED" || cachedStatus === "SCHEDULED") &&
+        Number.isFinite(ko) && Date.now() >= ko;
+      if (!stalePreKickoff) {
+        await overlayLiveScore(c.env, parsed);
+        return c.json(parsed);
+      }
+    }
+  }
 
   // Fetch basic data from football-data.org
   // Short TTL: live=2min, finished=10min, upcoming=5min.
@@ -3336,6 +3391,7 @@ app.get("/api/match/:id/detail", async (c) => {
         : status === "IN_PLAY" || status === "PAUSED" ? 120
         : 3600;
       await kvPut(c.env.SCORES_KV, enrichedKey, JSON.stringify(enriched), { expirationTtl: ttl });
+      await overlayLiveScore(c.env, enriched);
       return c.json(enriched);
     }
   }
@@ -3366,6 +3422,7 @@ app.get("/api/match/:id/detail", async (c) => {
               : status === "IN_PLAY" || status === "PAUSED" ? 120
               : 3600;
             await kvPut(c.env.SCORES_KV, enrichedKey, JSON.stringify(enriched), { expirationTtl: ttl });
+            await overlayLiveScore(c.env, enriched);
             return c.json(enriched);
           }
         }
@@ -3375,6 +3432,7 @@ app.get("/api/match/:id/detail", async (c) => {
     }
   }
 
+  await overlayLiveScore(c.env, basicData);
   return c.json(basicData);
 });
 

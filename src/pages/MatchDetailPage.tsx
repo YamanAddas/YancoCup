@@ -1061,10 +1061,14 @@ export default function MatchDetailPage() {
     // live-watcher's poller alive across the IN_PLAY→FINISHED transition.
     const msSinceKickoff = Date.now() - kickoffMs;
     const isRecentlyFinished = match.status === "FINISHED" && msSinceKickoff < 3 * 60 * 60_000;
+    // Stale TIMED past kickoff (cached pre-kickoff payload): poll until the
+    // status flips to IN_PLAY — otherwise the page freezes on 'upcoming'.
+    const isStaleUpcoming =
+      match.status === "TIMED" && msSinceKickoff >= 0 && msSinceKickoff < 3.5 * 60 * 60_000;
 
-    if (!isLiveNow && !isUpcoming && !isRecentlyFinished) return;
+    if (!isLiveNow && !isUpcoming && !isRecentlyFinished && !isStaleUpcoming) return;
 
-    const pollMs = isLiveNow ? 30_000 : isRecentlyFinished ? 2 * 60_000 : 5 * 60_000;
+    const pollMs = isLiveNow || isStaleUpcoming ? 30_000 : isRecentlyFinished ? 2 * 60_000 : 5 * 60_000;
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`${WORKER_URL}/api/match/${id}/detail`);
