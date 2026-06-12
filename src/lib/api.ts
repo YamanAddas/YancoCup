@@ -31,6 +31,10 @@ export interface LiveMatchScore {
   halfTimeHome: number | null;
   halfTimeAway: number | null;
   winner: string | null;
+  /** REGULAR | EXTRA_TIME | PENALTY_SHOOTOUT (knockouts only) */
+  duration?: string;
+  penaltyHome?: number | null;
+  penaltyAway?: number | null;
 }
 
 export interface StandingTeam {

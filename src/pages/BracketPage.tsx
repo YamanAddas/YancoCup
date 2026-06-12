@@ -11,6 +11,8 @@ import { useI18n } from "../lib/i18n";
 import {
   computeGroupStandings,
   computeKnockoutResults,
+  computeThirdPlaceAllocation,
+  collectThirdSlotHints,
   resolveBracketPlaceholder,
 } from "../lib/bracketResolver";
 import type { Match, Team } from "../types";
@@ -295,6 +297,10 @@ export default function BracketPage() {
     () => computeKnockoutResults(matches, scoreMap),
     [matches, scoreMap],
   );
+  const thirdAllocation = useMemo(
+    () => computeThirdPlaceAllocation(standings, collectThirdSlotHints(matches)),
+    [matches, standings],
+  );
 
   const bracketRounds = useMemo(() => {
     const rounds: Array<{ id: RoundId; matches: BracketMatch[] }> = [];
@@ -309,11 +315,11 @@ export default function BracketPage() {
         .map((m): BracketMatch => {
           const resolvedHomeTla =
             m.homeTeam == null
-              ? (resolveBracketPlaceholder(m.homePlaceholder, standings, koResults) ?? undefined)
+              ? (resolveBracketPlaceholder(m.homePlaceholder, standings, koResults, thirdAllocation) ?? undefined)
               : undefined;
           const resolvedAwayTla =
             m.awayTeam == null
-              ? (resolveBracketPlaceholder(m.awayPlaceholder, standings, koResults) ?? undefined)
+              ? (resolveBracketPlaceholder(m.awayPlaceholder, standings, koResults, thirdAllocation) ?? undefined)
               : undefined;
           return {
             match: m,

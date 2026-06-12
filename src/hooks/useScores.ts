@@ -19,6 +19,10 @@ export interface LocalLiveScore {
   halfTimeHome: number | null;
   halfTimeAway: number | null;
   winner: string | null;
+  /** REGULAR | EXTRA_TIME | PENALTY_SHOOTOUT (knockouts only) */
+  duration?: string;
+  penaltyHome?: number | null;
+  penaltyAway?: number | null;
   stage: string;
 }
 
@@ -100,6 +104,9 @@ export function useScores(comp?: string) {
         halfTimeHome: s.halfTimeHome,
         halfTimeAway: s.halfTimeAway,
         winner: s.winner,
+        duration: s.duration,
+        penaltyHome: s.penaltyHome ?? null,
+        penaltyAway: s.penaltyAway ?? null,
         stage: s.stage,
       });
     }

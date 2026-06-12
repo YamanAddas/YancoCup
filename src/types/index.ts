@@ -35,6 +35,9 @@ export interface Match {
   awayTeamId?: number | null;
   homePlaceholder?: string;
   awayPlaceholder?: string;
+  /** Official FIFA match number (knockout matches) — "W74"/"L101" bracket
+   *  placeholders reference THESE, not football-data ids */
+  fifaNum?: number;
   /** football-data.org crest URL for home team (clubs only) */
   homeCrest?: string | null;
   /** football-data.org crest URL for away team (clubs only) */

@@ -18,6 +18,8 @@ import { useMyPredictions, canPredict } from "../../hooks/usePredictions";
 import {
   computeGroupStandings,
   computeKnockoutResults,
+  computeThirdPlaceAllocation,
+  collectThirdSlotHints,
   resolveBracketPlaceholder,
 } from "../../lib/bracketResolver";
 import { getLocale, formatTimeWithTZ } from "../../lib/formatDate";
@@ -284,14 +286,18 @@ export default function KnockoutsPhase() {
     const groupStageMatches = allMatches.filter((m) => m.round === "group");
     const groupStandings = computeGroupStandings(groupStageMatches, scoreMap);
     const knockoutResults = computeKnockoutResults(allMatches, scoreMap);
+    const thirdAllocation = computeThirdPlaceAllocation(
+      groupStandings,
+      collectThirdSlotHints(allMatches),
+    );
     const out = new Map<number, { home?: string; away?: string }>();
     for (const m of knockoutMatches) {
       if (m.homeTeam && m.awayTeam) continue;
       const home = m.homePlaceholder
-        ? resolveBracketPlaceholder(m.homePlaceholder, groupStandings, knockoutResults)
+        ? resolveBracketPlaceholder(m.homePlaceholder, groupStandings, knockoutResults, thirdAllocation)
         : undefined;
       const away = m.awayPlaceholder
-        ? resolveBracketPlaceholder(m.awayPlaceholder, groupStandings, knockoutResults)
+        ? resolveBracketPlaceholder(m.awayPlaceholder, groupStandings, knockoutResults, thirdAllocation)
         : undefined;
       out.set(m.id, { home: home ?? undefined, away: away ?? undefined });
     }

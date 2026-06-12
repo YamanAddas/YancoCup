@@ -10,6 +10,7 @@ import {
   type EspnEnrichment,
   type FdTeamRef,
 } from "./espnEnrich";
+import { deriveDisplayScore } from "./matchScore";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -64,6 +65,9 @@ interface FDMatch {
     duration: string;
     fullTime: { home: number | null; away: number | null };
     halfTime: { home: number | null; away: number | null };
+    regularTime?: { home: number | null; away: number | null };
+    extraTime?: { home: number | null; away: number | null };
+    penalties?: { home: number | null; away: number | null };
   };
 }
 
@@ -89,6 +93,10 @@ interface MatchScore {
   halfTimeHome: number | null;
   halfTimeAway: number | null;
   winner: string | null;
+  /** REGULAR | EXTRA_TIME | PENALTY_SHOOTOUT (knockouts only) */
+  duration?: string;
+  penaltyHome?: number | null;
+  penaltyAway?: number | null;
 }
 
 interface StandingTeam {
@@ -614,6 +622,10 @@ async function fetchLiveDirect(env: Env): Promise<MatchScore[] | null> {
 function transformMatch(m: FDMatch): MatchScore {
   // Map competition ID to our code, or use the API's code
   const compCode = FD_ID_TO_CODE.get(m.competition.id) ?? m.competition.code;
+
+  // 120-minute result for shootout matches (fullTime includes pens)
+  const { home: homeScore, away: awayScore } = deriveDisplayScore(m.score);
+
   return {
     apiId: m.id,
     competitionCode: compCode,
@@ -630,11 +642,14 @@ function transformMatch(m: FDMatch): MatchScore {
     awayCrest: m.awayTeam?.crest ?? null,
     homeTeamName: m.homeTeam?.shortName ?? null,
     awayTeamName: m.awayTeam?.shortName ?? null,
-    homeScore: m.score.fullTime.home,
-    awayScore: m.score.fullTime.away,
+    homeScore,
+    awayScore,
     halfTimeHome: m.score.halfTime.home,
     halfTimeAway: m.score.halfTime.away,
     winner: m.score.winner,
+    duration: m.score.duration,
+    penaltyHome: m.score.penalties?.home ?? null,
+    penaltyAway: m.score.penalties?.away ?? null,
   };
 }
 
