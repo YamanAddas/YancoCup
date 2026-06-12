@@ -1,6 +1,15 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { XMLParser } from "fast-xml-parser";
+import {
+  ESPN_BASE,
+  ESPN_SLUGS,
+  espnDay,
+  findEspnEventInScoreboard,
+  transformEspnSummary,
+  type EspnEnrichment,
+  type FdTeamRef,
+} from "./espnEnrich";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -142,6 +151,9 @@ function safeParse<T>(json: string): T | null {
 function kvScores(comp: string): string {
   return `${comp}:scores`;
 }
+// 7 days — client-side scoring reads finished results from this key, so a
+// >24h upstream outage must not expire them before predictions are scored.
+const SCORES_TTL = 604800;
 function kvStandings(comp: string): string {
   return `${comp}:standings`;
 }
@@ -458,6 +470,74 @@ async function fetchApiFootballDetail(
     await kvPut(env.SCORES_KV, cacheKey, JSON.stringify(fixture), { expirationTtl: ttl });
   }
   return fixture;
+}
+
+// ---------------------------------------------------------------------------
+// ESPN enrichment IO — discovery + summary fetch (transforms in espnEnrich.ts)
+// ---------------------------------------------------------------------------
+
+interface EspnFixtureRef {
+  utcDate: string;
+  home: FdTeamRef & { name: string };
+  away: FdTeamRef & { name: string };
+}
+
+/**
+ * Fetch lineups/events/stats for a football-data match from ESPN.
+ * Returns null when the competition has no ESPN slug, the fixture can't be
+ * found, or the summary holds no useful content — callers degrade to the
+ * next source.
+ */
+async function fetchEspnEnrichment(
+  env: Env,
+  compCode: string,
+  apiId: number,
+  fixture: EspnFixtureRef,
+): Promise<EspnEnrichment | null> {
+  const slug = ESPN_SLUGS[compCode];
+  if (!slug) return null;
+
+  try {
+    // 1. FD match id → ESPN event id (cached 7 days once discovered)
+    const mapKey = `espn:map:${apiId}`;
+    let eventId = await env.SCORES_KV.get(mapKey);
+    if (!eventId) {
+      // ESPN buckets scoreboard days by US Eastern date, so a UTC evening/
+      // early-morning kickoff lives under the previous day — fetch a range.
+      const range = `${espnDay(fixture.utcDate, -1)}-${espnDay(fixture.utcDate, 0)}`;
+      const sbKey = `espn:sb:${slug}:${range}`;
+      let sbRaw = await env.SCORES_KV.get(sbKey);
+      if (!sbRaw) {
+        const res = await fetch(`${ESPN_BASE}/${slug}/scoreboard?dates=${range}`, {
+          headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", Accept: "application/json" },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!res.ok) return null;
+        sbRaw = await res.text();
+        await kvPut(env.SCORES_KV, sbKey, sbRaw, { expirationTtl: 3600 });
+      }
+      const sb = safeParse<Record<string, unknown>>(sbRaw);
+      if (!sb) return null;
+      eventId = findEspnEventInScoreboard(sb, fixture.utcDate, fixture.home, fixture.away);
+      if (!eventId) return null;
+      await kvPut(env.SCORES_KV, mapKey, eventId, { expirationTtl: 7 * 86400 });
+    }
+
+    // 2. Summary → transform (summary is ~400 KB; transform before caching)
+    const res = await fetch(`${ESPN_BASE}/${slug}/summary?event=${eventId}`, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", Accept: "application/json" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const summary = (await res.json()) as Record<string, unknown>;
+    return transformEspnSummary(
+      summary,
+      { id: fixture.home.id, name: fixture.home.name },
+      { id: fixture.away.id, name: fixture.away.name },
+    );
+  } catch {
+    return null;
+  }
 }
 
 function transformMatch(m: FDMatch): MatchScore {
@@ -1740,10 +1820,15 @@ async function handleCron(env: Env, scheduledTime: number): Promise<void> {
         }
       }
 
-      // Persist status map for next tick. TTL = 7 days.
-      await kvPut(env.SCORES_KV, KV_MATCH_STATUSES, JSON.stringify(newStatus), {
-        expirationTtl: 7 * 86400,
-      });
+      // Persist status map for next tick — only when a status changed.
+      // At 60s cron cadence an unconditional write here alone would burn
+      // 1,440 of the 1,000/day free-tier KV writes. TTL = 7 days.
+      const newStatusJson = JSON.stringify(newStatus);
+      if (newStatusJson !== prevStatusJson) {
+        await kvPut(env.SCORES_KV, KV_MATCH_STATUSES, newStatusJson, {
+          expirationTtl: 7 * 86400,
+        });
+      }
 
       // Fire pushes for transitions (best-effort, doesn't block KV writes below).
       if (justKickedOff.length > 0 || justFinished.length > 0) {
@@ -1766,17 +1851,25 @@ async function handleCron(env: Env, scheduledTime: number): Promise<void> {
         const newJson = JSON.stringify(merged);
         if (newJson !== existing) {
           await kvPut(env.SCORES_KV, kvScores(code), newJson, {
-            expirationTtl: 86400,
+            expirationTtl: SCORES_TTL,
           });
         }
       }
 
-      // Store all live matches — skip write if empty and no previous live data
+      // Store all live matches — skip write when unchanged. When the last
+      // live match ends, overwrite with [] instead of letting the old entry
+      // linger (TTL 1200s meant /api/live served ghost IN_PLAY matches for
+      // up to 20 min after full time).
       const liveJson = JSON.stringify(allLive);
+      const prevLiveJson = await env.SCORES_KV.get("all:live");
       if (allLive.length > 0) {
-        await kvPut(env.SCORES_KV, "all:live", liveJson, {
-          expirationTtl: 1200,
-        });
+        if (liveJson !== prevLiveJson) {
+          await kvPut(env.SCORES_KV, "all:live", liveJson, {
+            expirationTtl: 1200,
+          });
+        }
+      } else if (prevLiveJson && prevLiveJson !== "[]") {
+        await kvPut(env.SCORES_KV, "all:live", "[]", { expirationTtl: 1200 });
       }
     }
 
@@ -1824,7 +1917,7 @@ async function handleCron(env: Env, scheduledTime: number): Promise<void> {
           const newJson = JSON.stringify(merged);
           if (newJson !== existing) {
             await kvPut(env.SCORES_KV, kvScores(code), newJson, {
-              expirationTtl: 86400,
+              expirationTtl: SCORES_TTL,
             });
           }
         }
@@ -1835,12 +1928,13 @@ async function handleCron(env: Env, scheduledTime: number): Promise<void> {
     // Every 50 min: pre-enrich upcoming matches (lineups, events)
     // Lineups typically drop ~24h before kickoff. Pre-cache via API-Football
     // so users see lineups immediately when opening match detail page.
-    // Budget: max 3 enrichments per tick to stay within API-Football 100 req/day.
+    // ESPN first (free, no quota), API-Football as fallback. Budget: max 3
+    // enrichments per tick keeps the worst case polite toward ESPN too.
     //
     // Read from KV (not byComp) so we include the full upcoming week from the
     // 25-min schedule fetch — otherwise tomorrow's matches within 24h are missed.
     // -----------------------------------------------------------------------
-    if (tick % 50 === 0 && env.API_FOOTBALL_KEY) {
+    if (tick % 50 === 0) {
       const now = Date.now();
       const twentyFourHoursMs = 24 * 60 * 60 * 1000;
       let enrichCount = 0;
@@ -1871,26 +1965,45 @@ async function handleCron(env: Env, scheduledTime: number): Promise<void> {
           const matchDate = score.utcDate.slice(0, 10);
 
           try {
+            // Shared FD basic detail (both sources merge on top of it)
+            const fetchBasic = async (): Promise<Record<string, unknown>> => {
+              const basicKey = `matchdetail:${score.apiId}`;
+              const basicCached = await env.SCORES_KV.get(basicKey);
+              if (basicCached) return safeParse(basicCached) ?? {};
+              const fdRes = await fetchFromFootballData(`/matches/${score.apiId}`, env.FOOTBALL_DATA_API_KEY);
+              if (!fdRes.ok) return {};
+              const basicData = (await fdRes.json()) as Record<string, unknown>;
+              await kvPut(env.SCORES_KV, basicKey, JSON.stringify(basicData), { expirationTtl: 3600 });
+              return basicData;
+            };
+
+            // 1. ESPN (free, no key)
+            if (score.homeTeamId != null && score.awayTeamId != null) {
+              const espn = await fetchEspnEnrichment(env, score.competitionCode, score.apiId, {
+                utcDate: score.utcDate,
+                home: { id: score.homeTeamId, tla: score.homeTeam, name: score.homeTeamName ?? score.homeTeam, names: [score.homeTeamName] },
+                away: { id: score.awayTeamId, tla: score.awayTeam, name: score.awayTeamName ?? score.awayTeam, names: [score.awayTeamName] },
+              });
+              if (espn) {
+                const basicData = await fetchBasic();
+                const enriched = { ...basicData, ...espn };
+                const ttl = isLive ? 120 : 3600;
+                await kvPut(env.SCORES_KV, enrichedKey, JSON.stringify(enriched), { expirationTtl: ttl });
+                console.log(`Cron: pre-enriched match ${score.apiId} via ESPN (${score.homeTeam} vs ${score.awayTeam})`);
+                enrichCount++;
+                continue;
+              }
+            }
+
+            // 2. API-Football fallback (needs a paid key for current seasons)
+            if (!env.API_FOOTBALL_KEY) continue;
             const afFixture = await findApiFootballFixture(env, score.competitionCode, matchDate, score.homeTeam, score.awayTeam);
             if (afFixture) {
               const fixtureId = ((afFixture.fixture as Record<string, unknown>)?.id as number);
               if (fixtureId) {
                 const detail = await fetchApiFootballDetail(env, fixtureId);
                 if (detail) {
-                  // Fetch basic data from football-data.org to merge
-                  const basicKey = `matchdetail:${score.apiId}`;
-                  let basicData: Record<string, unknown> = {};
-                  const basicCached = await env.SCORES_KV.get(basicKey);
-                  if (basicCached) {
-                    basicData = safeParse(basicCached) ?? {};
-                  } else {
-                    const fdRes = await fetchFromFootballData(`/matches/${score.apiId}`, env.FOOTBALL_DATA_API_KEY);
-                    if (fdRes.ok) {
-                      basicData = (await fdRes.json()) as Record<string, unknown>;
-                      await kvPut(env.SCORES_KV, basicKey, JSON.stringify(basicData), { expirationTtl: 3600 });
-                    }
-                  }
-
+                  const basicData = await fetchBasic();
                   const enriched = { ...basicData, events: detail.events ?? [], lineups: detail.lineups ?? [], statistics: detail.statistics ?? [] };
                   const ttl = isLive ? 120 : 3600;
                   await kvPut(env.SCORES_KV, enrichedKey, JSON.stringify(enriched), { expirationTtl: ttl });
@@ -1977,7 +2090,7 @@ async function handleCron(env: Env, scheduledTime: number): Promise<void> {
           }
           if (fixed) {
             await kvPut(env.SCORES_KV, kvScores(comp), JSON.stringify(scoreArr), {
-              expirationTtl: 86400,
+              expirationTtl: SCORES_TTL,
             });
           }
         }
@@ -2051,7 +2164,7 @@ async function handleCron(env: Env, scheduledTime: number): Promise<void> {
       }
       if (changed) {
         await kvPut(env.SCORES_KV, kvScores(code), JSON.stringify(arr), {
-          expirationTtl: 86400,
+          expirationTtl: SCORES_TTL,
         });
       }
     }
@@ -2073,23 +2186,32 @@ function isAdminAuthed(key: string | undefined, env: Env): boolean {
 // Rate limiting (simple per-IP via KV)
 // ---------------------------------------------------------------------------
 
-async function checkRateLimit(
-  ip: string,
-  kv: KVNamespace,
-): Promise<boolean> {
-  try {
-    const key = `ratelimit:${ip}`;
-    const current = await kv.get(key);
-    const count = current ? parseInt(current, 10) : 0;
+// In-memory fixed window, per isolate. The previous KV version had two
+// production bugs: every allowed request was a KV write (burned the
+// 1,000/day free-tier budget on its own), and the 60s expirationTtl slid
+// forward on each write, so an active user polling during a live match
+// never got their window reset and hit sustained 429s. Per-isolate state
+// means the cap is per-edge-instance — fine: this guards abuse, not quota.
+const RL_WINDOW_MS = 60_000;
+const RL_MAX = 60; // 60 req/min
+const rlBuckets = new Map<string, { count: number; windowStart: number }>();
 
-    if (count >= 60) return false; // 60 req/min
-
-    await kv.put(key, String(count + 1), { expirationTtl: 60 });
-    return true;
-  } catch {
-    // KV write limit exceeded — allow request rather than blocking
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  // Prune on size, not on a timer — isolates are short-lived anyway
+  if (rlBuckets.size > 10_000) {
+    for (const [k, b] of rlBuckets) {
+      if (now - b.windowStart >= RL_WINDOW_MS) rlBuckets.delete(k);
+    }
+  }
+  const bucket = rlBuckets.get(ip);
+  if (!bucket || now - bucket.windowStart >= RL_WINDOW_MS) {
+    rlBuckets.set(ip, { count: 1, windowStart: now });
     return true;
   }
+  if (bucket.count >= RL_MAX) return false;
+  bucket.count++;
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -2116,7 +2238,7 @@ app.use(
 // Rate limiting middleware
 app.use("/api/*", async (c, next) => {
   const ip = c.req.header("cf-connecting-ip") ?? "unknown";
-  const allowed = await checkRateLimit(ip, c.env.SCORES_KV);
+  const allowed = checkRateLimit(ip);
   if (!allowed) {
     return c.json(
       { error: "Rate limit exceeded. Max 60 requests per minute." },
@@ -2936,13 +3058,44 @@ app.get("/api/match/:id/detail", async (c) => {
     await kvPut(c.env.SCORES_KV, basicKey, JSON.stringify(basicData), { expirationTtl: ttl });
   }
 
-  // Try to enrich with API-Football data (goals, lineups, stats)
   const compCode = (basicData.competition as Record<string, unknown>)?.code as string;
   const utcDate = basicData.utcDate as string;
   const matchDate = utcDate?.slice(0, 10);
-  const homeTla = (basicData.homeTeam as Record<string, unknown>)?.tla as string;
-  const awayTla = (basicData.awayTeam as Record<string, unknown>)?.tla as string;
+  const homeTeamObj = basicData.homeTeam as Record<string, unknown> | undefined;
+  const awayTeamObj = basicData.awayTeam as Record<string, unknown> | undefined;
+  const homeTla = homeTeamObj?.tla as string;
+  const awayTla = awayTeamObj?.tla as string;
+  const status = basicData.status as string;
 
+  // Primary enrichment: ESPN (free, no key) — events, lineups, statistics
+  if (compCode && utcDate && homeTeamObj?.id != null && awayTeamObj?.id != null) {
+    const espn = await fetchEspnEnrichment(c.env, compCode, Number(id), {
+      utcDate,
+      home: {
+        id: Number(homeTeamObj.id),
+        tla: (homeTeamObj.tla as string) ?? null,
+        name: (homeTeamObj.shortName as string) ?? (homeTeamObj.name as string) ?? "",
+        names: [homeTeamObj.name as string, homeTeamObj.shortName as string],
+      },
+      away: {
+        id: Number(awayTeamObj.id),
+        tla: (awayTeamObj.tla as string) ?? null,
+        name: (awayTeamObj.shortName as string) ?? (awayTeamObj.name as string) ?? "",
+        names: [awayTeamObj.name as string, awayTeamObj.shortName as string],
+      },
+    });
+    if (espn) {
+      const enriched = { ...basicData, ...espn };
+      const ttl = status === "FINISHED" ? 604800
+        : status === "IN_PLAY" || status === "PAUSED" ? 120
+        : 3600;
+      await kvPut(c.env.SCORES_KV, enrichedKey, JSON.stringify(enriched), { expirationTtl: ttl });
+      return c.json(enriched);
+    }
+  }
+
+  // Fallback enrichment: API-Football (dead on the free plan for current
+  // seasons — kept for the day a paid key appears)
   if (compCode && matchDate && homeTla && awayTla && c.env.API_FOOTBALL_KEY) {
     try {
       const afFixture = await findApiFootballFixture(c.env, compCode, matchDate, homeTla, awayTla);
