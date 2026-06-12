@@ -8,17 +8,18 @@ binding = "SCORES_KV"
 id = "c28d05b0f84a402aa441c0473de4a35a"
 
 # Cron Triggers — poll live scores
-# Currently every 5 min (pre-tournament, leagues only).
+# Currently every 5 min.
 #
-# WC SWITCH (perform on/around 2026-06-10):
-#   1. Change crons to ["* * * * *"] (every 60s)
-#   2. In src/index.ts handleCron, simultaneously update tick thresholds to
-#      keep periodic budgets unchanged:
-#        tick % 5  → tick % 25  (5-min upcoming-week refresh)
-#        tick % 10 → tick % 50  (50-min API-Football enrichment;
-#                                MUST stay <=100 calls/day)
-#   3. Revert thresholds AND cron after the WC final (2026-07-19) to save
-#      API budget during off-season.
+# handleCron's periodic gates are wall-clock-anchored (epoch minutes % 25/50/
+# 75/120/150), so changing the cron cadence does NOT change their frequency —
+# only the every-run score poll speeds up. Gate periods must stay multiples
+# of the cron interval, so don't go coarser than */5.
+#
+# Before switching to every-60s for live coverage (and reverting after the
+# WC final, 2026-07-19): the every-run KV writes must fit the free-tier cap
+# of 1,000 writes/day. At 60s the match-status map alone is 1,440 writes/day
+# (it is written every run a poll succeeds), plus per-request rate-limit
+# writes — make those writes skip-if-unchanged first.
 [triggers]
 crons = ["*/5 * * * *"]
 

@@ -152,7 +152,6 @@ function kvSchedule(comp: string): string {
   return `${comp}:schedule`;
 }
 const KV_LAST_POLL = "config:last_poll";
-const KV_TICK = "config:tick_count";
 const KV_CRON_ERRORS = "cron:error:count";
 const KV_MATCH_STATUSES = "config:match_statuses";
 
@@ -1683,18 +1682,15 @@ async function dispatchMatchPushes(
   }
 }
 
-async function handleCron(env: Env): Promise<void> {
-  // Hoisted above the try: the news block after the catch reads it too.
-  // Stays 0 when the KV read throws before assignment.
-  let tick = 0;
+async function handleCron(env: Env, scheduledTime: number): Promise<void> {
+  // Wall-clock tick: minutes since epoch, from the cron's scheduled time —
+  // monotonic with no KV state (the old KV counter deadlocked: its write was
+  // gated on tick % 5, so a stored multiple of 5 froze it forever).
+  // Periodic gates below are wall-clock periods (% 25 = every 25 min) and
+  // fire on the run landing exactly on the boundary, so gate periods must
+  // stay multiples of the cron interval (wrangler.toml).
+  const tick = Math.floor(scheduledTime / 60_000);
   try {
-    // Get tick count for periodic actions (write every 5th tick to save KV budget)
-    const tickStr = await env.SCORES_KV.get(KV_TICK);
-    tick = tickStr ? parseInt(tickStr, 10) + 1 : 1;
-    if (tick % 5 === 0) {
-      await kvPut(env.SCORES_KV, KV_TICK, String(tick));
-    }
-
     // -----------------------------------------------------------------------
     // Every tick: fetch ALL matches across all competitions (single API call)
     // /v4/matches returns today's matches for all TIER_ONE competitions
@@ -1785,9 +1781,9 @@ async function handleCron(env: Env): Promise<void> {
     }
 
     // -----------------------------------------------------------------------
-    // Every 5th tick (~5 min): fetch upcoming week for scheduling
+    // Every 25 min: fetch upcoming week for scheduling
     // -----------------------------------------------------------------------
-    if (tick % 5 === 0) {
+    if (tick % 25 === 0) {
       const today = new Date();
       const nextWeek = new Date(today);
       nextWeek.setDate(today.getDate() + 7);
@@ -1836,15 +1832,15 @@ async function handleCron(env: Env): Promise<void> {
     }
 
     // -----------------------------------------------------------------------
-    // Every 10th tick (~50 min): pre-enrich upcoming matches (lineups, events)
+    // Every 50 min: pre-enrich upcoming matches (lineups, events)
     // Lineups typically drop ~24h before kickoff. Pre-cache via API-Football
     // so users see lineups immediately when opening match detail page.
     // Budget: max 3 enrichments per tick to stay within API-Football 100 req/day.
     //
     // Read from KV (not byComp) so we include the full upcoming week from the
-    // 5th-tick schedule fetch — otherwise tomorrow's matches within 24h are missed.
+    // 25-min schedule fetch — otherwise tomorrow's matches within 24h are missed.
     // -----------------------------------------------------------------------
-    if (tick % 10 === 0 && env.API_FOOTBALL_KEY) {
+    if (tick % 50 === 0 && env.API_FOOTBALL_KEY) {
       const now = Date.now();
       const twentyFourHoursMs = 24 * 60 * 60 * 1000;
       let enrichCount = 0;
@@ -1911,10 +1907,10 @@ async function handleCron(env: Env): Promise<void> {
     }
 
     // -----------------------------------------------------------------------
-    // Every 15th tick (~15 min): standings for one competition (rotated)
+    // Every 75 min: standings for one competition (rotated)
     // -----------------------------------------------------------------------
-    if (tick % 15 === 0) {
-      const compIdx = Math.floor(tick / 15) % STANDINGS_COMPS.length;
+    if (tick % 75 === 0) {
+      const compIdx = Math.floor(tick / 75) % STANDINGS_COMPS.length;
       const comp = STANDINGS_COMPS[compIdx];
       const def = COMPETITIONS[comp];
 
@@ -1938,13 +1934,13 @@ async function handleCron(env: Env): Promise<void> {
     }
 
     // -----------------------------------------------------------------------
-    // Every 60th tick (~1 hour): full season schedule for one competition
+    // Every 150 min: full season schedule for one competition
     // Rotates through all competitions, populates kvSchedule so the
     // /api/:comp/matches endpoint never needs to hit upstream.
     // -----------------------------------------------------------------------
-    if (tick % 30 === 0) {
+    if (tick % 150 === 0) {
       const schedComps = STANDINGS_COMPS.filter((c) => c !== "WC"); // WC uses static JSON
-      const schedIdx = Math.floor(tick / 30) % schedComps.length;
+      const schedIdx = Math.floor(tick / 150) % schedComps.length;
       const comp = schedComps[schedIdx]!;
 
       const schedRes = await fetchFromFootballData(
@@ -1988,8 +1984,8 @@ async function handleCron(env: Env): Promise<void> {
       }
     }
 
-    // Record last successful poll (every 5th tick to save KV writes)
-    if (tick % 5 === 0) {
+    // Record last successful poll (every 25 min to save KV writes)
+    if (tick % 25 === 0) {
       await kvPut(env.SCORES_KV, KV_LAST_POLL, new Date().toISOString());
     }
   } catch (err) {
@@ -2009,11 +2005,10 @@ async function handleCron(env: Env): Promise<void> {
   // was inside the same try/catch as the score fetch — when football-data.org
   // started 522'ing on 2026-04-11, news went 24 days without an update.)
   //
-  // Every 24th tick (~2 hours): run one news phase (cycles 0-3)
-  // Full cycle = 96 ticks = ~8 hours. ~3 cycles/day saves neuron budget.
+  // Every 120 min: run one news phase (cycles 0-3)
+  // Full cycle = ~8 hours. ~3 cycles/day saves neuron budget.
   // -------------------------------------------------------------------------
-  // tick === 0 → the KV read above threw; skip rather than firing phase 0 every run
-  if (tick > 0 && tick % 24 === 0) {
+  if (tick % 120 === 0) {
     try {
       const phaseStr = await env.SCORES_KV.get("news:phase");
       const phase = phaseStr ? parseInt(phaseStr, 10) : 0;
@@ -3316,7 +3311,7 @@ app.get("/api/diag", async (c) => {
   const results: Record<string, unknown> = {};
 
   // Check what's in KV
-  const kvKeys = ["all:live", KV_TICK, KV_LAST_POLL];
+  const kvKeys = ["all:live", KV_LAST_POLL];
   for (const comp of Object.keys(COMPETITIONS)) {
     kvKeys.push(kvScores(comp), kvStandings(comp), kvSchedule(comp));
   }
@@ -3360,13 +3355,13 @@ app.get("/api/diag", async (c) => {
 
 app.get("/api/health", async (c) => {
   const lastPoll = await c.env.SCORES_KV.get(KV_LAST_POLL);
-  const tick = await c.env.SCORES_KV.get(KV_TICK);
   const cronErrors = await c.env.SCORES_KV.get(KV_CRON_ERRORS);
   const lastError = await c.env.SCORES_KV.get("config:last_error");
   return c.json({
     status: "ok",
     lastPoll: lastPoll ?? null,
-    tickCount: tick ? parseInt(tick, 10) : 0,
+    // Wall-clock tick the cron gates key off (epoch minutes) — always advances
+    tickCount: Math.floor(Date.now() / 60_000),
     cronErrorCount: cronErrors ? parseInt(cronErrors, 10) : 0,
     lastError: lastError ?? null,
     competitions: Object.keys(COMPETITIONS),
@@ -3620,10 +3615,10 @@ app.notFound((c) => {
 export default {
   fetch: app.fetch,
   async scheduled(
-    _event: ScheduledEvent,
+    event: ScheduledEvent,
     env: Env,
     ctx: ExecutionContext,
   ): Promise<void> {
-    ctx.waitUntil(handleCron(env));
+    ctx.waitUntil(handleCron(env, event.scheduledTime));
   },
 };
