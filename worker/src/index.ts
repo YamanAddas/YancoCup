@@ -567,6 +567,54 @@ function transformMatch(m: FDMatch): MatchScore {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Sentry error reporting — best-effort, throttled, never throws.
+// The 2026-04..06 cron outage ran for two months with zero alerting because
+// the worker had no error reporting at all. DSN is not a secret (it ships in
+// the frontend bundle); same project so worker + frontend errors land together.
+// ---------------------------------------------------------------------------
+
+const SENTRY_DSN =
+  "https://e276d63da88ab4399bedb4767fc46583@o4509416043118592.ingest.us.sentry.io/4511192663851008";
+
+let lastSentryReportMs = 0;
+const SENTRY_THROTTLE_MS = 5 * 60_000; // an outage shouldn't burn event quota
+
+async function reportToSentry(err: unknown, context: string): Promise<void> {
+  try {
+    const now = Date.now();
+    if (now - lastSentryReportMs < SENTRY_THROTTLE_MS) return;
+    lastSentryReportMs = now;
+
+    const m = SENTRY_DSN.match(/^https:\/\/([^@]+)@([^/]+)\/(\d+)$/);
+    if (!m) return;
+    const [, key, host, projectId] = m;
+    const msg = err instanceof Error ? err.message : String(err);
+    const event = {
+      event_id: crypto.randomUUID().replace(/-/g, ""),
+      timestamp: new Date().toISOString(),
+      platform: "javascript",
+      level: "error",
+      logger: "yancocup-worker",
+      tags: { context, runtime: "cloudflare-worker" },
+      exception: {
+        values: [{ type: err instanceof Error ? err.name : "Error", value: `[${context}] ${msg}` }],
+      },
+    };
+    await fetch(
+      `https://${host}/api/${projectId}/store/?sentry_key=${key}&sentry_version=7`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(event),
+        signal: AbortSignal.timeout(3000),
+      },
+    );
+  } catch {
+    // Reporting must never break the caller
+  }
+}
+
 /** Safe KV put — silently handles daily write limit errors */
 async function kvPut(
   kv: KVNamespace,
@@ -2110,6 +2158,7 @@ async function handleCron(env: Env, scheduledTime: number): Promise<void> {
     const errStr = await env.SCORES_KV.get(KV_CRON_ERRORS);
     const errCount = errStr ? parseInt(errStr, 10) + 1 : 1;
     await kvPut(env.SCORES_KV, KV_CRON_ERRORS, String(errCount));
+    await reportToSentry(err, "cron:poll");
   }
 
   // -------------------------------------------------------------------------
@@ -2132,6 +2181,7 @@ async function handleCron(env: Env, scheduledTime: number): Promise<void> {
       console.error("News pipeline failed:", err);
       const errMsg = err instanceof Error ? err.message : String(err);
       await kvPut(env.SCORES_KV, "config:last_news_error", errMsg);
+      await reportToSentry(err, "cron:news");
     }
   }
 
@@ -2170,6 +2220,7 @@ async function handleCron(env: Env, scheduledTime: number): Promise<void> {
     }
   } catch (err) {
     console.error("Cron stale-live cleanup failed:", err);
+    await reportToSentry(err, "cron:cleanup");
   }
 }
 
