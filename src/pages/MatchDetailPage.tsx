@@ -994,9 +994,13 @@ export default function MatchDetailPage() {
     const kickoffMs = new Date(match.utcDate).getTime();
     const msUntilKickoff = kickoffMs - Date.now();
     const isUpcoming = match.status === "TIMED" && msUntilKickoff > 0 && msUntilKickoff <= 24 * 60 * 60_000;
-    // Recently finished: refresh to pick up updated lineups/events/stats
+    // Recently finished: keep refreshing to pick up late lineups/events/stats.
+    // Measured from kickoff (not FT) — but a match only reaches FINISHED ~2h
+    // after kickoff, so a 1h-from-kickoff window would already be expired and
+    // never fire. 3h ≈ ~1h of polling past a normal full time, and keeps a
+    // live-watcher's poller alive across the IN_PLAY→FINISHED transition.
     const msSinceKickoff = Date.now() - kickoffMs;
-    const isRecentlyFinished = match.status === "FINISHED" && msSinceKickoff < 60 * 60_000;
+    const isRecentlyFinished = match.status === "FINISHED" && msSinceKickoff < 3 * 60 * 60_000;
 
     if (!isLiveNow && !isUpcoming && !isRecentlyFinished) return;
 

@@ -7,9 +7,12 @@ import type { MatchResult } from "./useScoring";
  * Converts live scores from the Worker into MatchResult[] for the scoring engine.
  * Maps API statuses to scoring-friendly statuses.
  * matchId is the football-data.org API ID (same as schedule.json and yc_predictions).
+ *
+ * `comp` must be passed for non-WC competitions, otherwise this reads WC
+ * scores and finished non-WC matches never get scored.
  */
-export function useLiveResults(): { results: MatchResult[]; loading: boolean } {
-  const { scoreMap, loading } = useScores();
+export function useLiveResults(comp?: string): { results: MatchResult[]; loading: boolean } {
+  const { scoreMap, loading } = useScores(comp);
 
   const results = useMemo(() => {
     const out: MatchResult[] = [];

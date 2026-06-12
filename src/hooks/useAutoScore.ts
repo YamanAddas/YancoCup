@@ -16,7 +16,7 @@ let scoringInProgress = false;
  */
 export function useAutoScore(competitionId = "WC") {
   const { predictions, loading: predsLoading, refresh } = useMyPredictions(competitionId);
-  const { results, loading: resultsLoading } = useLiveResults();
+  const { results, loading: resultsLoading } = useLiveResults(competitionId);
   const { scorePredictions } = useScoring(competitionId);
   const mountedRef = useRef(true);
 
