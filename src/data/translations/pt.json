@@ -599,5 +599,6 @@
   "pools.pulseEvent.lowered": "diminuiu a confiança",
   "pools.pulseEvent.joker_on": "ativou o Coringa",
   "pools.pulseEvent.joker_off": "removeu o Coringa",
-  "pools.pulseEvent.changed": "alterou o palpite"
+  "pools.pulseEvent.changed": "alterou o palpite",
+  "common.back": "Voltar"
 }

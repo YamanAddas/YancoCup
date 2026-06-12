@@ -599,5 +599,6 @@
   "pools.pulseEvent.lowered": "redujo su confianza",
   "pools.pulseEvent.joker_on": "añadió un Comodín",
   "pools.pulseEvent.joker_off": "quitó su Comodín",
-  "pools.pulseEvent.changed": "cambió su pronóstico"
+  "pools.pulseEvent.changed": "cambió su pronóstico",
+  "common.back": "Volver"
 }

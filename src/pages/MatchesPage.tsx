@@ -279,7 +279,7 @@ function TournamentMatches() {
       {/* Sub-header: match count + filter */}
       <div className="flex items-center justify-between mb-4">
         <p className="text-yc-text-secondary text-sm">
-          {matches.length} {matches.length === 1 ? t("matches.count", { count: matches.length }) : t("matches.countPlural", { count: matches.length })}
+          {matches.length === 1 ? t("matches.count", { count: matches.length }) : t("matches.countPlural", { count: matches.length })}
         </p>
         <button
           onClick={() => setShowFilters(!showFilters)}

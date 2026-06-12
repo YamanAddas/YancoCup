@@ -44,12 +44,23 @@ export function useScores(comp?: string) {
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const poll = useCallback(async () => {
     const { scores: raw, fetchedAt: ts, error: fetchError } = await fetchScores(comp);
 
     if (fetchError) {
       setError(fetchError);
       setLoading(false);
+      // One-shot retry: a single failed poll (e.g. transient 429/timeout)
+      // otherwise leaves finished matches rendered as FT with no score
+      // until the next interval, up to 5 minutes away.
+      if (!retryRef.current) {
+        retryRef.current = setTimeout(() => {
+          retryRef.current = null;
+          poll();
+        }, 8_000);
+      }
       return;
     }
 
@@ -111,6 +122,10 @@ export function useScores(comp?: string) {
     startInterval();
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      if (retryRef.current) {
+        clearTimeout(retryRef.current);
+        retryRef.current = null;
+      }
     };
   }, [poll, hasLive]);
 

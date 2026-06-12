@@ -599,5 +599,6 @@
   "pools.pulseEvent.lowered": "a baissé sa confiance",
   "pools.pulseEvent.joker_on": "a ajouté un Joker",
   "pools.pulseEvent.joker_off": "a retiré son Joker",
-  "pools.pulseEvent.changed": "a changé son pronostic"
+  "pools.pulseEvent.changed": "a changé son pronostic",
+  "common.back": "Retour"
 }

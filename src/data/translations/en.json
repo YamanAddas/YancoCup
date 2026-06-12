@@ -599,5 +599,6 @@
   "pools.pulseEvent.lowered": "lowered their confidence",
   "pools.pulseEvent.joker_on": "added a Joker",
   "pools.pulseEvent.joker_off": "removed their Joker",
-  "pools.pulseEvent.changed": "changed their pick"
+  "pools.pulseEvent.changed": "changed their pick",
+  "common.back": "Go back"
 }

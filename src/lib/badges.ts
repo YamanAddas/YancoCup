@@ -109,8 +109,9 @@ async function fetchCompMatches(
     const json = await res.json();
     const matches = json.matches ?? json;
     if (!Array.isArray(matches)) return [];
-    return matches.map((m: { id: number; matchday?: number | null }) => ({
-      id: m.id,
+    // Worker payload field is apiId; static schedule.json uses id
+    return matches.map((m: { apiId?: number; id?: number; matchday?: number | null }) => ({
+      id: m.apiId ?? m.id ?? 0,
       matchday: m.matchday ?? null,
     }));
   } catch {

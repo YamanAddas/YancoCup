@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Clock, MapPin, Users, BarChart3, User } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
@@ -11,6 +11,7 @@ import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 import TeamCrest from "../components/match/TeamCrest";
 import ConfidenceBadge from "../components/predictions/ConfidenceBadge";
+import StateError from "../components/shared/StateError";
 import { WORKER_URL } from "../lib/api";
 
 // ---------------------------------------------------------------------------
@@ -456,7 +457,28 @@ function H2HTab({ matchId }: { matchId: string }) {
         if (!res.ok) { setLoading(false); return; }
         const json = (await res.json()) as { aggregates: H2HData; matches: H2HMatch[] };
         if (json.aggregates) {
-          setData({ ...json.aggregates, matches: json.matches ?? [] });
+          const matches = json.matches ?? [];
+          // Recompute W/D/L from the match list — upstream aggregates lag
+          // recent results (the WC opener's 2-0 was counted as a draw).
+          const agg = { ...json.aggregates, matches };
+          const finished = matches.filter(
+            (m) => m.status === "FINISHED" && m.score.fullTime.home !== null,
+          );
+          if (finished.length > 0) {
+            const countFor = (teamId: number) => {
+              let wins = 0, draws = 0, losses = 0;
+              for (const m of finished) {
+                const isHome = m.homeTeam.id === teamId;
+                if (m.score.winner === "DRAW") draws++;
+                else if (m.score.winner === (isHome ? "HOME_TEAM" : "AWAY_TEAM")) wins++;
+                else losses++;
+              }
+              return { wins, draws, losses };
+            };
+            agg.homeTeam = { ...agg.homeTeam, ...countFor(agg.homeTeam.id) };
+            agg.awayTeam = { ...agg.awayTeam, ...countFor(agg.awayTeam.id) };
+          }
+          setData(agg);
         }
       } catch {
         // H2H unavailable
@@ -970,22 +992,24 @@ export default function MatchDetailPage() {
   const { predictions } = useMyPredictions(comp.id);
   const myPrediction = predictions.find((p) => p.match_id === Number(id));
 
-  useEffect(() => {
-    async function load() {
-      if (!id) return;
-      try {
-        const res = await fetch(`${WORKER_URL}/api/match/${id}/detail`);
-        if (!res.ok) { setLoading(false); return; }
-        const data = (await res.json()) as MatchData;
-        setMatch(data);
-      } catch {
-        // API error
-      } finally {
-        setLoading(false);
-      }
+  const load = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${WORKER_URL}/api/match/${id}/detail`);
+      if (!res.ok) { setLoading(false); return; }
+      const data = (await res.json()) as MatchData;
+      setMatch(data);
+    } catch {
+      // API error — error state below offers retry
+    } finally {
+      setLoading(false);
     }
-    load();
   }, [id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   // Auto-refresh: live (30s), upcoming within 24h (5min), recently finished within 1h (2min)
   useEffect(() => {
@@ -1021,14 +1045,16 @@ export default function MatchDetailPage() {
 
   if (!match) {
     return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 text-center">
-        <p className="text-yc-text-tertiary text-sm">Match data not available.</p>
-        <button
-          onClick={() => navigate(-1)}
-          className="mt-4 text-yc-green text-sm hover:underline"
-        >
-          Go back
-        </button>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+        <StateError onRetry={load} />
+        <p className="text-center">
+          <button
+            onClick={() => navigate(-1)}
+            className="text-yc-green text-sm hover:underline"
+          >
+            {t("common.back")}
+          </button>
+        </p>
       </div>
     );
   }

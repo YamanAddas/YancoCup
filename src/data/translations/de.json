@@ -599,5 +599,6 @@
   "pools.pulseEvent.lowered": "hat die Sicherheit gesenkt",
   "pools.pulseEvent.joker_on": "hat einen Joker eingesetzt",
   "pools.pulseEvent.joker_off": "hat den Joker entfernt",
-  "pools.pulseEvent.changed": "hat den Tipp geändert"
+  "pools.pulseEvent.changed": "hat den Tipp geändert",
+  "common.back": "Zurück"
 }

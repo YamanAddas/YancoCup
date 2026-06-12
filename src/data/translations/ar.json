@@ -599,5 +599,6 @@
   "pools.pulseEvent.lowered": "خفّض ثقته",
   "pools.pulseEvent.joker_on": "أضاف الجوكر",
   "pools.pulseEvent.joker_off": "أزال الجوكر",
-  "pools.pulseEvent.changed": "غيّر توقعه"
+  "pools.pulseEvent.changed": "غيّر توقعه",
+  "common.back": "رجوع"
 }
