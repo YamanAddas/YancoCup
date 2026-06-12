@@ -188,10 +188,13 @@ export default function PredictionsPage() {
       const pred = prevPreds.find((p) => p.match_id === prevMatch.id);
       if (!pred) continue;
 
+      // kickoff_time must be set: the SELECT RLS policy hides rows with a
+      // NULL kickoff_time from everyone but the owner until they're scored.
+      const kickoffIso = new Date(`${currMatch.date}T${currMatch.time}:00Z`).toISOString();
       if (pred.quick_pick) {
-        await upsertQuickPrediction(user.id, currMatch.id, pred.quick_pick as "H" | "D" | "A", comp.id);
+        await upsertQuickPrediction(user.id, currMatch.id, pred.quick_pick as "H" | "D" | "A", comp.id, false, kickoffIso);
       } else if (pred.home_score !== null && pred.away_score !== null) {
-        await upsertPrediction(user.id, currMatch.id, pred.home_score, pred.away_score, comp.id);
+        await upsertPrediction(user.id, currMatch.id, pred.home_score, pred.away_score, comp.id, false, kickoffIso);
       }
       copied++;
     }
