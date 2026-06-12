@@ -595,5 +595,7 @@
   "pools.pulseEvent.joker_on": "a ajouté un Joker",
   "pools.pulseEvent.joker_off": "a retiré son Joker",
   "pools.pulseEvent.changed": "a changé son pronostic",
-  "common.back": "Retour"
+  "common.back": "Retour",
+  "match.info.attendance": "Affluence",
+  "match.h2h.firstMeeting": "Première confrontation entre ces deux équipes"
 }

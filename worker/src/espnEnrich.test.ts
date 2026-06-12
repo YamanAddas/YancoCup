@@ -263,4 +263,15 @@ describe("transformEspnSummary", () => {
   it("returns null for an empty summary", () => {
     expect(transformEspnSummary({}, FD_HOME, FD_AWAY)).toBeNull();
   });
+
+  it("extracts venue and attendance from gameInfo", () => {
+    const withInfo = {
+      ...makeSummary(),
+      gameInfo: { venue: { fullName: "Estadio Banorte" }, attendance: 80824 },
+    };
+    const r = transformEspnSummary(withInfo, FD_HOME, FD_AWAY)!;
+    expect(r.matchInfo).toEqual({ venue: "Estadio Banorte", attendance: 80824 });
+    // No gameInfo → null matchInfo, rest unaffected
+    expect(result.matchInfo).toBeNull();
+  });
 });

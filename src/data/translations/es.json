@@ -595,5 +595,7 @@
   "pools.pulseEvent.joker_on": "añadió un Comodín",
   "pools.pulseEvent.joker_off": "quitó su Comodín",
   "pools.pulseEvent.changed": "cambió su pronóstico",
-  "common.back": "Volver"
+  "common.back": "Volver",
+  "match.info.attendance": "Asistencia",
+  "match.h2h.firstMeeting": "Primer enfrentamiento entre estos equipos"
 }

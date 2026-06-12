@@ -595,5 +595,7 @@
   "pools.pulseEvent.joker_on": "أضاف الجوكر",
   "pools.pulseEvent.joker_off": "أزال الجوكر",
   "pools.pulseEvent.changed": "غيّر توقعه",
-  "common.back": "رجوع"
+  "common.back": "رجوع",
+  "match.info.attendance": "الحضور",
+  "match.h2h.firstMeeting": "أول مواجهة بين هذين الفريقين"
 }

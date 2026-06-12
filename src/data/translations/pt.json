@@ -595,5 +595,7 @@
   "pools.pulseEvent.joker_on": "ativou o Coringa",
   "pools.pulseEvent.joker_off": "removeu o Coringa",
   "pools.pulseEvent.changed": "alterou o palpite",
-  "common.back": "Voltar"
+  "common.back": "Voltar",
+  "match.info.attendance": "Público",
+  "match.h2h.firstMeeting": "Primeiro confronto entre estas equipes"
 }

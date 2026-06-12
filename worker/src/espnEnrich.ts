@@ -63,6 +63,9 @@ export interface EspnEnrichment {
   events: AfEventOut[];
   lineups: AfLineupOut[];
   statistics: AfStatOut[];
+  /** Venue/attendance from ESPN gameInfo — keeps the Overview tab from
+   *  being empty when a match has no timeline events yet. */
+  matchInfo: { venue: string | null; attendance: number | null } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -345,8 +348,19 @@ export function transformEspnSummary(
   // Frontend requires both teams to render the stats tab
   const stats = statistics.length === 2 ? statistics : [];
 
-  if (events.length === 0 && lineups.length === 0 && stats.length === 0) return null;
-  return { events, lineups, statistics: stats };
+  // ── Match info (venue, attendance) ────────────────────────────────────
+  const gameInfo = summary.gameInfo as Record<string, unknown> | undefined;
+  const venueName = (gameInfo?.venue as Record<string, unknown> | undefined)?.fullName;
+  const attendanceRaw = gameInfo?.attendance;
+  const attendance =
+    typeof attendanceRaw === "number" && attendanceRaw > 0 ? attendanceRaw : null;
+  const matchInfo =
+    typeof venueName === "string" || attendance !== null
+      ? { venue: typeof venueName === "string" ? venueName : null, attendance }
+      : null;
+
+  if (events.length === 0 && lineups.length === 0 && stats.length === 0 && !matchInfo) return null;
+  return { events, lineups, statistics: stats, matchInfo };
 }
 
 /** YYYYMMDD for the ESPN scoreboard, offset by days from an ISO date */

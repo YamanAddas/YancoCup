@@ -9,6 +9,7 @@ import { formatTimeWithTZ, getLocale } from "../lib/formatDate";
 import TeamCrest from "../components/match/TeamCrest";
 import CommentsSection from "../components/comments/CommentsSection";
 import { fetchTeamNews, WORKER_URL, type NewsArticle } from "../lib/api";
+import { findPhoto } from "../lib/playerPhotos";
 import { supabase } from "../lib/supabase";
 import { ArabesqueLattice, RosetteLattice, GeometricBand, StarDivider, CornerAccent, OrnamentDivider, ArchFrame } from "../components/ui/ArabesquePatterns";
 import { Accordion } from "../components/ui/Accordion";
@@ -244,66 +245,8 @@ function PlayerCard({ player, position, photoUrl, lang }: { player: Player; posi
   );
 }
 
-/** Strip diacritics: "Müller" → "Muller", "Magalhães" → "Magalhaes" */
-function stripDiacritics(s: string): string {
-  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
-/**
- * Find a player photo by fuzzy name matching.
- * API-Football uses short names ("B. Saka", "Kepa") while football-data.org
- * uses full names ("Bukayo Saka", "Kepa Arrizabalaga"). We try multiple strategies
- * with diacritics-stripped comparison for accented names.
- */
-function findPhoto(name: string, photos: Record<string, string>): string | undefined {
-  if (!name || Object.keys(photos).length === 0) return undefined;
-  // Exact match
-  if (photos[name]) return photos[name];
-
-  const norm = (s: string) => stripDiacritics(s.toLowerCase().replace(/[.\-']/g, "").trim());
-  const fdNorm = norm(name);
-  const entries = Object.entries(photos);
-
-  // Pass 1: normalized exact match
-  for (const [k, v] of entries) {
-    if (norm(k) === fdNorm) return v;
-  }
-
-  const fdParts = fdNorm.split(/\s+/).filter(Boolean);
-  if (fdParts.length === 0) return undefined;
-  const fdLast = fdParts[fdParts.length - 1]!;
-  const fdFirst = fdParts[0]!;
-
-  // Compound surname: "Van Dijk" → "van dijk", "De Bruyne" → "de bruyne"
-  // Take last 2+ parts for compound matching: "virgil van dijk" → "van dijk"
-  const fdCompound = fdParts.length >= 3 ? fdParts.slice(-2).join(" ") : null;
-
-  for (const [k, v] of entries) {
-    const afNorm = norm(k);
-    const afParts = afNorm.split(/\s+/).filter(Boolean);
-    if (afParts.length === 0) continue;
-    const afLast = afParts[afParts.length - 1]!;
-    const afFirst = afParts[0]!;
-    const afCompound = afParts.length >= 2 ? afParts.slice(-2).join(" ") : null;
-
-    // Last name match: "Bukayo Saka" ↔ "B Saka"
-    if (fdLast.length > 2 && afLast === fdLast) return v;
-    // Compound surname match: "Virgil van Dijk" ↔ "V. van Dijk"
-    if (fdCompound && afCompound && fdCompound === afCompound) return v;
-    // AF single name is fd first name: "Kepa" ↔ "Kepa Arrizabalaga"
-    if (afParts.length === 1 && afNorm === fdFirst) return v;
-    // FD single name is AF first name: "Gabriel" ↔ "Gabriel Magalhães"
-    if (fdParts.length === 1 && fdNorm === afFirst) return v;
-    // Initial + last name: "B Saka" ↔ "Bukayo Saka" (initial stripped of dot)
-    if (afParts.length >= 2 && afFirst.length === 1) {
-      if (afLast === fdLast && fdFirst[0] === afFirst[0]) return v;
-    }
-    // FD contains AF name or vice versa (handles mononyms and partial)
-    if (afNorm.length > 3 && fdNorm.includes(afNorm)) return v;
-    if (fdNorm.length > 3 && afNorm.includes(fdNorm)) return v;
-  }
-  return undefined;
-}
+// findPhoto/stripDiacritics moved to ../lib/playerPhotos (shared with the
+// match-detail lineup avatars)
 
 function FormDot({ result }: { result: "W" | "D" | "L" }) {
   const colors = { W: "bg-yc-green", D: "bg-yc-text-tertiary", L: "bg-yc-danger" };

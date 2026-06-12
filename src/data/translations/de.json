@@ -595,5 +595,7 @@
   "pools.pulseEvent.joker_on": "hat einen Joker eingesetzt",
   "pools.pulseEvent.joker_off": "hat den Joker entfernt",
   "pools.pulseEvent.changed": "hat den Tipp geändert",
-  "common.back": "Zurück"
+  "common.back": "Zurück",
+  "match.info.attendance": "Zuschauer",
+  "match.h2h.firstMeeting": "Erstes Aufeinandertreffen dieser Teams"
 }

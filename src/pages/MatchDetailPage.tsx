@@ -12,6 +12,7 @@ import { supabase } from "../lib/supabase";
 import TeamCrest from "../components/match/TeamCrest";
 import ConfidenceBadge from "../components/predictions/ConfidenceBadge";
 import StateError from "../components/shared/StateError";
+import { findPhoto, useTeamPhotos } from "../lib/playerPhotos";
 import { WORKER_URL } from "../lib/api";
 
 // ---------------------------------------------------------------------------
@@ -448,6 +449,7 @@ function TeamLineup({ team, afLineup, side }: { team: TeamDetail; afLineup?: AFL
 function H2HTab({ matchId }: { matchId: string }) {
   const { t, lang, tTeam } = useI18n();
   const [data, setData] = useState<H2HData | null>(null);
+  const [firstMeeting, setFirstMeeting] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -456,6 +458,10 @@ function H2HTab({ matchId }: { matchId: string }) {
         const res = await fetch(`${WORKER_URL}/api/h2h/${matchId}`);
         if (!res.ok) { setLoading(false); return; }
         const json = (await res.json()) as { aggregates: H2HData; matches: H2HMatch[] };
+        if (!json.aggregates && (json.matches ?? []).length === 0) {
+          // Upstream answered fine — these teams simply have no recorded meeting
+          setFirstMeeting(true);
+        }
         if (json.aggregates) {
           const matches = json.matches ?? [];
           // Recompute W/D/L from the match list — upstream aggregates lag
@@ -500,7 +506,11 @@ function H2HTab({ matchId }: { matchId: string }) {
   }
 
   if (!data) {
-    return <p className="text-yc-text-tertiary text-sm text-center py-8">{t("match.h2h.notAvailable")}</p>;
+    return (
+      <p className="text-yc-text-tertiary text-sm text-center py-8">
+        {firstMeeting ? t("match.h2h.firstMeeting") : t("match.h2h.notAvailable")}
+      </p>
+    );
   }
 
   const total = data.homeTeam.wins + data.homeTeam.draws + data.homeTeam.losses;
@@ -598,6 +608,40 @@ interface FormationPlayer {
   name: string;
   number: number;
   pos: string;
+  photo?: string;
+}
+
+/** Circle on the pitch: player photo when we have one, jersey number otherwise */
+function PlayerDot({ player, teamColor }: { player: { name: string; number: number; photo?: string }; teamColor: string }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showPhoto = player.photo && !imgFailed;
+  return (
+    <>
+      <div
+        className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2 overflow-hidden"
+        style={{
+          backgroundColor: showPhoto ? "var(--yc-bg-elevated)" : `${teamColor}20`,
+          borderColor: teamColor,
+          color: teamColor,
+        }}
+      >
+        {showPhoto ? (
+          <img
+            src={player.photo}
+            alt={player.name}
+            loading="lazy"
+            className="w-full h-full object-cover"
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          player.number
+        )}
+      </div>
+      <span className="text-[8px] text-yc-text-secondary mt-0.5 max-w-[50px] text-center leading-tight truncate">
+        {player.name.split(" ").pop()}
+      </span>
+    </>
+  );
 }
 
 function FormationPitch({
@@ -618,7 +662,7 @@ function FormationPitch({
 
   // Assign players to rows: GK first, then by formation rows
   let playerIdx = 0;
-  const positioned: Array<{ x: number; y: number; name: string; number: number }> = [];
+  const positioned: Array<{ x: number; y: number; name: string; number: number; photo?: string }> = [];
 
   for (let rowIdx = 0; rowIdx < totalRows; rowIdx++) {
     const count = allRows[rowIdx] ?? 1;
@@ -628,7 +672,8 @@ function FormationPitch({
 
     for (const x of xPositions) {
       if (playerIdx < players.length) {
-        positioned.push({ x, y, name: players[playerIdx]!.name, number: players[playerIdx]!.number });
+        const pl = players[playerIdx]!;
+        positioned.push({ x, y, name: pl.name, number: pl.number, photo: pl.photo });
         playerIdx++;
       }
     }
@@ -665,19 +710,7 @@ function FormationPitch({
           className="absolute flex flex-col items-center -translate-x-1/2 -translate-y-1/2"
           style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}
         >
-          <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border-2"
-            style={{
-              backgroundColor: `${teamColor}20`,
-              borderColor: teamColor,
-              color: teamColor,
-            }}
-          >
-            {p.number}
-          </div>
-          <span className="text-[8px] text-yc-text-secondary mt-0.5 max-w-[50px] text-center leading-tight truncate">
-            {p.name.split(" ").pop()}
-          </span>
+          <PlayerDot player={p} teamColor={teamColor} />
         </div>
       ))}
     </div>
@@ -991,6 +1024,9 @@ export default function MatchDetailPage() {
   const [tab, setTab] = useState<TabId>("overview");
   const { predictions } = useMyPredictions(comp.id);
   const myPrediction = predictions.find((p) => p.match_id === Number(id));
+  // Hoisted (hooks can't live inside the lineup tab's render closure)
+  const homePhotos = useTeamPhotos(match?.homeTeam?.id ?? null);
+  const awayPhotos = useTeamPhotos(match?.awayTeam?.id ?? null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -1211,11 +1247,33 @@ export default function MatchDetailPage() {
       <TabBar active={tab} onChange={setTab} />
 
       {/* Tab content */}
-      {tab === "overview" && (
-        <div>
-          <EventsTimeline match={match} />
-        </div>
-      )}
+      {tab === "overview" && (() => {
+        const info = (match as unknown as Record<string, unknown>).matchInfo as
+          | { venue: string | null; attendance: number | null }
+          | undefined;
+        const venue = info?.venue ?? match.venue;
+        return (
+          <div className="space-y-4">
+            {(venue || info?.attendance) && (
+              <div className="bg-yc-bg-surface border border-yc-border rounded-xl p-4 flex flex-wrap gap-x-6 gap-y-2">
+                {venue && (
+                  <p className="flex items-center gap-2 text-sm text-yc-text-secondary">
+                    <MapPin size={14} className="text-yc-green shrink-0" />
+                    {venue}
+                  </p>
+                )}
+                {info?.attendance != null && (
+                  <p className="flex items-center gap-2 text-sm text-yc-text-secondary">
+                    <Users size={14} className="text-yc-green shrink-0" />
+                    {t("match.info.attendance")}: <span className="font-mono">{info.attendance.toLocaleString()}</span>
+                  </p>
+                )}
+              </div>
+            )}
+            <EventsTimeline match={match} />
+          </div>
+        );
+      })()}
 
       {tab === "stats" && (
         <StatsTab match={match} />
@@ -1229,9 +1287,9 @@ export default function MatchDetailPage() {
         const homeFormation = homeLineup?.formation ?? match.homeTeam.formation;
         const awayFormation = awayLineup?.formation ?? match.awayTeam.formation;
         const homePlayers: FormationPlayer[] = (homeLineup?.startXI?.map((p) => p.player) ?? match.homeTeam.lineup ?? [])
-          .map((p) => ({ name: p.name, number: "number" in p ? (p as { number: number }).number : ("shirtNumber" in p ? (p as { shirtNumber: number }).shirtNumber : 0), pos: "pos" in p ? String(p.pos) : ("position" in p ? String(p.position) : "") }));
+          .map((p) => ({ name: p.name, number: "number" in p ? (p as { number: number }).number : ("shirtNumber" in p ? (p as { shirtNumber: number }).shirtNumber : 0), pos: "pos" in p ? String(p.pos) : ("position" in p ? String(p.position) : ""), photo: findPhoto(p.name, homePhotos) }));
         const awayPlayers: FormationPlayer[] = (awayLineup?.startXI?.map((p) => p.player) ?? match.awayTeam.lineup ?? [])
-          .map((p) => ({ name: p.name, number: "number" in p ? (p as { number: number }).number : ("shirtNumber" in p ? (p as { shirtNumber: number }).shirtNumber : 0), pos: "pos" in p ? String(p.pos) : ("position" in p ? String(p.position) : "") }));
+          .map((p) => ({ name: p.name, number: "number" in p ? (p as { number: number }).number : ("shirtNumber" in p ? (p as { shirtNumber: number }).shirtNumber : 0), pos: "pos" in p ? String(p.pos) : ("position" in p ? String(p.position) : ""), photo: findPhoto(p.name, awayPhotos) }));
 
         const showFormation = homeFormation && homePlayers.length >= 11;
 
