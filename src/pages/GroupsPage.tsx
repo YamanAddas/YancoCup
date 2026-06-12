@@ -37,7 +37,10 @@ export default function GroupsPage() {
 
       const map = new Map<string, StandingTeam[]>();
       for (const g of standings) {
-        const groupId = g.group?.replace(/^GROUP_/, "") ?? "";
+        // football-data.org sends "Group A" on standings but "GROUP_A" on
+        // matches — strip a leading "Group"/"GROUP_" in either form and
+        // normalize to the bare uppercase letter that groups.json uses as id.
+        const groupId = g.group?.replace(/^group[_\s]*/i, "").trim().toUpperCase() ?? "";
         if (groupId) {
           map.set(groupId, g.table);
         }
