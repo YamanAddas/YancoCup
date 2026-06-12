@@ -1684,10 +1684,13 @@ async function dispatchMatchPushes(
 }
 
 async function handleCron(env: Env): Promise<void> {
+  // Hoisted above the try: the news block after the catch reads it too.
+  // Stays 0 when the KV read throws before assignment.
+  let tick = 0;
   try {
     // Get tick count for periodic actions (write every 5th tick to save KV budget)
     const tickStr = await env.SCORES_KV.get(KV_TICK);
-    const tick = tickStr ? parseInt(tickStr, 10) + 1 : 1;
+    tick = tickStr ? parseInt(tickStr, 10) + 1 : 1;
     if (tick % 5 === 0) {
       await kvPut(env.SCORES_KV, KV_TICK, String(tick));
     }
@@ -2009,7 +2012,8 @@ async function handleCron(env: Env): Promise<void> {
   // Every 24th tick (~2 hours): run one news phase (cycles 0-3)
   // Full cycle = 96 ticks = ~8 hours. ~3 cycles/day saves neuron budget.
   // -------------------------------------------------------------------------
-  if (tick % 24 === 0) {
+  // tick === 0 → the KV read above threw; skip rather than firing phase 0 every run
+  if (tick > 0 && tick % 24 === 0) {
     try {
       const phaseStr = await env.SCORES_KV.get("news:phase");
       const phase = phaseStr ? parseInt(phaseStr, 10) : 0;
