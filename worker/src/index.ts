@@ -2828,6 +2828,74 @@ app.get("/api/:comp/teams", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// WC national-team → API-Football id resolution
+// One league-roster call (/teams?league=1&season=2026) covers all 48 nations,
+// cached 30 days — the generic name search below picks clubs over national
+// teams and misses FD/AF naming gaps (Czechia vs Czech Republic, United
+// States vs USA, Bosnia-Herzegovina vs Bosnia and Herzegovina, ...).
+// ---------------------------------------------------------------------------
+
+function normCountry(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** FD national-team names → AF equivalents (normalized). */
+const FD_TO_AF_COUNTRY: Record<string, string[]> = {
+  "czechia": ["czech republic"],
+  "bosnia herzegovina": ["bosnia and herzegovina", "bosnia"],
+  "united states": ["usa"],
+  "turkey": ["turkiye"],
+  "south korea": ["korea republic"],
+  "cape verde islands": ["cape verde"],
+  "congo dr": ["dr congo", "congo"],
+  "ivory coast": ["cote d ivoire"],
+};
+
+async function resolveAfNationalTeam(env: Env, teamName: string): Promise<number | null> {
+  const listKey = "af:wc:teams";
+  let raw = await env.SCORES_KV.get(listKey);
+  if (!raw) {
+    const res = await fetchFromApiFootball(`/teams?league=1&season=2026`, env.API_FOOTBALL_KEY);
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      response: Array<{ team: { id: number; name: string; country: string | null; national: boolean } }>;
+    };
+    const list = (data.response ?? []).map((r) => ({
+      id: r.team.id,
+      name: r.team.name,
+      country: r.team.country ?? "",
+    }));
+    if (list.length === 0) {
+      // Possibly a free-plan season restriction — cache the miss briefly so
+      // we don't burn a quota call per photo request.
+      await kvPut(env.SCORES_KV, listKey, "[]", { expirationTtl: 21600 });
+      return null;
+    }
+    raw = JSON.stringify(list);
+    await kvPut(env.SCORES_KV, listKey, raw, { expirationTtl: 2592000 });
+  }
+  const list = safeParse<Array<{ id: number; name: string; country: string }>>(raw) ?? [];
+  if (list.length === 0) return null;
+
+  const target = normCountry(teamName);
+  const candidates = [target, ...(FD_TO_AF_COUNTRY[target] ?? [])];
+  for (const cand of candidates) {
+    const hit = list.find(
+      (t) => normCountry(t.name) === cand || normCountry(t.country) === cand,
+    );
+    if (hit) return hit.id;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // GET /api/team/:teamId/photos — player headshots from API-Football (30-day cache)
 // ---------------------------------------------------------------------------
 
@@ -2877,13 +2945,23 @@ app.get("/api/team/:teamId/photos", async (c) => {
     return c.json({ photos: {} });
   }
 
-  // 3. Search API-Football for this team to get their AF team ID
-  // Try multiple name variants: full name, then stripped suffixes
+  // 3a. National-team fast path: resolve via the cached WC league roster
+  // (covers all 48 nations with one AF call total; no-op for clubs)
+  let afTeamId: number | null = null;
+  try {
+    afTeamId = await resolveAfNationalTeam(c.env, teamName);
+  } catch { /* fall through to search */ }
+
+  // 3b. Generic search fallback (clubs, and nations if the roster call is
+  // unavailable on this AF plan)
   const nameVariants = [teamName];
   const stripped = teamName.replace(/\s+(FC|CF|SC|AC|AS|SS|SV|BSC|1\..*|SK|FK|RC|SE|SL)$/i, "").trim();
   if (stripped !== teamName) nameVariants.push(stripped);
+  // FD/AF national naming gaps ("Czechia" → "Czech Republic", ...)
+  for (const alias of FD_TO_AF_COUNTRY[normCountry(teamName)] ?? []) {
+    nameVariants.push(alias);
+  }
 
-  let afTeamId: number | null = null;
   for (const searchName of nameVariants) {
     if (afTeamId) break;
     try {
@@ -2893,14 +2971,17 @@ app.get("/api/team/:teamId/photos", async (c) => {
       );
       if (searchRes.ok) {
         const searchData = (await searchRes.json()) as {
-          response: Array<{ team: { id: number; name: string } }>;
+          response: Array<{ team: { id: number; name: string; national?: boolean } }>;
         };
         if (searchData.response?.length > 0) {
-          // Pick best match (exact name match or first result)
-          const exact = searchData.response.find(
-            (r) => r.team.name.toLowerCase() === searchName.toLowerCase(),
+          // Pick best match: exact name (preferring national teams when the
+          // search term is a country) → any exact → first result
+          const exacts = searchData.response.filter(
+            (r) => normCountry(r.team.name) === normCountry(searchName),
           );
-          afTeamId = exact?.team.id ?? searchData.response[0]?.team.id ?? null;
+          const exactNational = exacts.find((r) => r.team.national === true);
+          afTeamId =
+            exactNational?.team.id ?? exacts[0]?.team.id ?? searchData.response[0]?.team.id ?? null;
         }
       }
     } catch { /* */ }
@@ -2908,9 +2989,9 @@ app.get("/api/team/:teamId/photos", async (c) => {
 
   if (!afTeamId) {
     console.log(`[photos] No AF team found for "${teamName}" (fd:${fdTeamId}), tried: ${nameVariants.join(", ")}`);
-    // Cache empty result for 1 day to avoid re-searching
+    // Cache the miss briefly (6h) — a long TTL here poisoned retries for a day
     const empty = { photos: {} };
-    await kvPut(c.env.SCORES_KV, cacheKey, JSON.stringify(empty), { expirationTtl: 86400 });
+    await kvPut(c.env.SCORES_KV, cacheKey, JSON.stringify(empty), { expirationTtl: 21600 });
     return c.json(empty);
   }
 
@@ -2943,9 +3024,10 @@ app.get("/api/team/:teamId/photos", async (c) => {
   console.log(`[photos] Found ${Object.keys(photos).length} photos for "${teamName}" (fd:${fdTeamId}, af:${afTeamId})`);
   const result = { photos };
 
-  // Cache for 30 days (squad photos rarely change)
+  // 30 days when we actually got a squad; 1h on empty so a transient AF
+  // failure (or exhausted daily quota) doesn't poison the cache for a month
   await kvPut(c.env.SCORES_KV, cacheKey, JSON.stringify(result), {
-    expirationTtl: 2592000,
+    expirationTtl: Object.keys(photos).length > 0 ? 2592000 : 3600,
   });
 
   return c.json(result);

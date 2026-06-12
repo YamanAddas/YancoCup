@@ -43,6 +43,15 @@ export function findPhoto(name: string, photos: Record<string, string>): string 
     const afFirst = afParts[0]!;
     const afCompound = afParts.length >= 2 ? afParts.slice(-2).join(" ") : null;
 
+    // Token-set equality: "Kim Min-Jae" ↔ "Min-jae Kim" (Korean/Hungarian
+    // name order differs between sources)
+    if (
+      afParts.length >= 2 &&
+      fdParts.length === afParts.length &&
+      [...afParts].sort().join(" ") === [...fdParts].sort().join(" ")
+    ) {
+      return v;
+    }
     // Last name match: "Bukayo Saka" ↔ "B Saka"
     if (fdLast.length > 2 && afLast === fdLast) return v;
     // Compound surname match: "Virgil van Dijk" ↔ "V. van Dijk"
