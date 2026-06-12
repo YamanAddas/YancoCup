@@ -540,6 +540,46 @@ async function fetchEspnEnrichment(
   }
 }
 
+// ---------------------------------------------------------------------------
+// In-memory live-score fallback (per isolate, 60s memo).
+// KV *writes* can be exhausted for the day (happened 2026-06-12: the old
+// per-request rate limiter burned the 1,000/day free-tier budget) — the cron
+// then can't persist score updates and KV serves frozen scores during live
+// matches. During a live window the score routes merge a memoized direct
+// football-data.org snapshot over the KV data; reads only, no writes.
+// ---------------------------------------------------------------------------
+
+let liveMemo: { ts: number; matches: MatchScore[] } | null = null;
+
+/** Is any match in this list plausibly in play right now? */
+function inLiveWindow(scores: MatchScore[]): boolean {
+  const now = Date.now();
+  return scores.some((m) => {
+    if (m.status === "FINISHED") return false;
+    const ko = new Date(m.utcDate).getTime();
+    return ko <= now && now - ko < 3.5 * 3600_000;
+  });
+}
+
+async function fetchLiveDirect(env: Env): Promise<MatchScore[] | null> {
+  if (liveMemo && Date.now() - liveMemo.ts < 60_000) return liveMemo.matches;
+  try {
+    const res = await fetch(`${FD_BASE}/matches`, {
+      headers: { "X-Auth-Token": env.FOOTBALL_DATA_API_KEY },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) return liveMemo?.matches ?? null;
+    const data = (await res.json()) as { matches: FDMatch[] };
+    const matches = data.matches
+      .map(transformMatch)
+      .filter((m) => m.competitionCode in COMPETITIONS);
+    liveMemo = { ts: Date.now(), matches };
+    return matches;
+  } catch {
+    return liveMemo?.matches ?? null;
+  }
+}
+
 function transformMatch(m: FDMatch): MatchScore {
   // Map competition ID to our code, or use the API's code
   const compCode = FD_ID_TO_CODE.get(m.competition.id) ?? m.competition.code;
@@ -2186,6 +2226,48 @@ async function handleCron(env: Env, scheduledTime: number): Promise<void> {
   }
 
   // -------------------------------------------------------------------------
+  // Every 120 min (offset 1h from the news gate): warm missing national-team
+  // photo caches, ≤5 per pass. Self-heals quota-exhaustion days (KV or AF)
+  // without manual warming. AF budget: ≤6 calls per pass, ≤72/day worst case.
+  // -------------------------------------------------------------------------
+  if (tick % 120 === 60 && env.API_FOOTBALL_KEY) {
+    try {
+      const standingsRaw = await env.SCORES_KV.get(kvStandings("WC"));
+      const standings = standingsRaw ? safeParse<GroupStanding[]>(standingsRaw) ?? [] : [];
+      const teams: Array<{ id: number; name: string }> = [];
+      for (const g of standings) {
+        for (const row of g.table) teams.push({ id: row.team.id, name: row.team.name });
+      }
+      let warmed = 0;
+      for (const t of teams) {
+        if (warmed >= 5) break;
+        const key = `photos-v2:${t.id}`;
+        const cached = await env.SCORES_KV.get(key);
+        if (cached) continue; // good entries last 30d; empty ones expire in ≤6h and retry then
+        const afId = await resolveAfNationalTeam(env, t.name).catch(() => null);
+        if (afId === null) continue;
+        const squadRes = await fetchFromApiFootball(`/players/squads?team=${afId}`, env.API_FOOTBALL_KEY);
+        if (!squadRes.ok) break; // AF down or quota gone — abandon this pass
+        const squadData = (await squadRes.json()) as {
+          response: Array<{ players: Array<{ id: number; name: string; photo: string }> }>;
+        };
+        const photos: Record<string, string> = {};
+        for (const entry of squadData.response ?? []) {
+          for (const p of entry.players ?? []) {
+            if (p.photo && p.id) photos[p.name] = `https://yancocup-api.catbyte1985.workers.dev/api/player-photo/${p.id}`;
+          }
+        }
+        if (Object.keys(photos).length === 0) break; // empty response usually = quota
+        await kvPut(env.SCORES_KV, key, JSON.stringify({ photos }), { expirationTtl: 2592000 });
+        warmed++;
+        console.log(`Cron: warmed photos for ${t.name} (${Object.keys(photos).length} players)`);
+      }
+    } catch (err) {
+      console.error("Cron photo warm failed:", err);
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // ALWAYS run: expire stale match statuses.
   // This runs outside the main try/catch so upstream API failures don't
   // prevent cleanup of stale matches in KV.
@@ -2319,6 +2401,23 @@ app.get("/api/competitions", (c) => {
 
 app.get("/api/live", async (c) => {
   const cached = await c.env.SCORES_KV.get("all:live");
+
+  // Same live-window resilience as /api/:comp/scores: if WC matches should
+  // be in play, derive live matches from the direct snapshot instead of
+  // trusting all:live (which the cron can't refresh when KV writes are
+  // exhausted). WC blob is the window signal — the club comps are in their
+  // off-season during the tournament.
+  const wcRaw = await c.env.SCORES_KV.get(kvScores("WC"));
+  const wcScores = wcRaw ? safeParse<MatchScore[]>(wcRaw) ?? [] : [];
+  if (inLiveWindow(wcScores)) {
+    const direct = await fetchLiveDirect(c.env);
+    if (direct) {
+      return c.json({
+        matches: direct.filter((m) => m.status === "IN_PLAY" || m.status === "PAUSED"),
+      });
+    }
+  }
+
   if (!cached) {
     return c.json({ matches: [] });
   }
@@ -2623,6 +2722,20 @@ app.get("/api/:comp/scores", async (c) => {
       }
     } catch {
       return c.json({ matches: [], message: `No score data for ${comp} yet.` });
+    }
+  }
+
+  // Live-window resilience: when matches should be in play, overlay a direct
+  // upstream snapshot (memoized 60s) so exhausted KV writes / a dead cron
+  // can't freeze live scores. Costs ≤1 upstream call/min/isolate, live only.
+  if (scores.length > 0 && inLiveWindow(scores)) {
+    const direct = await fetchLiveDirect(c.env);
+    if (direct) {
+      const fresh = direct.filter((m) => m.competitionCode === comp);
+      if (fresh.length > 0) {
+        const ids = new Set(fresh.map((m) => m.apiId));
+        scores = [...scores.filter((s) => !ids.has(s.apiId)), ...fresh];
+      }
     }
   }
 
