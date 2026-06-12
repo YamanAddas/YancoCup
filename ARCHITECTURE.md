@@ -112,7 +112,7 @@ Match finishes
 | Quick predict (1X2) | 2 / 0 | Correct result / Wrong |
 
 **Modifiers:**
-- Upset bonus: +3 (underdog wins in tournaments)
+- Upset bonus: +3 — NOT implemented (helper exists in scoring.ts, never called; needs an underdog/seeding signal)
 - Knockout multiplier: 1.5x (R16) → 2x (QF) → 2.5x (SF) → 3x (Final)
 - Joker: 2x on one match per matchday
 - Streak bonus: +2 (3 correct), +5 (5 correct), +10 (10 correct)

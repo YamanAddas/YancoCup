@@ -245,9 +245,6 @@ export default function PredictionCard({
     (prediction.home_score !== null && prediction.away_score !== null && prediction.away_score > prediction.home_score)
   );
 
-  // Upset Radar: highlight knockout matches where upset bonus is available
-  const isKnockout = match.round !== "group" && match.round !== "playoff";
-  const showUpsetRadar = isKnockout && !locked && match.homeTeam && match.awayTeam;
 
   return (
     <div
@@ -269,15 +266,6 @@ export default function PredictionCard({
             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-yc-warning/15 text-yc-warning border border-yc-warning/20">
               <Zap size={8} />
               {t("predictions.bold")}
-            </span>
-          )}
-          {showUpsetRadar && (
-            <span
-              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-yc-danger/10 text-yc-danger/80 border border-yc-danger/15"
-              title={t("predictions.upsetRadarTip") ?? "Pick the underdog to earn +3 bonus points!"}
-            >
-              <Zap size={8} />
-              +3 {t("predictions.upsetBonus") ?? "upset"}
             </span>
           )}
         </div>

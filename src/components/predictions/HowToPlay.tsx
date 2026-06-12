@@ -11,11 +11,6 @@ export default function HowToPlay() {
     { labelKey: "howToPlay.wrong", points: 0, you: "2-0", result: "0-1" },
   ];
 
-  const bonuses = [
-    { labelKey: "howToPlay.upsetBonus", points: "+3", descKey: "howToPlay.upsetDesc" },
-    { labelKey: "howToPlay.perfectGroup", points: "+15", descKey: "howToPlay.perfectDesc" },
-  ];
-
   const modifiers = [
     { labelKey: "howToPlay.jokerLabel", descKey: "howToPlay.jokerDesc" },
     { labelKey: "howToPlay.knockoutLabel", descKey: "howToPlay.knockoutDesc" },
@@ -43,19 +38,6 @@ export default function HowToPlay() {
               </span>
             </div>
             <span className="text-yc-green font-mono font-bold">{r.points} pts</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="border-t border-yc-border pt-3 space-y-2">
-        <p className="text-yc-text-tertiary text-xs uppercase tracking-widest mb-2">{t("howToPlay.bonuses")}</p>
-        {bonuses.map((b) => (
-          <div key={b.labelKey} className="flex items-center justify-between text-sm">
-            <div>
-              <span className="text-yc-text-primary">{t(b.labelKey)}</span>
-              <span className="text-yc-text-tertiary ms-2 text-xs">— {t(b.descKey)}</span>
-            </div>
-            <span className="text-yc-warning font-mono font-bold">{b.points}</span>
           </div>
         ))}
       </div>
