@@ -20,6 +20,16 @@ jobs:
       - name: Tests
         run: npm test
       - name: Build
+        # VITE_ values are public by project policy (they ship verbatim in the
+        # deployed bundle): Supabase anon key, public VAPID key, Sentry DSN.
+        # Without them the Supabase client throws at module init and the SPA
+        # renders a blank page — never deploy a build made without them.
+        env:
+          VITE_SUPABASE_URL: https://vxmopqjpqqdlkfceufru.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ4bW9wcWpwcXFkbGtmY2V1ZnJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDIyMTYsImV4cCI6MjA4NjY3ODIxNn0.khv4ie12t3G4uKxSKcDK8px0HU5nuLPsF_nj-J93b_k
+          VITE_ADMIN_USER_ID: cd237d4b-864a-463c-84ba-13bd2ddfc848,bc38b467-fbf4-46dd-89fd-e418a9aa8761
+          VITE_SENTRY_DSN: https://e276d63da88ab4399bedb4767fc46583@o4509416043118592.ingest.us.sentry.io/4511192663851008
+          VITE_VAPID_PUBLIC_KEY: BKgbZQF_VOy66CFeBVSfMdSP0Zt7xkdCn2TdJ-fivKZjnuIgmqu_wfzqzA23cVLltMQPYpKqBXCR0wwhK6huw3s
         run: npx vite build --base=/YancoCup/
       - name: Upload build for deploy
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
