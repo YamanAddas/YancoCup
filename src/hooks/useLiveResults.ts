@@ -1,7 +1,16 @@
 import { useMemo } from "react";
 import { useScores } from "./useScores";
 import { stageToRound } from "./useCompetitionSchedule";
-import type { MatchResult } from "./useScoring";
+
+/** A finished/live match result consumed by the scoring engine (now
+ *  Worker-authoritative), derived from the live scores feed. */
+export interface MatchResult {
+  matchId: number;
+  homeScore: number;
+  awayScore: number;
+  status: "finished" | "in_progress" | "scheduled";
+  round?: string;
+}
 
 /**
  * Converts live scores from the Worker into MatchResult[] for the scoring engine.

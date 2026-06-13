@@ -3560,14 +3560,22 @@ app.get("/api/team/:teamId/photos", async (c) => {
           response: Array<{ team: { id: number; name: string; national?: boolean } }>;
         };
         if (searchData.response?.length > 0) {
-          // Pick best match: exact name (preferring national teams when the
-          // search term is a country) → any exact → first result
-          const exacts = searchData.response.filter(
-            (r) => normCountry(r.team.name) === normCountry(searchName),
-          );
-          const exactNational = exacts.find((r) => r.team.national === true);
+          // Pick the SENIOR national team — not a youth/women/Olympic side.
+          // Those are also national:true, which is how "USA" resolved to a U-20
+          // squad whose names never matched the senior lineup. Exclude
+          // age-group/women markers, prefer an exact country-name national
+          // match, and DON'T blindly fall back to response[0] — a wrong first
+          // result (a club, a youth side) is worse than serving no photos.
+          const norm = normCountry(searchName);
+          const senior = searchData.response
+            .map((r) => r.team)
+            .filter((t) => !/\b(u-?\d+|women|olympic|youth|juniors?)\b/i.test(t.name));
+          const exact = senior.filter((t) => normCountry(t.name) === norm);
           afTeamId =
-            exactNational?.team.id ?? exacts[0]?.team.id ?? searchData.response[0]?.team.id ?? null;
+            exact.find((t) => t.national === true)?.id ??
+            exact[0]?.id ??
+            senior.find((t) => t.national === true)?.id ??
+            null;
         }
       }
     } catch { /* */ }

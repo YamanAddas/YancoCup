@@ -10,8 +10,8 @@
  * Modifiers:
  *   Joker:                2x (one per matchday per competition)
  *   Knockout multiplier:  1.5x-3x by round (tournaments only)
- *   Upset bonus:          +3 — defined below but NOT wired into useScoring
- *   Perfect group stage:  +15 — defined below but NOT wired into useScoring
+ *   Upset bonus:          +3 — defined below but NOT wired into the scorer
+ *   Perfect group stage:  +15 — defined below but NOT wired into the scorer
  *   (Don't advertise those two in UI copy until they're actually awarded.)
  */
 

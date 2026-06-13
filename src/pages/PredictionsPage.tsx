@@ -125,14 +125,21 @@ export default function PredictionsPage() {
     [open, predictionMap],
   );
 
-  // Check if joker is already used on another match in the current matchday
-  const jokerMatchId = useMemo(() => {
-    const matchIds = new Set(filteredMatches.map((m) => m.id));
+  // Joker is one-per-MATCHDAY. Map each matchday → the match that already holds
+  // its joker. Tournaments (WC) show every matchday at once, so the previous
+  // single tournament-wide check made the joker look "used" on all 104 matches
+  // after a single pick. Keyed by matchday so a card only locks the joker when
+  // ANOTHER match in the SAME matchday already has it.
+  const jokerByMatchday = useMemo(() => {
+    const byId = new Map(allMatches.map((m) => [m.id, m]));
+    const map = new Map<number | null, number>();
     for (const pred of predictions) {
-      if (pred.is_joker && matchIds.has(pred.match_id)) return pred.match_id;
+      if (!pred.is_joker) continue;
+      const md = byId.get(pred.match_id)?.matchday ?? null;
+      if (!map.has(md)) map.set(md, pred.match_id);
     }
-    return null;
-  }, [filteredMatches, predictions]);
+    return map;
+  }, [allMatches, predictions]);
 
   // Matchday status for pill styling
   const mdStatus = useCallback(
@@ -404,7 +411,10 @@ export default function PredictionsPage() {
                       userId={userId}
                       competitionId={comp.id}
                       userPredictionCount={predictions.length}
-                      jokerUsedThisMatchday={jokerMatchId !== null && jokerMatchId !== m.id}
+                      jokerUsedThisMatchday={
+                        jokerByMatchday.get(m.matchday ?? null) != null &&
+                        jokerByMatchday.get(m.matchday ?? null) !== m.id
+                      }
                       quickMode={quickMode}
                       onSaved={refresh}
                     />
