@@ -11,6 +11,14 @@ import {
   type FdTeamRef,
 } from "./espnEnrich";
 import { deriveDisplayScore } from "./matchScore";
+import {
+  calculatePoints,
+  calculateQuickPoints,
+  calculateStreakBonus,
+  stageToRound,
+  applyStreakStep,
+  type StreakState,
+} from "./predictionScoring";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -361,8 +369,11 @@ async function fetchFromApiFootball(
   path: string,
   apiKey: string,
 ): Promise<Response> {
+  // Trim defensively: a secret set via `echo key | wrangler secret put` or a
+  // dashboard paste can carry a trailing newline, which makes the header
+  // malformed and AF rejects every call. .trim() makes us source-agnostic.
   return fetch(`${AF_BASE}${path}`, {
-    headers: { "x-apisports-key": apiKey },
+    headers: { "x-apisports-key": apiKey.trim() },
     signal: AbortSignal.timeout(8000),
   });
 }
@@ -2350,6 +2361,316 @@ async function handleCron(env: Env, scheduledTime: number): Promise<void> {
     console.error("Cron stale-live cleanup failed:", err);
     await reportToSentry(err, "cron:cleanup");
   }
+
+  // -------------------------------------------------------------------------
+  // ALWAYS run: score finished predictions for ALL users (authoritative).
+  // Client pages no longer write scores — this is the single writer, so a
+  // friend's prediction counts whether or not they ever reopen the app.
+  // Cheap when caught up (one indexed Supabase query, usually empty).
+  // -------------------------------------------------------------------------
+  try {
+    const res = await scoreUnscoredPredictions(env, Date.now());
+    if (res.scored > 0 || res.errors > 0) {
+      console.log(`Cron: scored ${res.scored} prediction(s), ${res.errors} error(s)`);
+    }
+  } catch (err) {
+    console.error("Cron prediction scoring failed:", err);
+    await reportToSentry(err, "cron:scoring");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Server-side prediction scoring (authoritative). Reads finished matches from
+// KV, finds unscored predictions across ALL users, computes points + streak
+// using the ported pure engine (predictionScoring.ts), and writes back via
+// Supabase REST with the service key. Idempotent: the write is guarded on
+// scored_at IS NULL, so concurrent cron + on-demand passes can't double-score.
+// ---------------------------------------------------------------------------
+
+/** A match is scoreable once the feed says FINISHED, or — fallback for a
+ *  stalled feed (the documented WC-day failure mode) — once kickoff was this
+ *  long ago and we still hold a non-null score. Matches the stale-status
+ *  cleanup threshold so the two never disagree. */
+const SCORE_FINISHED_FALLBACK_MS = 4 * 60 * 60 * 1000;
+
+interface PredRow {
+  id: string;
+  user_id: string;
+  match_id: number;
+  competition_id: string;
+  home_score: number | null;
+  away_score: number | null;
+  quick_pick: "H" | "D" | "A" | null;
+  is_joker: boolean;
+}
+
+async function scoreUnscoredPredictions(
+  env: Env,
+  now: number,
+): Promise<{ scored: number; errors: number }> {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return { scored: 0, errors: 0 };
+
+  // 1. Build the finished-match map from KV scores across every competition.
+  const finished = new Map<
+    number,
+    { home: number; away: number; round: string; isTournament: boolean; utc: number }
+  >();
+  for (const code of Object.keys(COMPETITIONS)) {
+    const raw = await env.SCORES_KV.get(kvScores(code));
+    if (!raw) continue;
+    const arr = safeParse<MatchScore[]>(raw) ?? [];
+    const isTournament = COMPETITIONS[code]!.type === "tournament";
+    for (const m of arr) {
+      if (m.homeScore === null || m.awayScore === null) continue;
+      const utc = new Date(m.utcDate).getTime();
+      const done =
+        m.status === "FINISHED" ||
+        (Number.isFinite(utc) && now - utc > SCORE_FINISHED_FALLBACK_MS);
+      if (!done) continue;
+      finished.set(m.apiId, {
+        home: m.homeScore,
+        away: m.awayScore,
+        round: stageToRound(m.stage),
+        isTournament,
+        utc,
+      });
+    }
+  }
+  if (finished.size === 0) return { scored: 0, errors: 0 };
+
+  // 2. Fetch unscored predictions for exactly those finished matches. Keying on
+  //    match_id (not a timestamp filter — PostgREST splits filters on dots and
+  //    an ISO timestamp is full of them) keeps the result set bounded to the
+  //    finished window and skips the pile of future-match predictions.
+  const nowIso = new Date(now).toISOString();
+  const ids = [...finished.keys()].join(",");
+  const sel =
+    "select=id,user_id,match_id,competition_id,home_score,away_score,quick_pick,is_joker";
+  const filter = `scored_at=is.null&match_id=in.(${ids})&limit=5000`;
+  const listRes = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/yc_predictions?${filter}&${sel}`,
+    { headers: sbHeaders(env.SUPABASE_SERVICE_KEY) },
+  );
+  if (!listRes.ok) {
+    await reportToSentry(
+      new Error(`predictions fetch ${listRes.status}: ${await listRes.text()}`),
+      "scoring:fetch",
+    );
+    return { scored: 0, errors: 1 };
+  }
+  const preds = ((await listRes.json()) as PredRow[]).filter((p) =>
+    finished.has(p.match_id),
+  );
+  if (preds.length === 0) return { scored: 0, errors: 0 };
+
+  // 3. Group by (user, competition); process each user's picks in chronological
+  //    match order so streak math is monotonic.
+  const groups = new Map<string, PredRow[]>();
+  for (const p of preds) {
+    const key = `${p.user_id}|${p.competition_id}`;
+    const list = groups.get(key) ?? [];
+    list.push(p);
+    groups.set(key, list);
+  }
+
+  let scored = 0;
+  let errors = 0;
+
+  for (const [key, rows] of groups) {
+    const sep = key.lastIndexOf("|");
+    const userId = key.slice(0, sep);
+    const comp = key.slice(sep + 1);
+    rows.sort((a, b) => finished.get(a.match_id)!.utc - finished.get(b.match_id)!.utc);
+
+    let streak = await loadStreak(env, userId, comp);
+    let streakDirty = false;
+    let newExacts = 0;
+
+    for (const p of rows) {
+      const f = finished.get(p.match_id)!;
+      const base = p.quick_pick
+        ? calculateQuickPoints(p.quick_pick, f.home, f.away, p.is_joker)
+        : calculatePoints(
+            p.home_score ?? 0,
+            p.away_score ?? 0,
+            f.home,
+            f.away,
+            f.round,
+            p.is_joker,
+            f.isTournament,
+          );
+      // Skip malformed exact rows (no quick_pick AND no scores) rather than
+      // freezing a bogus 0 onto them.
+      if (!p.quick_pick && (p.home_score === null || p.away_score === null)) {
+        continue;
+      }
+
+      const correct = base.points > 0;
+      const step = applyStreakStep(streak, p.match_id, correct, nowIso);
+      let streakBonus = 0;
+      if (step.changed) {
+        streak = step.next;
+        streakDirty = true;
+        streakBonus = calculateStreakBonus(streak.current, base.points);
+      }
+      const total = base.points + streakBonus;
+
+      const ok = await patchPredictionScore(env, p.id, total, streakBonus, nowIso);
+      if (ok) {
+        scored++;
+        if (base.tier === "exact") newExacts++;
+      } else {
+        errors++;
+      }
+    }
+
+    if (streakDirty) {
+      await saveStreak(env, userId, comp, streak, nowIso).catch(() => {});
+    }
+    // Skill badges are cosmetic and best-effort — never let them fail scoring.
+    await awardSkillBadges(env, userId, streak.current, newExacts).catch(() => {});
+  }
+
+  return { scored, errors };
+}
+
+async function loadStreak(env: Env, userId: string, comp: string): Promise<StreakState> {
+  const fresh: StreakState = {
+    current: 0,
+    best: 0,
+    lastMatchId: null,
+    freezeAvailable: true,
+    freezeUsedAt: null,
+  };
+  try {
+    const res = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/yc_streaks?user_id=eq.${userId}&competition_id=eq.${comp}` +
+        `&select=current_streak,best_streak,last_match_id,freeze_available,freeze_used_at`,
+      { headers: sbHeaders(env.SUPABASE_SERVICE_KEY) },
+    );
+    if (!res.ok) return fresh;
+    const rows = (await res.json()) as Array<{
+      current_streak: number | null;
+      best_streak: number | null;
+      last_match_id: number | null;
+      freeze_available: boolean | null;
+      freeze_used_at: string | null;
+    }>;
+    const r = rows[0];
+    if (!r) return fresh;
+    return {
+      current: r.current_streak ?? 0,
+      best: r.best_streak ?? 0,
+      lastMatchId: r.last_match_id ?? null,
+      freezeAvailable: r.freeze_available ?? true,
+      freezeUsedAt: r.freeze_used_at ?? null,
+    };
+  } catch {
+    return fresh;
+  }
+}
+
+async function saveStreak(
+  env: Env,
+  userId: string,
+  comp: string,
+  s: StreakState,
+  nowIso: string,
+): Promise<void> {
+  await fetch(
+    `${env.SUPABASE_URL}/rest/v1/yc_streaks?on_conflict=user_id,competition_id`,
+    {
+      method: "POST",
+      headers: {
+        ...sbHeaders(env.SUPABASE_SERVICE_KEY),
+        Prefer: "resolution=merge-duplicates,return=minimal",
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        competition_id: comp,
+        current_streak: s.current,
+        best_streak: s.best,
+        last_match_id: s.lastMatchId,
+        freeze_available: s.freezeAvailable,
+        freeze_used_at: s.freezeUsedAt,
+        updated_at: nowIso,
+      }),
+    },
+  );
+}
+
+/** PATCH a prediction's score, guarded on scored_at IS NULL for idempotency.
+ *  Returns true only if a row was actually updated (i.e. we scored it). */
+async function patchPredictionScore(
+  env: Env,
+  id: string,
+  points: number,
+  streakBonus: number,
+  nowIso: string,
+): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/yc_predictions?id=eq.${id}&scored_at=is.null`,
+      {
+        method: "PATCH",
+        headers: {
+          ...sbHeaders(env.SUPABASE_SERVICE_KEY),
+          Prefer: "return=representation",
+        },
+        body: JSON.stringify({
+          points,
+          streak_bonus: streakBonus,
+          scored_at: nowIso,
+          updated_at: nowIso,
+        }),
+      },
+    );
+    if (!res.ok) return false;
+    const updated = (await res.json()) as unknown[];
+    return Array.isArray(updated) && updated.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/** Award skill badges (idempotent upsert). Best-effort. */
+async function awardSkillBadges(
+  env: Env,
+  userId: string,
+  currentStreak: number,
+  newExacts: number,
+): Promise<void> {
+  const badges: string[] = [];
+  if (newExacts >= 1) badges.push("first_exact");
+  if (currentStreak >= 3) badges.push("streak_3");
+  if (currentStreak >= 5) badges.push("streak_5");
+  if (currentStreak >= 10) badges.push("streak_10");
+  // five_exact needs a cumulative count — query it only if we just added exacts.
+  if (newExacts > 0) {
+    try {
+      const res = await fetch(
+        `${env.SUPABASE_URL}/rest/v1/yc_predictions?user_id=eq.${userId}&points=gte.10&scored_at=not.is.null&select=id`,
+        {
+          headers: { ...sbHeaders(env.SUPABASE_SERVICE_KEY), Prefer: "count=exact" },
+        },
+      );
+      const range = res.headers.get("content-range") ?? "";
+      const totalExact = Number(range.split("/")[1] ?? "0");
+      if (totalExact >= 5) badges.push("five_exact");
+    } catch {
+      /* ignore */
+    }
+  }
+  if (badges.length === 0) return;
+  const body = badges.map((badge_id) => ({ user_id: userId, badge_id, competition_id: null }));
+  await fetch(`${env.SUPABASE_URL}/rest/v1/yc_user_badges?on_conflict=user_id,badge_id`, {
+    method: "POST",
+    headers: {
+      ...sbHeaders(env.SUPABASE_SERVICE_KEY),
+      Prefer: "resolution=merge-duplicates,return=minimal",
+    },
+    body: JSON.stringify(body),
+  });
 }
 
 /** Admin auth — check ADMIN_KEY secret (falls back to FD API key for compat) */
@@ -3190,6 +3511,27 @@ app.get("/api/team/:teamId/photos", async (c) => {
   });
 
   return c.json(result);
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/score — on-demand trigger for the authoritative prediction scorer.
+// The cron runs the same pass every minute; this just gives a viewer immediate
+// feedback right after a match ends. Throttled in-memory to protect Supabase.
+// ---------------------------------------------------------------------------
+let lastOnDemandScore = 0;
+app.post("/api/score", async (c) => {
+  const now = Date.now();
+  if (now - lastOnDemandScore < 15000) {
+    return c.json({ ok: true, throttled: true, scored: 0 });
+  }
+  lastOnDemandScore = now;
+  try {
+    const result = await scoreUnscoredPredictions(c.env, now);
+    return c.json({ ok: true, ...result });
+  } catch (e) {
+    await reportToSentry(e, "endpoint:score");
+    return c.json({ ok: false, error: (e as Error).message }, 500);
+  }
 });
 
 // ---------------------------------------------------------------------------
