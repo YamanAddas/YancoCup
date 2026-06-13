@@ -15,6 +15,7 @@ export default function HowToPlay() {
     { labelKey: "howToPlay.jokerLabel", descKey: "howToPlay.jokerDesc" },
     { labelKey: "howToPlay.knockoutLabel", descKey: "howToPlay.knockoutDesc" },
     { labelKey: "howToPlay.streakLabel", descKey: "howToPlay.streakDesc" },
+    { labelKey: "howToPlay.confidenceLabel", descKey: "howToPlay.confidenceDesc" },
   ];
 
   return (

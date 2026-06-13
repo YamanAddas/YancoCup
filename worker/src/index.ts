@@ -15,6 +15,7 @@ import {
   calculatePoints,
   calculateQuickPoints,
   calculateStreakBonus,
+  confidenceStake,
   stageToRound,
   applyStreakStep,
   type StreakState,
@@ -2490,6 +2491,7 @@ interface PredRow {
   away_score: number | null;
   quick_pick: "H" | "D" | "A" | null;
   is_joker: boolean;
+  confidence: number | null;
 }
 
 async function scoreUnscoredPredictions(
@@ -2533,7 +2535,7 @@ async function scoreUnscoredPredictions(
   const nowIso = new Date(now).toISOString();
   const ids = [...finished.keys()].join(",");
   const sel =
-    "select=id,user_id,match_id,competition_id,home_score,away_score,quick_pick,is_joker";
+    "select=id,user_id,match_id,competition_id,home_score,away_score,quick_pick,is_joker,confidence";
   const filter = `scored_at=is.null&match_id=in.(${ids})&limit=5000`;
   const listRes = await fetch(
     `${env.SUPABASE_URL}/rest/v1/yc_predictions?${filter}&${sel}`,
@@ -2598,7 +2600,9 @@ async function scoreUnscoredPredictions(
       const streakBonus = step.changed
         ? calculateStreakBonus(step.next.current, base.points)
         : 0;
-      const total = base.points + streakBonus;
+      // Confidence stake: gained when correct, lost when wrong (can go negative).
+      const stake = confidenceStake(p.confidence, correct);
+      const total = base.points + streakBonus + stake;
 
       const status = await patchPredictionScore(env, p.id, total, streakBonus, nowIso);
       if (status === "scored") {

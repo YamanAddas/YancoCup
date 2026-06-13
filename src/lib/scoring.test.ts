@@ -4,6 +4,7 @@ import {
   calculateQuickPoints,
   calculateUpsetBonus,
   calculateStreakBonus,
+  confidenceStake,
   checkPerfectGroup,
   getKnockoutMultiplier,
 } from "./scoring";
@@ -285,5 +286,20 @@ describe("calculateStreakBonus", () => {
   it("streak 6+ → bonus capped at +5", () => {
     expect(calculateStreakBonus(6, 3)).toBe(5);
     expect(calculateStreakBonus(20, 10)).toBe(5);
+  });
+});
+
+describe("confidenceStake", () => {
+  it("Wild Guess (1 / null) never changes the score", () => {
+    expect(confidenceStake(1, true)).toBe(0);
+    expect(confidenceStake(null, false)).toBe(0);
+  });
+  it("Risky Call (2): +2 correct, -2 wrong", () => {
+    expect(confidenceStake(2, true)).toBe(2);
+    expect(confidenceStake(2, false)).toBe(-2);
+  });
+  it("Sure Thing (3): +5 correct, -5 wrong", () => {
+    expect(confidenceStake(3, true)).toBe(5);
+    expect(confidenceStake(3, false)).toBe(-5);
   });
 });

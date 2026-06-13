@@ -93,6 +93,22 @@ export function calculateStreakBonus(
   return Math.min(newStreakLength, 5);
 }
 
+/**
+ * Confidence stake (risk/reward). The user wagers points by confidence level:
+ * a correct pick GAINS the stake, a wrong pick LOSES it. Applied as a flat
+ * amount AFTER base × multipliers + streak, so it never compounds.
+ *   1 Wild Guess → ±0   2 Risky Call → ±2   3 Sure Thing → ±5
+ * `correct` = the pick earned base points (tier !== "wrong").
+ */
+export function confidenceStake(
+  confidence: number | null | undefined,
+  correct: boolean,
+): number {
+  const stake = confidence === 3 ? 5 : confidence === 2 ? 2 : 0;
+  if (stake === 0) return 0; // avoid -0 for Wild Guess / unset
+  return correct ? stake : -stake;
+}
+
 /** football-data.org `stage` → scoring round key. Mirrors the frontend
  *  stageToRound in src/hooks/useCompetitionSchedule.ts. */
 export function stageToRound(stage: string): string {

@@ -4,6 +4,7 @@ import {
   calculatePoints,
   calculateQuickPoints,
   calculateStreakBonus,
+  confidenceStake,
   getKnockoutMultiplier,
   stageToRound,
   applyStreakStep,
@@ -156,5 +157,22 @@ describe("applyStreakStep", () => {
     s = applyStreakStep(s, 5, false, "T").next; // no freeze → reset
     expect(s.current).toBe(0);
     expect(s.best).toBe(3);
+  });
+});
+
+describe("confidenceStake", () => {
+  it("Wild Guess (1 / null / undefined) never changes the score", () => {
+    expect(confidenceStake(1, true)).toBe(0);
+    expect(confidenceStake(1, false)).toBe(0);
+    expect(confidenceStake(null, true)).toBe(0);
+    expect(confidenceStake(undefined, false)).toBe(0);
+  });
+  it("Risky Call (2): +2 when correct, -2 when wrong", () => {
+    expect(confidenceStake(2, true)).toBe(2);
+    expect(confidenceStake(2, false)).toBe(-2);
+  });
+  it("Sure Thing (3): +5 when correct, -5 when wrong", () => {
+    expect(confidenceStake(3, true)).toBe(5);
+    expect(confidenceStake(3, false)).toBe(-5);
   });
 });
