@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { MapPin, Clock, Check, Zap } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
 import TeamCrest from "./TeamCrest";
@@ -217,6 +217,7 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
       ? t("match.matchday", { num: match.matchday })
       : t(ROUND_KEYS[match.round]);
 
+  const navigate = useNavigate();
   const detailUrl = competitionId ? `/${competitionId}/match/${match.id}` : undefined;
 
   /* ── 3D mouse-tracking tilt (from YancoHub gaming grid) ── */
@@ -412,10 +413,26 @@ export default function MatchCard({ match, teamMap, venueMap, liveScore, compact
   );
 
   if (detailUrl) {
+    // The card is a clickable surface (navigates to match detail) but is NOT an
+    // <a>, because it contains team-badge links — nested <a> inside <a> is
+    // invalid HTML (hydration errors + ambiguous keyboard/AT focus). A div with
+    // role="link" keeps the card keyboard-accessible while team links stay real
+    // anchors.
     return (
-      <Link to={detailUrl} className="block no-underline text-inherit">
+      <div
+        role="link"
+        tabIndex={0}
+        onClick={() => navigate(detailUrl)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            navigate(detailUrl);
+          }
+        }}
+        className="block no-underline text-inherit cursor-pointer"
+      >
         {card}
-      </Link>
+      </div>
     );
   }
 

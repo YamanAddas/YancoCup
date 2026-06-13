@@ -255,7 +255,7 @@ export async function fetchStreak(
     .select("current_streak, best_streak, last_match_id, freeze_available, freeze_used_at")
     .eq("user_id", userId)
     .eq("competition_id", competitionId)
-    .single();
+    .maybeSingle();
   if (!data) return null;
   return {
     current_streak: data.current_streak ?? 0,

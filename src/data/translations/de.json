@@ -126,6 +126,7 @@
   "leaderboard.playersPlural": "{count} Spieler im Wettbewerb",
   "leaderboard.noPredictions": "Noch keine Tipps. Sei der Erste!",
   "leaderboard.rank": "#",
+  "leaderboard.yourRank": "Rang",
   "leaderboard.player": "Spieler",
   "leaderboard.points": "Punkte",
   "leaderboard.pts": "Pkt",

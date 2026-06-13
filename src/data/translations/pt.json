@@ -126,6 +126,7 @@
   "leaderboard.playersPlural": "{count} jogadores competindo",
   "leaderboard.noPredictions": "Nenhum palpite ainda. Seja o primeiro!",
   "leaderboard.rank": "#",
+  "leaderboard.yourRank": "Posição",
   "leaderboard.player": "Jogador",
   "leaderboard.points": "Pontos",
   "leaderboard.pts": "Pts",

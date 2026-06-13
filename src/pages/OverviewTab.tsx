@@ -176,7 +176,7 @@ export default function OverviewTab() {
           accent
         />
         <StatCard
-          label={t("leaderboard.rank")}
+          label={t("leaderboard.yourRank")}
           value={userRank > 0 ? `#${userRank}` : "—"}
           icon={BarChart3}
         />

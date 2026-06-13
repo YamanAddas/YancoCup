@@ -2826,7 +2826,7 @@ app.use(
       "http://localhost:5175",
       "http://localhost:4173",
     ],
-    allowMethods: ["GET", "OPTIONS"],
+    allowMethods: ["GET", "POST", "OPTIONS"],
     maxAge: 86400,
   }),
 );
@@ -3191,6 +3191,7 @@ app.get("/api/:comp/scores", async (c) => {
   // Live-window resilience: when matches should be in play, overlay a direct
   // upstream snapshot (memoized 60s) so exhausted KV writes / a dead cron
   // can't freeze live scores. Costs ≤1 upstream call/min/isolate, live only.
+  let liveOverlayApplied = false;
   if (scores.length > 0 && inLiveWindow(scores)) {
     const direct = await fetchLiveDirect(c.env);
     if (direct) {
@@ -3198,6 +3199,7 @@ app.get("/api/:comp/scores", async (c) => {
       if (fresh.length > 0) {
         const ids = new Set(fresh.map((m) => m.apiId));
         scores = [...scores.filter((s) => !ids.has(s.apiId)), ...fresh];
+        liveOverlayApplied = true;
       }
     }
   }
@@ -3219,8 +3221,15 @@ app.get("/api/:comp/scores", async (c) => {
     filtered = filtered.filter((m) => m.matchday === md);
   }
 
+  // The KV_LAST_POLL timestamp only updates every ~25 min, so during a live
+  // match it badly lags the actual data freshness. When the live overlay served
+  // a direct upstream snapshot (memoized ≤60s), report NOW as the freshness
+  // time so the client's "updated X ago" badge doesn't read as frozen.
   const lastPollComp = await c.env.SCORES_KV.get(KV_LAST_POLL);
-  return c.json({ matches: filtered, fetchedAt: lastPollComp ?? null });
+  return c.json({
+    matches: filtered,
+    fetchedAt: liveOverlayApplied ? new Date().toISOString() : lastPollComp ?? null,
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -3718,8 +3727,24 @@ app.get("/api/scores", async (c) => {
       message: "No data yet. Scores populate during the tournament.",
     });
   }
-  const scores = safeParse<MatchScore[]>(cached) ?? [];
+  let scores = safeParse<MatchScore[]>(cached) ?? [];
   const lastPoll = await c.env.SCORES_KV.get(KV_LAST_POLL);
+
+  // Live-window resilience + real freshness (mirrors /api/:comp/scores): during
+  // a live window overlay a direct upstream snapshot (memoized ≤60s) and report
+  // NOW as fetchedAt, so the StaleBadge doesn't read ~25-min-stale lastPoll.
+  let liveOverlayApplied = false;
+  if (scores.length > 0 && inLiveWindow(scores)) {
+    const direct = await fetchLiveDirect(c.env);
+    if (direct) {
+      const fresh = direct.filter((m) => m.competitionCode === "WC");
+      if (fresh.length > 0) {
+        const ids = new Set(fresh.map((m) => m.apiId));
+        scores = [...scores.filter((s) => !ids.has(s.apiId)), ...fresh];
+        liveOverlayApplied = true;
+      }
+    }
+  }
 
   const status = c.req.query("status");
   const date = c.req.query("date");
@@ -3732,7 +3757,10 @@ app.get("/api/scores", async (c) => {
     filtered = filtered.filter((m) => m.utcDate.startsWith(date));
   }
 
-  return c.json({ matches: filtered, fetchedAt: lastPoll ?? null });
+  return c.json({
+    matches: filtered,
+    fetchedAt: liveOverlayApplied ? new Date().toISOString() : lastPoll ?? null,
+  });
 });
 
 app.get("/api/standings", async (c) => {

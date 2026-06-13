@@ -126,6 +126,7 @@
   "leaderboard.playersPlural": "{count} joueurs en compétition",
   "leaderboard.noPredictions": "Aucun pronostic pour le moment. Soyez le premier à pronostiquer !",
   "leaderboard.rank": "#",
+  "leaderboard.yourRank": "Rang",
   "leaderboard.player": "Joueur",
   "leaderboard.points": "Points",
   "leaderboard.pts": "Pts",

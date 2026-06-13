@@ -126,6 +126,7 @@
   "leaderboard.playersPlural": "{count} لاعبين يتنافسون",
   "leaderboard.noPredictions": "لا توجد توقعات بعد. كن أول من يتوقّع!",
   "leaderboard.rank": "#",
+  "leaderboard.yourRank": "ترتيبك",
   "leaderboard.player": "اللاعب",
   "leaderboard.points": "النقاط",
   "leaderboard.pts": "نقاط",
