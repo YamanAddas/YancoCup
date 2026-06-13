@@ -741,7 +741,9 @@ const RSS_FEEDS: RSSFeedConfig[] = [
   { url: "https://feeds.bbci.co.uk/sport/football/rss.xml", sourceName: "BBC Sport", language: "en" },
   { url: "https://www.theguardian.com/football/rss", sourceName: "The Guardian", language: "en" },
   { url: "https://www.espn.com/espn/rss/soccer/news", sourceName: "ESPN", language: "en" },
-  { url: "https://www.skysports.com/rss/12040", sourceName: "Sky Sports", language: "en" },
+  // (Sky Sports feed 12040 removed — it's a GENERAL sports feed; it leaked
+  //  cricket "T20 World Cup", rugby "Super League", and F1 items past the
+  //  positive filter via the shared word "cup". We have 11 football-only feeds.)
   // ── English — competition-specific ──
   { url: "https://www.theguardian.com/football/premierleague/rss", sourceName: "The Guardian PL", language: "en" },
   { url: "https://www.theguardian.com/football/championsleague/rss", sourceName: "The Guardian CL", language: "en" },
@@ -996,6 +998,17 @@ async function fetchRSSFeed(feed: RSSFeedConfig): Promise<RSSArticle[]> {
       }
       link = link.replace(/<!\[CDATA\[|\]\]>/g, "").trim();
       if (!link) continue;
+
+      // Reject obvious non-football items that leak from broad sports feeds
+      // (cricket "T20 World Cup", F1 "Grand Prix", rugby/tennis/etc.). Guards
+      // against the positive filter below passing shared words like "cup".
+      // Deliberately omits ambiguous terms ("super league" = football's WSL,
+      // "open") to avoid false-rejecting genuine football news.
+      const NON_FOOTBALL =
+        /\b(cricket|t20i?|odi|wicket|batsman|bowler|innings|nascar|formula\s?1|f1|grand prix|wimbledon|roland garros|atp|wta|nba|nfl|super bowl|pga|nrl|six nations|snooker|darts|nhl|mlb|ufc|rugby)\b/i;
+      if (NON_FOOTBALL.test(title) || NON_FOOTBALL.test(JSON.stringify(i.category ?? ""))) {
+        continue;
+      }
 
       // Filter non-football articles from generic sports feeds
       const GENERIC_FEEDS = ["Al Jazeera", "Sky Sports", "ESPN", "Marca", "Kicker", "Record"];
