@@ -2507,18 +2507,24 @@ async function scoreUnscoredPredictions(
 
       const correct = base.points > 0;
       const step = applyStreakStep(streak, p.match_id, correct, nowIso);
-      let streakBonus = 0;
-      if (step.changed) {
-        streak = step.next;
-        streakDirty = true;
-        streakBonus = calculateStreakBonus(streak.current, base.points);
-      }
+      const streakBonus = step.changed
+        ? calculateStreakBonus(step.next.current, base.points)
+        : 0;
       const total = base.points + streakBonus;
 
-      const ok = await patchPredictionScore(env, p.id, total, streakBonus, nowIso);
-      if (ok) {
+      const status = await patchPredictionScore(env, p.id, total, streakBonus, nowIso);
+      if (status === "scored") {
+        if (step.changed) {
+          streak = step.next;
+          streakDirty = true;
+        }
         scored++;
         if (base.tier === "exact") newExacts++;
+      } else if (status === "skipped") {
+        // A concurrent pass (cron vs on-demand) scored this row first — benign,
+        // not an error. Advance our local streak so the rest of this user's
+        // batch stays consistent, but let the winning pass own the DB write.
+        if (step.changed) streak = step.next;
       } else {
         errors++;
       }
@@ -2600,14 +2606,16 @@ async function saveStreak(
 }
 
 /** PATCH a prediction's score, guarded on scored_at IS NULL for idempotency.
- *  Returns true only if a row was actually updated (i.e. we scored it). */
+ *  - "scored":  we updated the row (we own this score)
+ *  - "skipped": 0 rows matched — a concurrent pass already scored it (benign)
+ *  - "error":   the request failed */
 async function patchPredictionScore(
   env: Env,
   id: string,
   points: number,
   streakBonus: number,
   nowIso: string,
-): Promise<boolean> {
+): Promise<"scored" | "skipped" | "error"> {
   try {
     const res = await fetch(
       `${env.SUPABASE_URL}/rest/v1/yc_predictions?id=eq.${id}&scored_at=is.null`,
@@ -2625,11 +2633,11 @@ async function patchPredictionScore(
         }),
       },
     );
-    if (!res.ok) return false;
+    if (!res.ok) return "error";
     const updated = (await res.json()) as unknown[];
-    return Array.isArray(updated) && updated.length > 0;
+    return Array.isArray(updated) && updated.length > 0 ? "scored" : "skipped";
   } catch {
-    return false;
+    return "error";
   }
 }
 
