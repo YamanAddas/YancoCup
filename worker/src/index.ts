@@ -365,17 +365,90 @@ const TLA_TO_AF_NAMES: Record<string, string[]> = {
   STE: ["SAINT-ETIENNE", "ST ETIENNE"],
 };
 
+// ---------------------------------------------------------------------------
+// API-Football daily-budget guard. The free plan allows 100 requests/day; once
+// exhausted, every call fails for the rest of the day (a throttle, not a ban —
+// but it blocks photo coverage, and sustained max-out is the "abnormal spike"
+// their firewall watches). We hard-stop a few requests short of the cap using
+// AF's OWN authoritative counter (the `x-ratelimit-requests-remaining` response
+// header), with a self-count fallback if that header is ever absent. State is
+// mirrored in-memory (per isolate) and persisted in KV so it holds across
+// isolates and cron ticks. ~1 KV read + 1 KV write per AF call (≤~100/day —
+// negligible vs the 1,000/day KV write budget).
+// ---------------------------------------------------------------------------
+const AF_DAILY_CAP = 100;
+const AF_DAILY_RESERVE = 6; // stop this many requests short of the cap
+const AF_BUDGET_KEY = "af:budget";
+
+interface AfBudget {
+  date: string; // YYYY-MM-DD (UTC)
+  remaining: number | null; // AF's reported daily remaining, null until first call
+  used: number; // our own count this day (fallback when the header is absent)
+}
+let afBudgetMem: AfBudget | null = null;
+
+function afToday(now: number): string {
+  return new Date(now).toISOString().slice(0, 10);
+}
+
+async function afLoadBudget(kv: KVNamespace, today: string): Promise<AfBudget> {
+  if (afBudgetMem && afBudgetMem.date === today) return afBudgetMem;
+  const raw = await kv.get(AF_BUDGET_KEY);
+  const parsed = raw ? safeParse<AfBudget>(raw) : null;
+  afBudgetMem =
+    parsed && parsed.date === today ? parsed : { date: today, remaining: null, used: 0 };
+  return afBudgetMem;
+}
+
+/** True if we should NOT spend another AF request right now. */
+function afOverBudget(b: AfBudget): boolean {
+  if (b.remaining !== null && b.remaining <= AF_DAILY_RESERVE) return true;
+  if (b.used >= AF_DAILY_CAP - AF_DAILY_RESERVE) return true;
+  return false;
+}
+
+async function afRecordCall(
+  kv: KVNamespace,
+  b: AfBudget,
+  remainingHeader: string | null,
+): Promise<void> {
+  b.used += 1;
+  const rem = remainingHeader !== null ? Number(remainingHeader) : NaN;
+  if (Number.isFinite(rem)) b.remaining = rem;
+  afBudgetMem = b;
+  await kv.put(AF_BUDGET_KEY, JSON.stringify(b), { expirationTtl: 172800 }).catch(() => {});
+}
+
 async function fetchFromApiFootball(
   path: string,
   apiKey: string,
+  kv?: KVNamespace,
 ): Promise<Response> {
+  const today = afToday(Date.now());
+  let budget: AfBudget | null = null;
+  // Daily-budget guard — refuse the call when AF says we're near the cap, so we
+  // can never exhaust the free quota (which would block photos for the day).
+  if (kv) {
+    budget = await afLoadBudget(kv, today);
+    if (afOverBudget(budget)) {
+      return new Response(
+        JSON.stringify({ response: [], errors: { budget: "AF daily budget guard" } }),
+        { status: 429, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }
   // Trim defensively: a secret set via `echo key | wrangler secret put` or a
   // dashboard paste can carry a trailing newline, which makes the header
   // malformed and AF rejects every call. .trim() makes us source-agnostic.
-  return fetch(`${AF_BASE}${path}`, {
+  const res = await fetch(`${AF_BASE}${path}`, {
     headers: { "x-apisports-key": apiKey.trim() },
     signal: AbortSignal.timeout(8000),
   });
+  // Record AF's authoritative daily-remaining for the next guard check.
+  if (kv && budget) {
+    await afRecordCall(kv, budget, res.headers.get("x-ratelimit-requests-remaining"));
+  }
+  return res;
 }
 
 /** Match a football-data.org TLA against an API-Football team name */
@@ -436,6 +509,7 @@ async function findApiFootballFixture(
     const res = await fetchFromApiFootball(
       `/fixtures?league=${leagueId}&season=${seasonYear}&date=${matchDate}`,
       env.API_FOOTBALL_KEY,
+      env.SCORES_KV,
     );
     if (!res.ok) return null;
 
@@ -475,6 +549,7 @@ async function fetchApiFootballDetail(
   const res = await fetchFromApiFootball(
     `/fixtures?id=${fixtureId}`,
     env.API_FOOTBALL_KEY,
+    env.SCORES_KV,
   );
   if (!res.ok) return null;
 
@@ -2316,7 +2391,7 @@ async function handleCron(env: Env, scheduledTime: number): Promise<void> {
         if (cached) continue; // good entries last 30d; empty ones expire in ≤6h and retry then
         const afId = await resolveAfNationalTeam(env, t.name).catch(() => null);
         if (afId === null) continue;
-        const squadRes = await fetchFromApiFootball(`/players/squads?team=${afId}`, env.API_FOOTBALL_KEY);
+        const squadRes = await fetchFromApiFootball(`/players/squads?team=${afId}`, env.API_FOOTBALL_KEY, env.SCORES_KV);
         if (!squadRes.ok) break; // AF down or quota gone — abandon this pass
         const squadData = (await squadRes.json()) as {
           response: Array<{ players: Array<{ id: number; name: string; photo: string }> }>;
@@ -3363,7 +3438,7 @@ async function resolveAfNationalTeam(env: Env, teamName: string): Promise<number
   const listKey = "af:wc:teams";
   let raw = await env.SCORES_KV.get(listKey);
   if (!raw) {
-    const res = await fetchFromApiFootball(`/teams?league=1&season=2026`, env.API_FOOTBALL_KEY);
+    const res = await fetchFromApiFootball(`/teams?league=1&season=2026`, env.API_FOOTBALL_KEY, env.SCORES_KV);
     if (!res.ok) return null;
     const data = (await res.json()) as {
       response: Array<{ team: { id: number; name: string; country: string | null; national: boolean } }>;
@@ -3469,6 +3544,7 @@ app.get("/api/team/:teamId/photos", async (c) => {
       const searchRes = await fetchFromApiFootball(
         `/teams?search=${encodeURIComponent(searchName)}`,
         c.env.API_FOOTBALL_KEY,
+        c.env.SCORES_KV,
       );
       if (searchRes.ok) {
         const searchData = (await searchRes.json()) as {
@@ -3502,6 +3578,7 @@ app.get("/api/team/:teamId/photos", async (c) => {
     const squadRes = await fetchFromApiFootball(
       `/players/squads?team=${afTeamId}`,
       c.env.API_FOOTBALL_KEY,
+      c.env.SCORES_KV,
     );
     if (squadRes.ok) {
       const squadData = (await squadRes.json()) as {
