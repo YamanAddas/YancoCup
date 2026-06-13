@@ -23,6 +23,10 @@ export interface AnonPrediction {
   quick_pick: "H" | "D" | "A" | null;
   is_joker: boolean;
   confidence: 1 | 2 | 3 | null;
+  /** Match kickoff (ISO). Captured at predict-time so the sign-in migration
+   *  can carry it into yc_predictions — without it the migrated row has a NULL
+   *  kickoff_time and RLS hides it from everyone but the owner until scored. */
+  kickoff_time: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -70,9 +74,10 @@ export function countAnonPredictions(): number {
  * conflict key = (competition_id, match_id).
  */
 export function upsertAnonPrediction(
-  pred: Omit<AnonPrediction, "created_at" | "updated_at"> & {
+  pred: Omit<AnonPrediction, "created_at" | "updated_at" | "kickoff_time"> & {
     created_at?: string;
     updated_at?: string;
+    kickoff_time?: string | null;
   },
 ): void {
   const list = safeRead();
@@ -89,6 +94,7 @@ export function upsertAnonPrediction(
     quick_pick: pred.quick_pick,
     is_joker: pred.is_joker,
     confidence: pred.confidence,
+    kickoff_time: pred.kickoff_time ?? (idx >= 0 ? list[idx]!.kickoff_time : null),
     created_at: idx >= 0 ? list[idx]!.created_at : (pred.created_at ?? now),
     updated_at: now,
   };

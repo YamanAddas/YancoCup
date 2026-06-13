@@ -90,6 +90,7 @@ export async function upsertPrediction(
       quick_pick: null,
       is_joker: isJoker,
       confidence,
+      kickoff_time: kickoffTime ?? null,
     });
     return null;
   }
@@ -131,6 +132,7 @@ export async function upsertQuickPrediction(
       quick_pick: pick,
       is_joker: isJoker,
       confidence,
+      kickoff_time: kickoffTime ?? null,
     });
     return null;
   }

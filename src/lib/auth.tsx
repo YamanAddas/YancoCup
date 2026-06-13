@@ -26,6 +26,9 @@ async function migrateAnonPredictions(userId: string): Promise<void> {
     quick_pick: p.quick_pick,
     is_joker: p.is_joker,
     confidence: p.confidence,
+    // Carry kickoff_time so the migrated row is visible to other users on the
+    // leaderboard (RLS hides NULL-kickoff unscored rows from non-owners).
+    ...(p.kickoff_time ? { kickoff_time: p.kickoff_time } : {}),
     updated_at: now,
   }));
   const { error } = await supabase
