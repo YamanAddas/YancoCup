@@ -30,10 +30,8 @@
 **Status (Session 65):** Fixed in MatchCard, PredictionCard, LeaderboardPage, StandingsPage — replaced `text-left/right` → `text-start/end`, `ml-/mr-` → `ms-/me-`.
 **Remaining:** Full page-by-page RTL audit needed. Test every page in Arabic mode.
 
-### BUG-006: Globe performance on low-end mobile — PARTIALLY RESOLVED
-**What:** The R3F globe can cause frame drops and battery drain on older phones.
-**Status:** `frameloop="demand"` active. `dpr` scaling for mobile. `GlobeErrorBoundary` catches WebGL crashes. Device detection reduces quality on low-end.
-**Remaining:** IntersectionObserver to stop rendering when globe scrolls off-screen. Consider static SVG map for mobile.
+### BUG-006: ~~Globe performance on low-end mobile~~ — REMOVED (globe cut 2026-06-13)
+**Status:** The 3D globe was removed from the product. Its R3F dependencies (`three`, `@react-three/fiber`, `@react-three/drei`, `r3f-globe`, `@types/three`) were uninstalled; no globe renders anywhere and the build ships no three.js. This entry is kept only so the old "globe performance" notes aren't mistaken for a live concern.
 
 ### BUG-007: Inconsistent design tokens
 **What:** Some components use hardcoded hex values instead of CSS custom properties. The design tokens in globals.css may not match STYLE.md exactly.
@@ -62,9 +60,8 @@
 
 ## Low (backlog)
 
-### DEBT-005: ~~Bundle size — globe code splitting~~ RESOLVED
-**Status:** GlobeScene is lazy-loaded via `React.lazy()` + `Suspense` in `GlobeView.tsx`. Three.js is only loaded when the globe renders. `GlobeScene.js` chunk is 2MB — still large but isolated.
-**Remaining concern:** The 2MB chunk itself. Bundle composition analysis not yet done.
+### DEBT-005: ~~Bundle size — globe code splitting~~ MOOT (globe removed 2026-06-13)
+**Status:** The 3D globe and its R3F dependencies were removed, so there is no GlobeScene chunk and the production build ships no three.js. Nothing to split.
 
 ### DEBT-006: SEO limitations
 **What:** GitHub Pages + HashRouter + SPA means no server-side rendering. Social media link previews show generic metadata.

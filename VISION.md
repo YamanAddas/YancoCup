@@ -71,7 +71,7 @@ Secondary: Casual fans during the World Cup who want a fun way to engage with th
 | A betting platform | No real money. Never. This is bragging rights only. |
 | A fantasy league | No player drafts, no transfers, no salary caps |
 | A social network | Pools are focused groups, not public feeds |
-| A 3D showcase | The globe is a signature element, not the product |
+| A 3D showcase | Visual polish serves the prediction game — it is never the point |
 
 ## Competitions covered
 

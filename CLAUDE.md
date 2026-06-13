@@ -20,7 +20,6 @@ Before any session, read the file most relevant to the task:
 | Layer | Tech | Notes |
 |-------|------|-------|
 | Frontend | Vite 8 + React 19 + Tailwind CSS 4 | TypeScript strict |
-| 3D | React Three Fiber + r3f-globe | `frameloop="demand"` |
 | Backend | Cloudflare Workers + Hono | API proxy + cron polling |
 | Database | Supabase | Auth, predictions, pools, realtime |
 | Live scores | football-data.org (primary) | 10 req/min, covers WC/CL/PL/PD/BL1/SA/FL1/EC |
@@ -57,9 +56,8 @@ Before any session, read the file most relevant to the task:
 - **Always dark.** No light mode. No `prefers-color-scheme` media queries. Site is always dark.
 - **API keys are secret.** Never put real keys in `VITE_` env vars. All API calls go through the Worker proxy.
 - **football-data.org rate limits.** `/v4/matches` (no competition filter) returns ALL competitions in one call — use this to minimize requests. Max 10 req/min.
-- **Scoring is client-side.** `src/lib/scoring.ts` runs in-browser. First user to load leaderboard triggers scoring for finished matches. This is a known architectural concern — do not add server-side scoring without explicit approval.
+- **Scoring is server-authoritative.** The Cloudflare Worker is the SINGLE writer for prediction points (cron + `POST /api/score`); `worker/src/predictionScoring.ts` mirrors the frontend `src/lib/scoring.ts` engine — keep the two in sync. Migrated from the old client-side scorer in commit dcc4fb3 (the client no longer writes points).
 - **Supabase RLS.** Every new table needs Row Level Security policies. Never skip this.
-- **Globe performance.** Use `frameloop="demand"` in R3F Canvas. Do not render every frame. Suspend globe below 640px width to save mobile battery.
 
 ## File structure
 

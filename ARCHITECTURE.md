@@ -5,7 +5,7 @@
 ```
 ┌─────────────────────────────────────────────────────┐
 │  GitHub Pages (static SPA)                          │
-│  React 19 + Vite 8 + Tailwind 4 + R3F              │
+│  React 19 + Vite 8 + Tailwind 4                    │
 │  HashRouter — all routes are client-side            │
 └──────────────────┬──────────────────────────────────┘
                    │ HTTPS

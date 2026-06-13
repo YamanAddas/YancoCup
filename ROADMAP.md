@@ -47,7 +47,6 @@ Test every page at 375px width:
 - Prediction form completable without scrolling
 
 ### 1.6 Performance pass
-- Globe: verify `frameloop="demand"`, hide below 640px
 - Images: lazy load all crests below the fold
 - Fonts: preload Space Grotesk 600 and Inter 400
 - Bundle: code-split per route with React.lazy

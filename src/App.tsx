@@ -62,7 +62,7 @@ export default function App() {
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route element={<AppLayout />}>
-                {/* Home — competition cards, globe */}
+                {/* Home — competition cards */}
                 <Route index element={<HomePage />} />
 
                 {/* Competition hub — tabbed layout for all competition-scoped routes */}
