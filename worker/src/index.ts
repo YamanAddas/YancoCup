@@ -3573,7 +3573,14 @@ app.get("/api/team/:teamId/photos", async (c) => {
           const norm = normCountry(searchName);
           const senior = searchData.response
             .map((r) => r.team)
-            .filter((t) => !/\b(u-?\d+|women|olympic|youth|juniors?)\b/i.test(t.name));
+            // Exclude age-group + women's sides (both are national:true). The
+            // trailing " W" / "(W)" is AF's women's-team marker (e.g. AF lists a
+            // men's "Bosnia & Herzegovina" AND a "Bosnia-Herzegovina W").
+            .filter(
+              (t) =>
+                !/\b(u-?\d+|women|olympic|youth|juniors?)\b/i.test(t.name) &&
+                !/\sw$|\(w\)/i.test(t.name),
+            );
           const exact = senior.filter((t) => normCountry(t.name) === norm);
           afTeamId =
             exact.find((t) => t.national === true)?.id ??
