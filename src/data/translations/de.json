@@ -600,5 +600,19 @@
   "pools.pulseEvent.changed": "hat den Tipp geändert",
   "common.back": "Zurück",
   "match.info.attendance": "Zuschauer",
-  "match.h2h.firstMeeting": "Erstes Aufeinandertreffen dieser Teams"
+  "match.h2h.firstMeeting": "Erstes Aufeinandertreffen dieser Teams",
+  "predictions.endgameEyebrow": "WM-Endphase",
+  "predictions.endgameWaiting": "Warten auf den nächsten K.-o.-Platz.",
+  "predictions.endgameAllCaughtUp": "Alle offenen K.-o.-Tipps sind gespeichert.",
+  "predictions.endgameNeedsPicks": "{count} offene K.-o.-Tipps brauchen deine Entscheidung.",
+  "predictions.resolverApi": "Live-Turnierbaum aktiv",
+  "predictions.resolverScores": "Ergebnis-Turnierbaum aktiv",
+  "predictions.resolverNone": "Turnierbaum wird vorbereitet",
+  "predictions.viewBracket": "Turnierbaum",
+  "predictions.openNowMetric": "Jetzt offen",
+  "predictions.needPicksMetric": "Tipps offen",
+  "predictions.tbdMetric": "TBD-Plätze",
+  "predictions.finalMetric": "Finale",
+  "predictions.nextLock": "Schließt {time}",
+  "predictions.resolverStatic": "Finale Gruppentabelle aktiv"
 }

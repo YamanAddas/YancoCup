@@ -106,6 +106,19 @@
   "predictions.predicted_count": "{count} predicted",
   "predictions.validScores": "Enter valid scores (0-99)",
   "predictions.pts": "{count} pts",
+  "predictions.endgameEyebrow": "World Cup endgame",
+  "predictions.endgameWaiting": "Waiting for the next knockout slot.",
+  "predictions.endgameAllCaughtUp": "All open knockout picks are locked.",
+  "predictions.endgameNeedsPicks": "{count} open knockout picks need your call.",
+  "predictions.resolverApi": "Live bracket map active",
+  "predictions.resolverScores": "Score-feed bracket map active",
+  "predictions.resolverNone": "Bracket map warming up",
+  "predictions.viewBracket": "Bracket",
+  "predictions.openNowMetric": "Open now",
+  "predictions.needPicksMetric": "Need picks",
+  "predictions.tbdMetric": "TBD slots",
+  "predictions.finalMetric": "Final",
+  "predictions.nextLock": "Locks {time}",
   "howToPlay.title": "How to Play",
   "howToPlay.desc": "Predict the final score of each match before kickoff. Points are awarded based on accuracy.",
   "howToPlay.exactScore": "Exact score",
@@ -600,5 +613,6 @@
   "pools.pulseEvent.changed": "changed their pick",
   "common.back": "Go back",
   "match.info.attendance": "Attendance",
-  "match.h2h.firstMeeting": "First-ever meeting between these teams"
+  "match.h2h.firstMeeting": "First-ever meeting between these teams",
+  "predictions.resolverStatic": "Final group table active"
 }

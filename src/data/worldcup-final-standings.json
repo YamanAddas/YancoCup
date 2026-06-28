@@ -1,0 +1,559 @@
+{
+  "generatedAt": "2026-06-28T04:50:37.2308842Z",
+  "source": "https://yancocup-api.catbyte1985.workers.dev/api/WC/standings",
+  "note": "Fallback snapshot used only when live Worker standings are unavailable after the 2026 group stage.",
+  "groups": {
+    "A": [
+      {
+        "tla": "mex",
+        "played": 3,
+        "won": 3,
+        "draw": 0,
+        "lost": 0,
+        "goalsFor": 6,
+        "goalsAgainst": 0,
+        "goalDiff": 6,
+        "points": 9
+      },
+      {
+        "tla": "rsa",
+        "played": 3,
+        "won": 1,
+        "draw": 1,
+        "lost": 1,
+        "goalsFor": 2,
+        "goalsAgainst": 3,
+        "goalDiff": -1,
+        "points": 4
+      },
+      {
+        "tla": "kor",
+        "played": 3,
+        "won": 1,
+        "draw": 0,
+        "lost": 2,
+        "goalsFor": 2,
+        "goalsAgainst": 3,
+        "goalDiff": -1,
+        "points": 3
+      },
+      {
+        "tla": "cze",
+        "played": 3,
+        "won": 0,
+        "draw": 1,
+        "lost": 2,
+        "goalsFor": 2,
+        "goalsAgainst": 6,
+        "goalDiff": -4,
+        "points": 1
+      }
+    ],
+    "B": [
+      {
+        "tla": "sui",
+        "played": 3,
+        "won": 2,
+        "draw": 1,
+        "lost": 0,
+        "goalsFor": 7,
+        "goalsAgainst": 3,
+        "goalDiff": 4,
+        "points": 7
+      },
+      {
+        "tla": "can",
+        "played": 3,
+        "won": 1,
+        "draw": 1,
+        "lost": 1,
+        "goalsFor": 8,
+        "goalsAgainst": 3,
+        "goalDiff": 5,
+        "points": 4
+      },
+      {
+        "tla": "bih",
+        "played": 3,
+        "won": 1,
+        "draw": 1,
+        "lost": 1,
+        "goalsFor": 5,
+        "goalsAgainst": 6,
+        "goalDiff": -1,
+        "points": 4
+      },
+      {
+        "tla": "qat",
+        "played": 3,
+        "won": 0,
+        "draw": 1,
+        "lost": 2,
+        "goalsFor": 2,
+        "goalsAgainst": 10,
+        "goalDiff": -8,
+        "points": 1
+      }
+    ],
+    "C": [
+      {
+        "tla": "bra",
+        "played": 3,
+        "won": 2,
+        "draw": 1,
+        "lost": 0,
+        "goalsFor": 7,
+        "goalsAgainst": 1,
+        "goalDiff": 6,
+        "points": 7
+      },
+      {
+        "tla": "mar",
+        "played": 3,
+        "won": 2,
+        "draw": 1,
+        "lost": 0,
+        "goalsFor": 6,
+        "goalsAgainst": 3,
+        "goalDiff": 3,
+        "points": 7
+      },
+      {
+        "tla": "sco",
+        "played": 3,
+        "won": 1,
+        "draw": 0,
+        "lost": 2,
+        "goalsFor": 1,
+        "goalsAgainst": 4,
+        "goalDiff": -3,
+        "points": 3
+      },
+      {
+        "tla": "hai",
+        "played": 3,
+        "won": 0,
+        "draw": 0,
+        "lost": 3,
+        "goalsFor": 2,
+        "goalsAgainst": 8,
+        "goalDiff": -6,
+        "points": 0
+      }
+    ],
+    "D": [
+      {
+        "tla": "usa",
+        "played": 3,
+        "won": 2,
+        "draw": 0,
+        "lost": 1,
+        "goalsFor": 8,
+        "goalsAgainst": 4,
+        "goalDiff": 4,
+        "points": 6
+      },
+      {
+        "tla": "aus",
+        "played": 3,
+        "won": 1,
+        "draw": 1,
+        "lost": 1,
+        "goalsFor": 2,
+        "goalsAgainst": 2,
+        "goalDiff": 0,
+        "points": 4
+      },
+      {
+        "tla": "par",
+        "played": 3,
+        "won": 1,
+        "draw": 1,
+        "lost": 1,
+        "goalsFor": 2,
+        "goalsAgainst": 4,
+        "goalDiff": -2,
+        "points": 4
+      },
+      {
+        "tla": "tur",
+        "played": 3,
+        "won": 1,
+        "draw": 0,
+        "lost": 2,
+        "goalsFor": 3,
+        "goalsAgainst": 5,
+        "goalDiff": -2,
+        "points": 3
+      }
+    ],
+    "E": [
+      {
+        "tla": "ger",
+        "played": 3,
+        "won": 2,
+        "draw": 0,
+        "lost": 1,
+        "goalsFor": 10,
+        "goalsAgainst": 4,
+        "goalDiff": 6,
+        "points": 6
+      },
+      {
+        "tla": "civ",
+        "played": 3,
+        "won": 2,
+        "draw": 0,
+        "lost": 1,
+        "goalsFor": 4,
+        "goalsAgainst": 2,
+        "goalDiff": 2,
+        "points": 6
+      },
+      {
+        "tla": "ecu",
+        "played": 3,
+        "won": 1,
+        "draw": 1,
+        "lost": 1,
+        "goalsFor": 2,
+        "goalsAgainst": 2,
+        "goalDiff": 0,
+        "points": 4
+      },
+      {
+        "tla": "cuw",
+        "played": 3,
+        "won": 0,
+        "draw": 1,
+        "lost": 2,
+        "goalsFor": 1,
+        "goalsAgainst": 9,
+        "goalDiff": -8,
+        "points": 1
+      }
+    ],
+    "F": [
+      {
+        "tla": "ned",
+        "played": 3,
+        "won": 2,
+        "draw": 1,
+        "lost": 0,
+        "goalsFor": 10,
+        "goalsAgainst": 4,
+        "goalDiff": 6,
+        "points": 7
+      },
+      {
+        "tla": "jpn",
+        "played": 3,
+        "won": 1,
+        "draw": 2,
+        "lost": 0,
+        "goalsFor": 7,
+        "goalsAgainst": 3,
+        "goalDiff": 4,
+        "points": 5
+      },
+      {
+        "tla": "swe",
+        "played": 3,
+        "won": 1,
+        "draw": 1,
+        "lost": 1,
+        "goalsFor": 7,
+        "goalsAgainst": 7,
+        "goalDiff": 0,
+        "points": 4
+      },
+      {
+        "tla": "tun",
+        "played": 3,
+        "won": 0,
+        "draw": 0,
+        "lost": 3,
+        "goalsFor": 2,
+        "goalsAgainst": 12,
+        "goalDiff": -10,
+        "points": 0
+      }
+    ],
+    "G": [
+      {
+        "tla": "bel",
+        "played": 3,
+        "won": 1,
+        "draw": 2,
+        "lost": 0,
+        "goalsFor": 6,
+        "goalsAgainst": 2,
+        "goalDiff": 4,
+        "points": 5
+      },
+      {
+        "tla": "egy",
+        "played": 3,
+        "won": 1,
+        "draw": 2,
+        "lost": 0,
+        "goalsFor": 5,
+        "goalsAgainst": 3,
+        "goalDiff": 2,
+        "points": 5
+      },
+      {
+        "tla": "irn",
+        "played": 3,
+        "won": 0,
+        "draw": 3,
+        "lost": 0,
+        "goalsFor": 3,
+        "goalsAgainst": 3,
+        "goalDiff": 0,
+        "points": 3
+      },
+      {
+        "tla": "nzl",
+        "played": 3,
+        "won": 0,
+        "draw": 1,
+        "lost": 2,
+        "goalsFor": 4,
+        "goalsAgainst": 10,
+        "goalDiff": -6,
+        "points": 1
+      }
+    ],
+    "H": [
+      {
+        "tla": "esp",
+        "played": 3,
+        "won": 2,
+        "draw": 1,
+        "lost": 0,
+        "goalsFor": 5,
+        "goalsAgainst": 0,
+        "goalDiff": 5,
+        "points": 7
+      },
+      {
+        "tla": "cpv",
+        "played": 3,
+        "won": 0,
+        "draw": 3,
+        "lost": 0,
+        "goalsFor": 2,
+        "goalsAgainst": 2,
+        "goalDiff": 0,
+        "points": 3
+      },
+      {
+        "tla": "uru",
+        "played": 3,
+        "won": 0,
+        "draw": 2,
+        "lost": 1,
+        "goalsFor": 3,
+        "goalsAgainst": 4,
+        "goalDiff": -1,
+        "points": 2
+      },
+      {
+        "tla": "ksa",
+        "played": 3,
+        "won": 0,
+        "draw": 2,
+        "lost": 1,
+        "goalsFor": 1,
+        "goalsAgainst": 5,
+        "goalDiff": -4,
+        "points": 2
+      }
+    ],
+    "I": [
+      {
+        "tla": "fra",
+        "played": 3,
+        "won": 3,
+        "draw": 0,
+        "lost": 0,
+        "goalsFor": 10,
+        "goalsAgainst": 2,
+        "goalDiff": 8,
+        "points": 9
+      },
+      {
+        "tla": "nor",
+        "played": 3,
+        "won": 2,
+        "draw": 0,
+        "lost": 1,
+        "goalsFor": 8,
+        "goalsAgainst": 7,
+        "goalDiff": 1,
+        "points": 6
+      },
+      {
+        "tla": "sen",
+        "played": 3,
+        "won": 1,
+        "draw": 0,
+        "lost": 2,
+        "goalsFor": 8,
+        "goalsAgainst": 6,
+        "goalDiff": 2,
+        "points": 3
+      },
+      {
+        "tla": "irq",
+        "played": 3,
+        "won": 0,
+        "draw": 0,
+        "lost": 3,
+        "goalsFor": 1,
+        "goalsAgainst": 12,
+        "goalDiff": -11,
+        "points": 0
+      }
+    ],
+    "J": [
+      {
+        "tla": "arg",
+        "played": 3,
+        "won": 3,
+        "draw": 0,
+        "lost": 0,
+        "goalsFor": 7,
+        "goalsAgainst": 0,
+        "goalDiff": 7,
+        "points": 9
+      },
+      {
+        "tla": "aut",
+        "played": 3,
+        "won": 1,
+        "draw": 1,
+        "lost": 1,
+        "goalsFor": 4,
+        "goalsAgainst": 4,
+        "goalDiff": 0,
+        "points": 4
+      },
+      {
+        "tla": "alg",
+        "played": 3,
+        "won": 1,
+        "draw": 1,
+        "lost": 1,
+        "goalsFor": 3,
+        "goalsAgainst": 5,
+        "goalDiff": -2,
+        "points": 4
+      },
+      {
+        "tla": "jor",
+        "played": 3,
+        "won": 0,
+        "draw": 0,
+        "lost": 3,
+        "goalsFor": 2,
+        "goalsAgainst": 7,
+        "goalDiff": -5,
+        "points": 0
+      }
+    ],
+    "K": [
+      {
+        "tla": "col",
+        "played": 3,
+        "won": 2,
+        "draw": 1,
+        "lost": 0,
+        "goalsFor": 4,
+        "goalsAgainst": 1,
+        "goalDiff": 3,
+        "points": 7
+      },
+      {
+        "tla": "por",
+        "played": 3,
+        "won": 1,
+        "draw": 2,
+        "lost": 0,
+        "goalsFor": 6,
+        "goalsAgainst": 1,
+        "goalDiff": 5,
+        "points": 5
+      },
+      {
+        "tla": "cod",
+        "played": 3,
+        "won": 1,
+        "draw": 1,
+        "lost": 1,
+        "goalsFor": 4,
+        "goalsAgainst": 3,
+        "goalDiff": 1,
+        "points": 4
+      },
+      {
+        "tla": "uzb",
+        "played": 3,
+        "won": 0,
+        "draw": 0,
+        "lost": 3,
+        "goalsFor": 2,
+        "goalsAgainst": 11,
+        "goalDiff": -9,
+        "points": 0
+      }
+    ],
+    "L": [
+      {
+        "tla": "eng",
+        "played": 3,
+        "won": 2,
+        "draw": 1,
+        "lost": 0,
+        "goalsFor": 6,
+        "goalsAgainst": 2,
+        "goalDiff": 4,
+        "points": 7
+      },
+      {
+        "tla": "cro",
+        "played": 3,
+        "won": 2,
+        "draw": 0,
+        "lost": 1,
+        "goalsFor": 5,
+        "goalsAgainst": 5,
+        "goalDiff": 0,
+        "points": 6
+      },
+      {
+        "tla": "gha",
+        "played": 3,
+        "won": 1,
+        "draw": 1,
+        "lost": 1,
+        "goalsFor": 2,
+        "goalsAgainst": 2,
+        "goalDiff": 0,
+        "points": 4
+      },
+      {
+        "tla": "pan",
+        "played": 3,
+        "won": 0,
+        "draw": 0,
+        "lost": 3,
+        "goalsFor": 0,
+        "goalsAgainst": 4,
+        "goalDiff": -4,
+        "points": 0
+      }
+    ]
+  }
+}

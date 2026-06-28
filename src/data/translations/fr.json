@@ -600,5 +600,19 @@
   "pools.pulseEvent.changed": "a changé son pronostic",
   "common.back": "Retour",
   "match.info.attendance": "Affluence",
-  "match.h2h.firstMeeting": "Première confrontation entre ces deux équipes"
+  "match.h2h.firstMeeting": "Première confrontation entre ces deux équipes",
+  "predictions.endgameEyebrow": "Dernière ligne droite du Mondial",
+  "predictions.endgameWaiting": "En attente de la prochaine affiche à élimination directe.",
+  "predictions.endgameAllCaughtUp": "Toutes les prédictions ouvertes sont verrouillées.",
+  "predictions.endgameNeedsPicks": "{count} prédictions à élimination directe attendent ton choix.",
+  "predictions.resolverApi": "Tableau en direct actif",
+  "predictions.resolverScores": "Tableau basé sur les scores actif",
+  "predictions.resolverNone": "Préparation du tableau",
+  "predictions.viewBracket": "Tableau",
+  "predictions.openNowMetric": "Ouverts",
+  "predictions.needPicksMetric": "À prédire",
+  "predictions.tbdMetric": "Places TBD",
+  "predictions.finalMetric": "Finale",
+  "predictions.nextLock": "Verrouillage {time}",
+  "predictions.resolverStatic": "Classement final des groupes actif"
 }

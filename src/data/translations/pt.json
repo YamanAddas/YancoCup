@@ -600,5 +600,19 @@
   "pools.pulseEvent.changed": "alterou o palpite",
   "common.back": "Voltar",
   "match.info.attendance": "Público",
-  "match.h2h.firstMeeting": "Primeiro confronto entre estas equipes"
+  "match.h2h.firstMeeting": "Primeiro confronto entre estas equipes",
+  "predictions.endgameEyebrow": "Reta final da Copa",
+  "predictions.endgameWaiting": "Aguardando a próxima vaga do mata-mata.",
+  "predictions.endgameAllCaughtUp": "Todos os palpites abertos do mata-mata estão salvos.",
+  "predictions.endgameNeedsPicks": "{count} palpites abertos precisam da sua decisão.",
+  "predictions.resolverApi": "Mapa ao vivo da chave ativo",
+  "predictions.resolverScores": "Mapa da chave por resultados ativo",
+  "predictions.resolverNone": "Preparando mapa da chave",
+  "predictions.viewBracket": "Chave",
+  "predictions.openNowMetric": "Abertos agora",
+  "predictions.needPicksMetric": "Faltam palpites",
+  "predictions.tbdMetric": "Vagas TBD",
+  "predictions.finalMetric": "Final",
+  "predictions.nextLock": "Fecha {time}",
+  "predictions.resolverStatic": "Tabela final dos grupos ativa"
 }

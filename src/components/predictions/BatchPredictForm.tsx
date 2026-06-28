@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Check, Loader2, Zap, AlertCircle } from "lucide-react";
 import { upsertPrediction, upsertQuickPrediction, canPredict } from "../../hooks/usePredictions";
 import { useI18n } from "../../lib/i18n";
@@ -56,6 +56,16 @@ export default function BatchPredictForm({
   const [totalToSave, setTotalToSave] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const jokerBucketByMatch = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const match of matches) {
+      map.set(
+        match.id,
+        match.matchday !== null ? `md:${match.matchday}` : `date:${match.date}`,
+      );
+    }
+    return map;
+  }, [matches]);
 
   const updateEntry = useCallback((matchId: number, patch: Partial<BatchEntry>) => {
     setEntries((prev) => {
@@ -70,9 +80,10 @@ export default function BatchPredictForm({
     setEntries((prev) => {
       const next = new Map(prev);
       const wasJoker = next.get(matchId)?.isJoker;
-      // Only one joker allowed — clear others first
+      const bucket = jokerBucketByMatch.get(matchId);
+      // Only one joker is allowed per matchday/date bucket.
       for (const [id, entry] of next) {
-        if (entry.isJoker && id !== matchId) {
+        if (entry.isJoker && id !== matchId && jokerBucketByMatch.get(id) === bucket) {
           next.set(id, { ...entry, isJoker: false });
         }
       }
@@ -80,7 +91,7 @@ export default function BatchPredictForm({
       if (entry) next.set(matchId, { ...entry, isJoker: !wasJoker });
       return next;
     });
-  }, []);
+  }, [jokerBucketByMatch]);
 
   // Count how many have valid input
   const filledCount = Array.from(entries.values()).filter((e) => {

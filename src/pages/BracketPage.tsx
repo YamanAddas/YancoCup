@@ -3,18 +3,11 @@ import { Link } from "react-router-dom";
 import { GitBranch, Search } from "lucide-react";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useCompetitionSchedule } from "../hooks/useCompetitionSchedule";
+import { useResolvedWorldCupMatches } from "../hooks/useResolvedWorldCupMatches";
 import { useTeamMap } from "../hooks/useTeams";
-import { useScores } from "../hooks/useScores";
 import { useMyPredictions, type Prediction } from "../hooks/usePredictions";
 import TeamCrest from "../components/match/TeamCrest";
 import { useI18n } from "../lib/i18n";
-import {
-  computeGroupStandings,
-  computeKnockoutResults,
-  computeThirdPlaceAllocation,
-  collectThirdSlotHints,
-  resolveBracketPlaceholder,
-} from "../lib/bracketResolver";
 import type { Match, Team } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -27,9 +20,6 @@ interface BracketMatch {
   awayLabel: string;
   homeCrest?: string | null;
   awayCrest?: string | null;
-  /** TLA resolved from group standings or prior knockout result, when m.homeTeam is null. */
-  resolvedHomeTla?: string;
-  resolvedAwayTla?: string;
 }
 
 type RoundId = "playoff" | "round-of-32" | "round-of-16" | "quarterfinal" | "semifinal" | "final";
@@ -71,10 +61,8 @@ function BracketNode({
   const awayScore = liveScore?.awayScore ?? m.awayScore;
   const hasScore = homeScore !== null && awayScore !== null;
 
-  // Prefer the live homeTeam from the schedule (set once football-data.org confirms).
-  // If absent, use the placeholder we resolved from standings / prior KO results.
-  const homeKey = m.homeTeam ?? bm.resolvedHomeTla ?? null;
-  const awayKey = m.awayTeam ?? bm.resolvedAwayTla ?? null;
+  const homeKey = m.homeTeam ?? null;
+  const awayKey = m.awayTeam ?? null;
   const homeTeam = homeKey ? teamMap.get(homeKey) : undefined;
   const awayTeam = awayKey ? teamMap.get(awayKey) : undefined;
   const homeName = homeKey ? tTeam(homeKey) : (m.homeTeamName ?? bm.homeLabel);
@@ -265,9 +253,9 @@ function RoundColumn({
 export default function BracketPage() {
   const comp = useCompetition();
   const { t, tTeam } = useI18n();
-  const { matches } = useCompetitionSchedule();
+  const { matches: scheduleMatches } = useCompetitionSchedule();
+  const { matches, scoreMap } = useResolvedWorldCupMatches(scheduleMatches, comp.id);
   const teamMap = useTeamMap();
-  const { scoreMap } = useScores(comp.id);
   const { predictions } = useMyPredictions(comp.id);
 
   const predMap = useMemo(
@@ -289,19 +277,6 @@ export default function BracketPage() {
 
   const roundOrder: RoundId[] = ["playoff", "round-of-32", "round-of-16", "quarterfinal", "semifinal", "final"];
 
-  const standings = useMemo(
-    () => computeGroupStandings(matches, scoreMap),
-    [matches, scoreMap],
-  );
-  const koResults = useMemo(
-    () => computeKnockoutResults(matches, scoreMap),
-    [matches, scoreMap],
-  );
-  const thirdAllocation = useMemo(
-    () => computeThirdPlaceAllocation(standings, collectThirdSlotHints(matches)),
-    [matches, standings],
-  );
-
   const bracketRounds = useMemo(() => {
     const rounds: Array<{ id: RoundId; matches: BracketMatch[] }> = [];
 
@@ -313,22 +288,12 @@ export default function BracketPage() {
           return dateCompare !== 0 ? dateCompare : a.id - b.id;
         })
         .map((m): BracketMatch => {
-          const resolvedHomeTla =
-            m.homeTeam == null
-              ? (resolveBracketPlaceholder(m.homePlaceholder, standings, koResults, thirdAllocation) ?? undefined)
-              : undefined;
-          const resolvedAwayTla =
-            m.awayTeam == null
-              ? (resolveBracketPlaceholder(m.awayPlaceholder, standings, koResults, thirdAllocation) ?? undefined)
-              : undefined;
           return {
             match: m,
             homeLabel: m.homePlaceholder ?? m.homeTeamName ?? m.homeTeam?.toUpperCase() ?? "TBD",
             awayLabel: m.awayPlaceholder ?? m.awayTeamName ?? m.awayTeam?.toUpperCase() ?? "TBD",
             homeCrest: m.homeCrest,
             awayCrest: m.awayCrest,
-            resolvedHomeTla,
-            resolvedAwayTla,
           };
         });
 
@@ -338,7 +303,7 @@ export default function BracketPage() {
     }
 
     return rounds;
-  }, [matches, standings, koResults]);
+  }, [matches]);
 
   const thirdPlace = matches.find((m) => m.round === "third-place");
 

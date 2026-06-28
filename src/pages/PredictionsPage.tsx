@@ -4,6 +4,7 @@ import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { useCompetition } from "../lib/CompetitionProvider";
 import { useCompetitionSchedule } from "../hooks/useCompetitionSchedule";
+import { useResolvedWorldCupMatches } from "../hooks/useResolvedWorldCupMatches";
 import { useTeamMap } from "../hooks/useTeams";
 import { useVenueMap } from "../hooks/useVenues";
 import {
@@ -19,6 +20,7 @@ import PredictionCard from "../components/predictions/PredictionCard";
 import BatchPredictForm from "../components/predictions/BatchPredictForm";
 import MatchdayRecap from "../components/predictions/MatchdayRecap";
 import HowToPlay from "../components/predictions/HowToPlay";
+import EndgameCommandStrip from "../components/predictions/EndgameCommandStrip";
 import { LogIn, AlertCircle, ChevronLeft, ChevronRight, CheckCircle, Clock, Flame, Copy, List, LayoutGrid, Shield } from "lucide-react";
 import { fetchStreak } from "../lib/badges";
 import type { StreakData } from "../lib/badges";
@@ -59,7 +61,11 @@ export default function PredictionsPage() {
   // signing in. Their picks live in localStorage until sign-up migration.
   const userId = user?.id ?? ANON_USER_ID;
   const isAnon = !user;
-  const { matches: allMatches, matchdays } = useCompetitionSchedule();
+  const { matches: scheduleMatches, matchdays } = useCompetitionSchedule();
+  const { matches: allMatches, summary: endgameSummary } = useResolvedWorldCupMatches(
+    scheduleMatches,
+    comp.id,
+  );
   const teamMap = useTeamMap();
   const venueMap = useVenueMap();
   const { predictions, predsLoading, refresh } = useAutoScore(comp.id);
@@ -125,21 +131,23 @@ export default function PredictionsPage() {
     [open, predictionMap],
   );
 
-  // Joker is one-per-MATCHDAY. Map each matchday → the match that already holds
-  // its joker. Tournaments (WC) show every matchday at once, so the previous
-  // single tournament-wide check made the joker look "used" on all 104 matches
-  // after a single pick. Keyed by matchday so a card only locks the joker when
-  // ANOTHER match in the SAME matchday already has it.
+  // Map each matchday/date bucket to the match that already holds its joker.
+  const jokerBucketFor = useCallback((m: { matchday: number | null; date: string }) =>
+    m.matchday !== null ? `md:${m.matchday}` : `date:${m.date}`,
+  []);
+
   const jokerByMatchday = useMemo(() => {
     const byId = new Map(allMatches.map((m) => [m.id, m]));
-    const map = new Map<number | null, number>();
+    const map = new Map<string, number>();
     for (const pred of predictions) {
       if (!pred.is_joker) continue;
-      const md = byId.get(pred.match_id)?.matchday ?? null;
-      if (!map.has(md)) map.set(md, pred.match_id);
+      const match = byId.get(pred.match_id);
+      if (!match) continue;
+      const bucket = jokerBucketFor(match);
+      if (!map.has(bucket)) map.set(bucket, pred.match_id);
     }
     return map;
-  }, [allMatches, predictions]);
+  }, [allMatches, jokerBucketFor, predictions]);
 
   // Matchday status for pill styling
   const mdStatus = useCallback(
@@ -225,6 +233,15 @@ export default function PredictionsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       {isAnon && <AnonSaveBanner />}
+
+      {comp.id === "WC" && (
+        <EndgameCommandStrip
+          matches={allMatches}
+          predictionMap={predictionMap}
+          teamMap={teamMap}
+          summary={endgameSummary}
+        />
+      )}
 
       {/* Prediction stats + mode toggle */}
       <div className="flex items-center justify-between mb-4">
@@ -412,8 +429,8 @@ export default function PredictionsPage() {
                       competitionId={comp.id}
                       userPredictionCount={predictions.length}
                       jokerUsedThisMatchday={
-                        jokerByMatchday.get(m.matchday ?? null) != null &&
-                        jokerByMatchday.get(m.matchday ?? null) !== m.id
+                        jokerByMatchday.get(jokerBucketFor(m)) != null &&
+                        jokerByMatchday.get(jokerBucketFor(m)) !== m.id
                       }
                       quickMode={quickMode}
                       onSaved={refresh}

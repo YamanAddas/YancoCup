@@ -600,5 +600,19 @@
   "pools.pulseEvent.changed": "غيّر توقعه",
   "common.back": "رجوع",
   "match.info.attendance": "الحضور",
-  "match.h2h.firstMeeting": "أول مواجهة بين هذين الفريقين"
+  "match.h2h.firstMeeting": "أول مواجهة بين هذين الفريقين",
+  "predictions.endgameEyebrow": "نهاية كأس العالم",
+  "predictions.endgameWaiting": "في انتظار المقعد التالي في الأدوار الإقصائية.",
+  "predictions.endgameAllCaughtUp": "كل توقعات الأدوار الإقصائية المفتوحة محفوظة.",
+  "predictions.endgameNeedsPicks": "{count} توقعًا مفتوحًا يحتاج إلى اختيارك.",
+  "predictions.resolverApi": "خريطة الأدوار المباشرة نشطة",
+  "predictions.resolverScores": "خريطة الأدوار من النتائج نشطة",
+  "predictions.resolverNone": "جاري تجهيز خريطة الأدوار",
+  "predictions.viewBracket": "المسار",
+  "predictions.openNowMetric": "مفتوح الآن",
+  "predictions.needPicksMetric": "بحاجة لتوقعات",
+  "predictions.tbdMetric": "مقاعد غير محددة",
+  "predictions.finalMetric": "النهائي",
+  "predictions.nextLock": "يغلق {time}",
+  "predictions.resolverStatic": "جدول المجموعات النهائي نشط"
 }
