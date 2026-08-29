@@ -14,3 +14,5 @@ worker/.wrangler/
 coverage/
 .firecrawl/
 .tmp/
+.agents/
+.codex/
